@@ -65,7 +65,11 @@ type fileLogger struct {
 	logFile *os.File
 }
 
-func NewLogger(loggerType uint16) (Logger, error) {
+// NewLogger creates either a file or console logger.
+// Provided with a name, and type log.FileLogger, NewLogger will create
+// a unique logfile - for readability, as well as thread safety. Preventing deadlocks is
+// up to the log user, as they are responsible for creating unique names.
+func NewLogger(loggerType uint16, name string) (Logger, error) {
 	var logger Logger
 	switch loggerType {
 	case ConsoleLogger:
@@ -76,7 +80,7 @@ func NewLogger(loggerType uint16) (Logger, error) {
 		}
 	case FileLogger:
 		// create logfile to write to
-		f, err := os.Create(filepath.Join(os.TempDir(), logFile))
+		f, err := os.Create(filepath.Join(os.TempDir(), fmt.Sprintf("%s_%s", name, logFile)))
 		if err != nil {
 			return nil, fmt.Errorf("failed to create log file: %v", err)
 		}
