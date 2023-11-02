@@ -6,17 +6,22 @@ import (
 )
 
 type monarchServer struct {
-	app *console.Console
+	App *console.Console
+}
+
+var Server *monarchServer
+
+func init() {
+	Server = &monarchServer{
+		App: console.New("monarch"),
+	}
 }
 
 func Run() error {
 	// TODO:Start monarch console
-	s := &monarchServer{
-		app: console.New("monarch"),
-	}
-	srvMenu := s.app.ActiveMenu()
+	srvMenu := Server.App.ActiveMenu()
 	srvMenu.AddCommand(commands.ConsoleCommands()...)
 
 	srvMenu.CompletionOptions.HiddenDefaultCmd = true
-	return s.app.Start()
+	return Server.App.Start()
 }

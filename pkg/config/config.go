@@ -33,6 +33,8 @@ type MonarchConfig struct {
 	GitPAT      string
 	// Ignore console warning logs
 	IgnoreConsoleWarnings bool
+	MysqlUsername         string
+	MysqlPassword         string
 }
 
 type ProjectConfig struct {
@@ -62,6 +64,7 @@ type ProjectConfig struct {
 type ProjectConfigCmd struct {
 	Name  string
 	Usage string
+	NArgs int
 	// Specifies whether this command requires admin privileges or not
 	Admin bool
 	// If opcode is specified, the provided integer opcode is used in place of the command name,

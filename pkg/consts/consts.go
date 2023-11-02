@@ -4,4 +4,5 @@ const (
 	DockerfilesPath      = "docker"
 	TranslatorDockerfile = "translate.Dockerfile"
 	BuilderDockerfile    = "build.Dockerfile"
+	DockerBuilderL
 )

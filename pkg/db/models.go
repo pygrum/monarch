@@ -10,6 +10,7 @@ type Agent struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	Name      string
+	Version   string
 	// The path that the agent files are installed at
 	InstalledAt string
 	// BuilderImageID and BuilderContainerID identify the image / container used to build implants
@@ -24,6 +25,7 @@ type Agent struct {
 
 type Translator struct {
 	TranslatorID string `gorm:"primaryKey"`
+	Version      string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 	Name         string

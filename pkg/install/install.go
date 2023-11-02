@@ -6,22 +6,25 @@ import (
 	"errors"
 	"fmt"
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
+	"github.com/google/uuid"
 	"github.com/pygrum/monarch/pkg/config"
 	"github.com/pygrum/monarch/pkg/consts"
+	"github.com/pygrum/monarch/pkg/db"
 	"github.com/pygrum/monarch/pkg/log"
 	"io"
 	"path/filepath"
+	"reflect"
 	"strings"
 )
 
 const (
-	configName         = "royal.yaml"
-	nativeTranslator   = "native"
-	externalTranslator = "external"
+	configName       = "royal.yaml"
+	nativeTranslator = "native"
 )
 
 var l log.Logger
@@ -38,8 +41,8 @@ type aux struct {
 	ID string `json:"ID"`
 }
 
-// InstallRepo and use GitHub credentials if repository is private
-func InstallRepo(url string, private bool) error {
+// NewRepo and use GitHub credentials if repository is private
+func NewRepo(url string, private bool) error {
 	c := config.MonarchConfig{}
 	if err := config.EnvConfig(&c); err != nil {
 		return err
@@ -94,7 +97,8 @@ func setup(path string) error {
 	if err != nil {
 		return err
 	}
-	var builderImageID, translatorImageID string
+
+	var builderImageID, translatorImageID, builderImageTag, translatorImageTag string
 	resp, err := cli.ImageBuild(ctx, reader, types.ImageBuildOptions{
 		Dockerfile: filepath.Join(path, consts.DockerfilesPath, consts.BuilderDockerfile),
 		Tags:       []string{royal.Name + ":" + royal.Version},
@@ -104,12 +108,17 @@ func setup(path string) error {
 		return fmt.Errorf("failed to build agent-builder image: %v", err)
 	}
 	bytes, _ := io.ReadAll(resp.Body)
+
 	_ = resp.Body.Close()
 	obj := imageBuildResponse{}
 	if err = json.Unmarshal(bytes, &obj); err != nil {
 		return err
 	}
-	builderImageID = obj.Aux.ID
+	if !reflect.DeepEqual(obj.Aux, aux{}) {
+		builderImageID = obj.Aux.ID
+	}
+	builderImageTag = royal.Name + ":" + royal.Version
+
 	// Create translator image if translator is inbuilt
 	if royal.TranslatorType == nativeTranslator {
 		resp, err = cli.ImageBuild(ctx, reader, types.ImageBuildOptions{
@@ -127,6 +136,75 @@ func setup(path string) error {
 		if err = json.Unmarshal(bytes, &obj); err != nil {
 			return err
 		}
-		translatorImageID = obj.Aux.ID
+		if !reflect.DeepEqual(obj.Aux, aux{}) {
+			translatorImageID = obj.Aux.ID
+		}
+		translatorImageTag = royal.TranslatorName + ":" + royal.Version
 	}
+	buildContainerID, trContainerID, err := startContainers(cli, ctx, builderImageTag, translatorImageTag)
+	if err != nil {
+		return fmt.Errorf("failed to start agent services: %v", err)
+	}
+
+	agentID := uuid.New().String()
+	translatorID := uuid.New().String()
+	agent := &db.Agent{
+		AgentID:            agentID,
+		Name:               royal.Name,
+		Version:            royal.Version,
+		InstalledAt:        path,
+		BuilderImageID:     builderImageID,
+		BuilderContainerID: buildContainerID,
+		TranslatorID:       translatorID,
+	}
+	translator := &db.Translator{
+		TranslatorID: translatorID,
+		Name:         royal.TranslatorName,
+		Version:      royal.Version,
+		InstalledAt:  path,
+		ImageID:      translatorImageID,
+		ContainerID:  trContainerID,
+	}
+	err = db.Create(agent)
+	if err != nil {
+		return err
+	}
+	return db.Create(translator)
+}
+
+func startContainers(cli *client.Client, ctx context.Context, builderImageTag, translatorImageTag string) (string, string, error) {
+	// Run container with same name as image
+	var builderID, translatorID string
+
+	resp, err := cli.ContainerCreate(ctx, &container.Config{
+		Image: builderImageTag,
+		Tty:   false,
+	}, nil, nil, nil, builderImageTag)
+	if err != nil {
+		return "", "", err
+	}
+	// Start builder container
+	if err = cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
+		return "", "", err
+	}
+	l.Info("started builder container %s", builderImageTag)
+	builderID = resp.ID
+
+	// Only start translator image if it exists
+	if len(translatorImageTag) != 0 {
+		resp, err = cli.ContainerCreate(ctx, &container.Config{
+			Image: translatorImageTag,
+			Tty:   false,
+		}, nil, nil, nil, translatorImageTag)
+		if err != nil {
+			return "", "", err
+		}
+		// Start builder container
+		if err = cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
+			return "", "", err
+		}
+		l.Info("started translator container %s", translatorImageTag)
+		translatorID = resp.ID
+	}
+	return builderID, translatorID, nil
 }
