@@ -10,7 +10,7 @@ type monarchServer struct {
 }
 
 func Run() error {
-	// TODO:Start server console
+	// TODO:Start monarch console
 	s := &monarchServer{
 		app: console.New("monarch"),
 	}

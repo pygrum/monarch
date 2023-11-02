@@ -18,7 +18,7 @@ func ConsoleCommands() []*cobra.Command {
 
 	cmdShutdown := &cobra.Command{
 		Use:   "shutdown",
-		Short: "shutdown the monarch server",
+		Short: "shutdown the monarch monarch",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			shutdownCmd()

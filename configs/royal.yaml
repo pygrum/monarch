@@ -1,0 +1,44 @@
+# The royal.yaml file exists at the root of every agent project.
+# It's used to set up the builder (and if applicable, translation) services.
+# The following file is simply an example of how a royal.yaml config file looks like.
+
+name: example-agent
+version: 1.0
+
+# The translator is used to translate messages between the C2 and agent.
+translator_name: example_tr
+translator_type: native
+
+# The command schema defines the possible commands that can be used with the agent.
+# If the agent doesn't use commands to operate, then this configuration parameter is not necessary.
+# On installation of the agent, the command schema is used by the translator when an operator requests to
+# view commands.
+cmd_schema:
+  - name: ls
+    usage: ls [path]
+    admin: false
+    # If opcode is specified, the provided integer opcode is used in place of the command name, promoting better OpSec
+    opcode: 0x1
+    description_short: list files in a directory.
+    description_long: list files in a directory.
+
+  - name: clean
+    usage: clean
+    admin: true
+    opcode: 0x2
+    description_short: self delete and terminate process.
+    description_long: self delete and terminate process.
+
+# The script used to build the agent
+build_script: /build.sh
+# The path that the agent is created at after a successful build
+build_path: /tmp/example.exe
+# The directory where the build routine takes place
+source_dir: /src
+# These are custom build arguments that can be used for building, in addition to default build arguments provided
+# by the C2 itself.
+build_args:
+  - name: email
+    required: true
+
+
