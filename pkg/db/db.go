@@ -11,18 +11,17 @@ import (
 var db *gorm.DB
 var l log.Logger
 
-// Initialise database
-func init() {
+// Initialize database
+func Initialize() {
 	l, _ = log.NewLogger(log.ConsoleLogger, "")
-
 	conf := config.MonarchConfig{}
-	err := config.EnvConfig(&conf)
+	err := config.YamlConfig(config.MonarchConfigFile, &conf)
 	if err != nil {
 		l.Fatal("failed to retrieve configuration for database: %v. Monarch cannot continue to operate", err)
 	}
 	// mysql operates on localhost
-	dsn := fmt.Sprintf("%s:%s@tcp(127.0.0.1:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local",
-		conf.MysqlUsername, conf.MysqlPassword)
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/monarch?charset=utf8mb4&parseTime=True&loc=Local",
+		conf.MysqlUsername, conf.MysqlPassword, conf.MysqlAddress)
 
 	db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {

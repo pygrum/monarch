@@ -3,6 +3,7 @@ package log
 import (
 	"errors"
 	"fmt"
+	"github.com/pygrum/monarch/pkg/config"
 	"os"
 	"path/filepath"
 )
@@ -13,8 +14,12 @@ const (
 	LevelDebug uint16 = iota
 	// LevelInfo logs only informational messages and any others with greater severity.
 	LevelInfo
+	// LevelSuccess logs only success messages and any others with greater severity.
+	LevelSuccess
 	// LevelWarn logs only warning messages and any others with greater severity.
 	LevelWarn
+	// LevelError logs only error messages and any others with greater severity.
+	LevelError
 	// LevelFatal logs only fatal messages.
 	LevelFatal
 	// ConsoleLogger creates a new console logger when used in NewLogger().
@@ -22,6 +27,8 @@ const (
 	// FileLogger creates a new file logger when used in NewLogger().
 	FileLogger
 )
+
+var logLevel uint16
 
 // Logger interface declares methods used by both console loggers and file loggers.
 // Console loggers display their output to the user, while file loggers
@@ -31,9 +38,13 @@ type Logger interface {
 	// Fatal is used when an application encounters a critical error, requiring
 	// a shutdown.
 	Fatal(format string, v ...interface{})
+	// Error is used when a non-fatal error is raised.
+	Error(format string, v ...interface{})
 	// Warn is typically used to warn about errors that an application doesn't necessarily
 	// have to shut down for.
 	Warn(format string, v ...interface{})
+	// Success is used when an operation completes successfully.
+	Success(format string, v ...interface{})
 	// Info is used for useful application notifications, such as an operation
 	// completed successfully, or network operations such as received / sent requests and
 	// responses.
@@ -65,17 +76,22 @@ type fileLogger struct {
 	logFile *os.File
 }
 
+func init() {
+	logLevel = config.MainConfig.LogLevel
+}
+
 // NewLogger creates either a file or console logger.
 // Provided with a name, and type log.FileLogger, NewLogger will create
 // a unique logfile - for readability, as well as thread safety. Preventing deadlocks is
 // up to the log user, as they are responsible for creating unique names.
 func NewLogger(loggerType uint16, name string) (Logger, error) {
+
 	var logger Logger
 	switch loggerType {
 	case ConsoleLogger:
 		logger = &consoleLogger{
 			settings: settings{
-				logLevel: LevelInfo,
+				logLevel: logLevel,
 			},
 		}
 	case FileLogger:
@@ -86,7 +102,7 @@ func NewLogger(loggerType uint16, name string) (Logger, error) {
 		}
 		logger = &fileLogger{
 			settings: settings{
-				logLevel: LevelInfo,
+				logLevel: logLevel,
 			},
 			logFile: f,
 		}

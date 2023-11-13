@@ -2,6 +2,7 @@ package console
 
 import (
 	"github.com/pygrum/monarch/pkg/commands"
+	"github.com/pygrum/monarch/pkg/db"
 	"github.com/reeflective/console"
 )
 
@@ -15,6 +16,7 @@ func init() {
 	Server = &monarchServer{
 		App: console.New("monarch"),
 	}
+	db.Initialize()
 }
 
 func Run() error {

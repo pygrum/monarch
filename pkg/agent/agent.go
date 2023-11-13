@@ -22,5 +22,6 @@ func (a *Agent) RegisterAgentMenu() {
 			Short: cmd.DescriptionShort,
 			Long:  cmd.DescriptionLong,
 		}
+		agentMenu.AddCommand(c)
 	}
 }

@@ -5,15 +5,16 @@ package config
 
 import (
 	"github.com/goccy/go-yaml"
-	"github.com/kelseyhightower/envconfig"
 	"os"
+	"path/filepath"
 )
 
-const appName = "monarch"
+var (
+	MainConfig        MonarchConfig
+	MonarchConfigFile string
+)
 
 type MonarchConfig struct {
-	// Specifies whether Monarch is in debug mode or not.
-	Debug bool
 	// Set monarch logging level, which can be one of: debug (1), informational (2), warning (3), fatal (4)
 	LogLevel uint16
 	// Path to the certificate file used for TLS enabled connections.
@@ -33,6 +34,7 @@ type MonarchConfig struct {
 	GitPAT      string
 	// Ignore console warning logs
 	IgnoreConsoleWarnings bool
+	MysqlAddress          string
 	MysqlUsername         string
 	MysqlPassword         string
 }
@@ -43,35 +45,35 @@ type ProjectConfig struct {
 	// The translator is used to translate messages between the C2 and agent.
 	// A translator can use an existing translator (type=external) or the one included in the cloned project
 	// (type=native). The translator is installed as a container and given the name provided by `translator_name`.
-	TranslatorName string
-	TranslatorType string
+	TranslatorName string `yaml:"translator_name"`
+	TranslatorType string `yaml:"translator_type"`
 	// The command schema defines the possible commands that can be used with the agent.
 	// If the agent doesn't use commands to operate, then this configuration parameter is not necessary.
 	// On installation of the agent, the command schema is used by the translator when an operator requests to
 	// view commands.
-	CmdSchema []ProjectConfigCmd
+	CmdSchema []ProjectConfigCmd `yaml:"cmd_schema"`
 	// The script used to build the agent
-	BuildScript string
+	BuildScript string `yaml:"build_script"`
 	// The path that the agent is created at after a successful build
-	BuildPath string
+	BuildPath string `yaml:"build_path"`
 	// The directory where the build routine takes place
-	SourceDir string
+	SourceDir string `yaml:"source_dir"`
 	// These are custom build arguments that can be used for building, in addition to default build arguments provided
 	// by the C2 itself.
-	BuildArgs []ProjectConfigBuildArgs
+	BuildArgs []ProjectConfigBuildArgs `yaml:"build_args"`
 }
 
 type ProjectConfigCmd struct {
 	Name  string
 	Usage string
-	NArgs int
+	NArgs int `yaml:"n_args"`
 	// Specifies whether this command requires admin privileges or not
 	Admin bool
 	// If opcode is specified, the provided integer opcode is used in place of the command name,
 	// promoting better OpSec
 	Opcode           uint
-	DescriptionShort string
-	DescriptionLong  string
+	DescriptionShort string `yaml:"description_short"`
+	DescriptionLong  string `yaml:"description_long"`
 }
 
 type ProjectConfigBuildArgs struct {
@@ -79,10 +81,13 @@ type ProjectConfigBuildArgs struct {
 	Required bool
 }
 
-// EnvConfig fetches the app configuration from environment variables and attempts to unmarshal them using the
-// provided configuration template pointer.
-func EnvConfig(config interface{}) error {
-	return envconfig.Process(appName, config)
+func init() {
+	home, _ := os.UserHomeDir()
+	MonarchConfigFile = filepath.Join(home, ".monarch", "monarch.yaml")
+
+	if err := YamlConfig(MonarchConfigFile, &MainConfig); err != nil {
+		panic(err)
+	}
 }
 
 // YamlConfig will unmarshal yaml data into the provided template pointer.

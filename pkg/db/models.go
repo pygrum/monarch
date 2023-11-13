@@ -13,9 +13,9 @@ type Agent struct {
 	Version   string
 	// The path that the agent files are installed at
 	InstalledAt string
-	// BuilderImageID and BuilderContainerID identify the image / container used to build implants
-	BuilderImageID     string
-	BuilderContainerID string
+	// ImageID and ContainerID identify the image / container used to build implants
+	ImageID     string
+	ContainerID string
 	// TranslatorID is the UUID that identifies the translator used by the agent.
 	// This would be in a separate container from the builder, which also allows authors to use
 	// someone else's translator.

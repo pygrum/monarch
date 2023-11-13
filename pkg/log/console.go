@@ -8,14 +8,18 @@ import (
 
 var (
 	colorReset   = "\033[0m"
-	colorFatal   = "\033[31m"
-	colorInfo    = "\033[32m"
+	colorError   = "\033[31m" // Red
+	colorFatal   = "\033[37m" // Gray
+	colorInfo    = "\033[34m" // Blue
+	colorSuccess = "\033[32m"
 	colorWarning = "\033[33m"
 	colorDebug   = "\033[34m"
 
 	consoleFatalPrefix   = "[x]"
-	consoleWarningPrefix = "[!]"
-	consoleInfoPrefix    = "[+]"
+	consoleErrorPrefix   = "[!]"
+	consoleWarningPrefix = "[?]"
+	consoleInfoPrefix    = "[*]"
+	consoleSuccessPrefix = "[+]"
 	consoleDebugPrefix   = "[-]"
 )
 
@@ -25,10 +29,23 @@ func (c *consoleLogger) Fatal(format string, v ...interface{}) {
 	os.Exit(1)
 }
 
+func (c *consoleLogger) Error(format string, v ...interface{}) {
+	if c.logLevel <= LevelError {
+		fmt.Println(colorError+consoleErrorPrefix, fmt.Sprintf(format, v...),
+			colorReset)
+	}
+}
+
 func (c *consoleLogger) Warn(format string, v ...interface{}) {
 	if c.logLevel <= LevelWarn {
 		fmt.Println(colorWarning+consoleWarningPrefix, fmt.Sprintf(format, v...),
 			colorReset)
+	}
+}
+
+func (c *consoleLogger) Success(format string, v ...interface{}) {
+	if c.logLevel <= LevelSuccess {
+		fmt.Println(colorSuccess+consoleSuccessPrefix, fmt.Sprintf(format, v...), colorReset)
 	}
 }
 
@@ -49,7 +66,7 @@ func (c *consoleLogger) SetLogLevel(logLevel uint16) error {
 	if logLevel < LevelDebug || logLevel > LevelFatal {
 		return errors.New("invalid log level provided")
 	}
-	c.logLevel = LevelDebug
+	c.logLevel = logLevel
 	return nil
 }
 

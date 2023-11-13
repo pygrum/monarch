@@ -1,0 +1,16 @@
+# Default configuration for monarch
+debug: false
+loglevel: 2
+certfile: monarch.crt # cert file relative to monarch home dir
+keyfile: monarch.key
+interface: 0.0.0.0
+httpport: 80
+httpsport: 443
+installdir: agents
+# gitusername:
+# gitpat:
+ignoreconsolewarnings: false
+
+mysqladdress: 172.20.0.2
+mysqlusername: root
+mysqlpassword: monarch

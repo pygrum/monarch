@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/go-git/go-git/v5"
@@ -18,7 +19,6 @@ import (
 	"github.com/pygrum/monarch/pkg/log"
 	"io"
 	"path/filepath"
-	"reflect"
 	"strings"
 )
 
@@ -27,28 +27,23 @@ const (
 	nativeTranslator = "native"
 )
 
-var l log.Logger
+var (
+	l log.Logger
+)
 
 func init() {
 	l, _ = log.NewLogger(log.ConsoleLogger, "")
 }
 
 type imageBuildResponse struct {
-	Aux aux `json:"aux"`
-}
-
-type aux struct {
-	ID string `json:"ID"`
+	Aux map[string]string
 }
 
 // NewRepo and use GitHub credentials if repository is private
 func NewRepo(url string, private bool) error {
 	c := config.MonarchConfig{}
-	if err := config.EnvConfig(&c); err != nil {
+	if err := config.YamlConfig(config.MonarchConfigFile, &c); err != nil {
 		return err
-	}
-	if c.Debug {
-		_ = l.SetLogLevel(log.LevelDebug)
 	}
 	o := &git.CloneOptions{
 		URL: url,
@@ -75,111 +70,160 @@ func NewRepo(url string, private bool) error {
 	}
 	// TODO:Find config, then find agent builder Dockerfile (and if necessary, translator) and start containers.
 	// Build arguments passed with environment variables.
-	return setup(clonePath)
+	a, t, err := setup(clonePath)
+	if err != nil {
+		return err
+	}
+	if t != nil {
+		if err = db.Create(t); err != nil {
+			return err
+		}
+	}
+	return db.Create(a)
 }
 
-func setup(path string) error {
+func setup(path string) (*db.Agent, *db.Translator, error) {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	configPath := filepath.Join(path, configName)
 	royal := config.ProjectConfig{}
 	if err := config.YamlConfig(configPath, &royal); err != nil {
-		return err
+		return nil, nil, err
 	}
-	l.Info("success! installing: %s %s\n", royal.Name, royal.Version)
+	l.Success("success! installing: %s v%s", royal.Name, royal.Version)
 	// TODO:ImageBuild using dockerfile for agent, save image/container info to DB
 
 	reader, err := archive.Tar(path, archive.Gzip)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
-
+	defer reader.Close()
 	var builderImageID, translatorImageID, builderImageTag, translatorImageTag string
+	// Build builder image
 	resp, err := cli.ImageBuild(ctx, reader, types.ImageBuildOptions{
-		Dockerfile: filepath.Join(path, consts.DockerfilesPath, consts.BuilderDockerfile),
+		Dockerfile: filepath.Join(consts.DockerfilesPath, consts.BuilderDockerfile),
 		Tags:       []string{royal.Name + ":" + royal.Version},
-		PullParent: true, // I think this means pull the container that the dockerfile builds on
+		PullParent: false,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to build agent-builder image: %v", err)
+		return nil, nil, fmt.Errorf("failed to build agent-builder image: %v", err)
 	}
 	bytes, _ := io.ReadAll(resp.Body)
 
 	_ = resp.Body.Close()
-	obj := imageBuildResponse{}
-	if err = json.Unmarshal(bytes, &obj); err != nil {
-		return err
-	}
-	if !reflect.DeepEqual(obj.Aux, aux{}) {
-		builderImageID = obj.Aux.ID
-	}
-	builderImageTag = royal.Name + ":" + royal.Version
 
+	ID, buildErr, err := parseResponse(string(bytes))
+	if buildErr != nil {
+		return nil, nil, fmt.Errorf("build error while installing agent: %v", buildErr)
+	}
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read build response: %v", err)
+	}
+	builderImageID = ID
+	builderImageTag = royal.Name + ":" + royal.Version
+	l.Success("successfully created builder image: %s", builderImageID)
 	// Create translator image if translator is inbuilt
 	if royal.TranslatorType == nativeTranslator {
-		resp, err = cli.ImageBuild(ctx, reader, types.ImageBuildOptions{
-			Dockerfile: filepath.Join(path, consts.DockerfilesPath, consts.TranslatorDockerfile),
+		l.Info("building native translator %s", royal.TranslatorName)
+		// Need to create a new reader, I think that calling an image build closes the old one
+		trReader, err := archive.Tar(path, archive.Gzip)
+		if err != nil {
+			return nil, nil, err
+		}
+		defer trReader.Close()
+		resp, err = cli.ImageBuild(ctx, trReader, types.ImageBuildOptions{
+			Dockerfile: filepath.Join(consts.DockerfilesPath, consts.TranslatorDockerfile),
 			Tags:       []string{royal.TranslatorName + ":" + royal.Version},
-			PullParent: true,
+			PullParent: false,
 		})
 		if err != nil {
-			return fmt.Errorf("failed to build translator image: %v", err)
+			return nil, nil, fmt.Errorf("failed to build translator image: %v", err)
 		}
-
 		bytes, _ = io.ReadAll(resp.Body)
 		_ = resp.Body.Close()
-		obj := imageBuildResponse{}
-		if err = json.Unmarshal(bytes, &obj); err != nil {
-			return err
+		ID, buildErr, err = parseResponse(string(bytes))
+		if buildErr != nil {
+			return nil, nil, fmt.Errorf("build error while installing agent: %v", err)
 		}
-		if !reflect.DeepEqual(obj.Aux, aux{}) {
-			translatorImageID = obj.Aux.ID
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to read build response: %v", err)
 		}
+		translatorImageID = ID
 		translatorImageTag = royal.TranslatorName + ":" + royal.Version
+		l.Success("successfully created translator image: %s", translatorImageID)
 	}
 	buildContainerID, trContainerID, err := startContainers(cli, ctx, builderImageTag, translatorImageTag)
 	if err != nil {
-		return fmt.Errorf("failed to start agent services: %v", err)
+		return nil, nil, fmt.Errorf("failed to start agent services: %v", err)
 	}
 
 	agentID := uuid.New().String()
 	translatorID := uuid.New().String()
 	agent := &db.Agent{
-		AgentID:            agentID,
-		Name:               royal.Name,
-		Version:            royal.Version,
-		InstalledAt:        path,
-		BuilderImageID:     builderImageID,
-		BuilderContainerID: buildContainerID,
-		TranslatorID:       translatorID,
-	}
-	translator := &db.Translator{
-		TranslatorID: translatorID,
-		Name:         royal.TranslatorName,
+		AgentID:      agentID,
+		Name:         royal.Name,
 		Version:      royal.Version,
 		InstalledAt:  path,
-		ImageID:      translatorImageID,
-		ContainerID:  trContainerID,
+		ImageID:      builderImageID,
+		ContainerID:  buildContainerID,
+		TranslatorID: translatorID,
 	}
-	err = db.Create(agent)
-	if err != nil {
-		return err
+	if len(trContainerID) != 0 {
+		translator := &db.Translator{
+			TranslatorID: translatorID,
+			Name:         royal.TranslatorName,
+			Version:      royal.Version,
+			InstalledAt:  path,
+			ImageID:      translatorImageID,
+			ContainerID:  trContainerID,
+		}
+		return agent, translator, nil
 	}
-	return db.Create(translator)
+	return agent, nil, nil
 }
 
-func startContainers(cli *client.Client, ctx context.Context, builderImageTag, translatorImageTag string) (string, string, error) {
+// parseResponse returns the image ID, build errors and any errors that occurred during parsing
+func parseResponse(s string) (string, error, error) {
+	responses := strings.Split(s, "\n")
+	for _, response := range responses {
+		if len(response) == 0 {
+			continue
+		}
+		responseMap := make(map[string]interface{})
+		if err := json.Unmarshal([]byte(response), &responseMap); err != nil {
+			return "", nil, err
+		}
+		errMsg, ok := responseMap["error"]
+		if ok {
+			return "", errors.New(errMsg.(string)), nil
+		}
+		success, ok := responseMap["aux"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+		return success["ID"].(string), nil, nil
+	}
+	return "", errors.New("could not retrieve image ID"), nil
+}
+
+func startContainers(cli *client.Client, ctx context.Context, builderImageTag,
+	translatorImageTag string) (string, string, error) {
 	// Run container with same name as image
 	var builderID, translatorID string
-
+	bContainerName := strings.Split(builderImageTag, ":")[0]
+	tContainerName := strings.Split(translatorImageTag, ":")[0]
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: builderImageTag,
 		Tty:   false,
-	}, nil, nil, nil, builderImageTag)
+	}, nil, &network.NetworkingConfig{
+		EndpointsConfig: map[string]*network.EndpointSettings{consts.MonarchNet: {
+			NetworkID: consts.MonarchNet,
+		}},
+	}, nil, bContainerName)
 	if err != nil {
 		return "", "", err
 	}
@@ -187,15 +231,19 @@ func startContainers(cli *client.Client, ctx context.Context, builderImageTag, t
 	if err = cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
 		return "", "", err
 	}
-	l.Info("started builder container %s", builderImageTag)
+	l.Info("started builder container %s", bContainerName)
 	builderID = resp.ID
 
 	// Only start translator image if it exists
 	if len(translatorImageTag) != 0 {
-		resp, err = cli.ContainerCreate(ctx, &container.Config{
+		resp, err := cli.ContainerCreate(ctx, &container.Config{
 			Image: translatorImageTag,
 			Tty:   false,
-		}, nil, nil, nil, translatorImageTag)
+		}, nil, &network.NetworkingConfig{
+			EndpointsConfig: map[string]*network.EndpointSettings{consts.MonarchNet: {
+				NetworkID: consts.MonarchNet,
+			}},
+		}, nil, tContainerName)
 		if err != nil {
 			return "", "", err
 		}
@@ -203,7 +251,7 @@ func startContainers(cli *client.Client, ctx context.Context, builderImageTag, t
 		if err = cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
 			return "", "", err
 		}
-		l.Info("started translator container %s", translatorImageTag)
+		l.Info("started translator container %s", tContainerName)
 		translatorID = resp.ID
 	}
 	return builderID, translatorID, nil

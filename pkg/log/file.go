@@ -17,9 +17,21 @@ func (f *fileLogger) Fatal(format string, v ...interface{}) {
 	os.Exit(1)
 }
 
+func (f *fileLogger) Error(format string, v ...interface{}) {
+	if f.logLevel <= LevelError {
+		_, _ = fmt.Fprintln(f.logFile, t(), "[ERROR]", fmt.Sprintf(format, v...))
+	}
+}
+
 func (f *fileLogger) Warn(format string, v ...interface{}) {
 	if f.logLevel <= LevelWarn {
 		_, _ = fmt.Fprintln(f.logFile, t(), "[WARN]", fmt.Sprintf(format, v...))
+	}
+}
+
+func (f *fileLogger) Success(format string, v ...interface{}) {
+	if f.logLevel <= LevelSuccess {
+		_, _ = fmt.Fprintln(f.logFile, t(), "[SUCCESS]", fmt.Sprintf(format, v...))
 	}
 }
 
@@ -39,7 +51,7 @@ func (f *fileLogger) SetLogLevel(logLevel uint16) error {
 	if logLevel < LevelDebug || logLevel > LevelFatal {
 		return errors.New("invalid log level provided")
 	}
-	f.logLevel = LevelDebug
+	f.logLevel = logLevel
 	return nil
 }
 
