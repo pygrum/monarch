@@ -4,6 +4,7 @@
 package config
 
 import (
+	"fmt"
 	"github.com/goccy/go-yaml"
 	"os"
 	"path/filepath"
@@ -86,7 +87,7 @@ func init() {
 	MonarchConfigFile = filepath.Join(home, ".monarch", "monarch.yaml")
 
 	if err := YamlConfig(MonarchConfigFile, &MainConfig); err != nil {
-		panic(err)
+		panic(fmt.Errorf("%v. was monarch installed with install-monarch.sh? ", err))
 	}
 }
 

@@ -20,7 +20,7 @@ func Initialize() {
 		l.Fatal("failed to retrieve configuration for database: %v. Monarch cannot continue to operate", err)
 	}
 	// mysql operates on localhost
-	dsn := fmt.Sprintf("%s:%s@tcp(%s)/monarch?charset=utf8mb4&parseTime=True&loc=Local",
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/monarch?charset=utf8mb4&parseTime=True&loc=Local",
 		conf.MysqlUsername, conf.MysqlPassword, conf.MysqlAddress)
 
 	db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
