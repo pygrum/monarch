@@ -16,15 +16,15 @@ func ConsoleCommands() []*cobra.Command {
 
 	var root []*cobra.Command
 
-	cmdShutdown := &cobra.Command{
-		Use:   "shutdown",
-		Short: "shutdown the monarch monarch",
+	cmdExit := &cobra.Command{
+		Use:   "exit",
+		Short: "shutdown the monarch server",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			shutdownCmd()
 		},
 	}
-	root = append(root, cmdShutdown)
+	root = append(root, cmdExit)
 	return root
 
 }
