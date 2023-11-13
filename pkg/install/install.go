@@ -219,11 +219,12 @@ func startContainers(cli *client.Client, ctx context.Context, builderImageTag,
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: builderImageTag,
 		Tty:   false,
-	}, nil, &network.NetworkingConfig{
-		EndpointsConfig: map[string]*network.EndpointSettings{consts.MonarchNet: {
-			NetworkID: consts.MonarchNet,
-		}},
-	}, nil, bContainerName)
+	}, &container.HostConfig{RestartPolicy: container.RestartPolicy{Name: "unless-stopped"}},
+		&network.NetworkingConfig{
+			EndpointsConfig: map[string]*network.EndpointSettings{consts.MonarchNet: {
+				NetworkID: consts.MonarchNet,
+			}},
+		}, nil, bContainerName)
 	if err != nil {
 		return "", "", err
 	}
@@ -239,11 +240,12 @@ func startContainers(cli *client.Client, ctx context.Context, builderImageTag,
 		resp, err := cli.ContainerCreate(ctx, &container.Config{
 			Image: translatorImageTag,
 			Tty:   false,
-		}, nil, &network.NetworkingConfig{
-			EndpointsConfig: map[string]*network.EndpointSettings{consts.MonarchNet: {
-				NetworkID: consts.MonarchNet,
-			}},
-		}, nil, tContainerName)
+		}, &container.HostConfig{RestartPolicy: container.RestartPolicy{Name: "unless-stopped"}},
+			&network.NetworkingConfig{
+				EndpointsConfig: map[string]*network.EndpointSettings{consts.MonarchNet: {
+					NetworkID: consts.MonarchNet,
+				}},
+			}, nil, tContainerName)
 		if err != nil {
 			return "", "", err
 		}

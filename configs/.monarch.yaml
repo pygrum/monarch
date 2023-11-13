@@ -11,6 +11,6 @@ installdir: agents
 # gitpat:
 ignoreconsolewarnings: false
 
-mysqladdress: 172.20.0.2
+mysqladdress: 172.20.0.3
 mysqlusername: root
 mysqlpassword: monarch
