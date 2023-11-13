@@ -15,6 +15,16 @@ then
     exit 0
   fi
   rm -rf "${MONARCH_PATH}" && mkdir "${MONARCH_PATH}"
+  ACTIVE_CONTAINERS=$(docker network inspect \
+    -f '{{ range $key, $value := .Containers }}{{ printf "%s\n" $key}}{{ end }}' \
+    ${MONARCH_NET})
+
+  if [ "$ACTIVE_CONTAINERS" ]; then
+    echo "stopping and removing active containers on existing network"
+    docker container stop "$ACTIVE_CONTAINERS"
+    docker container rm "$ACTIVE_CONTAINERS"
+  fi
+  docker network rm "${MONARCH_NET}"
 else
   mkdir "${MONARCH_PATH}"
 fi
@@ -25,16 +35,6 @@ then
   exit 1
 fi
 
-ACTIVE_CONTAINERS=$(docker network inspect \
-  -f '{{ range $key, $value := .Containers }}{{ printf "%s\n" $key}}{{ end }}' \
-  ${MONARCH_NET})
-
-if [ "$ACTIVE_CONTAINERS" ]; then
-  echo "stopping and removing active containers on existing network"
-  docker container stop "$ACTIVE_CONTAINERS"
-  docker container rm "$ACTIVE_CONTAINERS"
-fi
-docker network rm "${MONARCH_NET}"
 echo "creating docker network ${MONARCH_NET}"
 docker network create "${MONARCH_NET}" --subnet 172.20.0.0/16
 
