@@ -41,7 +41,7 @@ docker network create "${MONARCH_NET}" --subnet 172.20.0.0/16
 docker pull mysql:latest
 
 echo "starting sql container"
-docker run -ditp 3306:3306 --network ${MONARCH_NET} --ip 172.20.0.3 -e "MYSQL_ROOT_PASSWORD=monarch" \
+docker run -dit --network ${MONARCH_NET} --ip 172.20.0.3 -e "MYSQL_ROOT_PASSWORD=monarch" \
   -e "MYSQL_DATABASE=monarch" --restart unless-stopped --name monarch-sql mysql:latest
 
 cp ../configs/monarch.yaml "${MONARCH_PATH}"
@@ -64,4 +64,4 @@ mkdir -p "${HOME}/.local/bin" 2>/dev/null
 go build ../cmd/monarch/monarch.go
 mv ./monarch "${HOME}/.local/bin"
 
-echo "done"
+echo "done. please wait for all services to start"
