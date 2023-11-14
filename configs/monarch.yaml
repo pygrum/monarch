@@ -1,4 +1,4 @@
-# Default configuration for monarch
+# Default configuration for monarch. Consider changing these values after installation (~/.monarch/monarch.yaml)
 debug: false
 loglevel: 2
 certfile: monarch.crt # cert file relative to monarch home dir

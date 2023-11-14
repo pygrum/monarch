@@ -1,6 +1,7 @@
 # The royal.yaml file exists at the root of every agent project.
 # It's used to set up the builder (and if applicable, translation) services.
-# The following file is simply an example of how a royal.yaml config file looks like.
+# The following file is simply an EXAMPLE of how a royal.yaml config file looks like, and should not be used
+# anywhere outside a testing environment.
 
 name: example-agent
 version: 1.0

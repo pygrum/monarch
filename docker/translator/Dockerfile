@@ -1,3 +1,6 @@
+# The following Dockerfile is simply an EXAMPLE of what a translator dockerfile may look like.
+# It should not be used in production anywhere, by anyone. It exists for testing purposes only.
+
 # This Dockerfile is used as a base image for the container responsible for encoding / decoding messages between
 # the agent and C2.
 FROM alpine:latest
