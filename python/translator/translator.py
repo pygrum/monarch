@@ -86,7 +86,6 @@ class TranslateFromFunction:
 
 
 class MonarchTranslator(BaseHTTPRequestHandler):
-
     translate_to: TranslateToFunction
     translate_from: TranslateFromFunction
 
@@ -151,3 +150,11 @@ class MonarchTranslator(BaseHTTPRequestHandler):
             self.wfile.write(bytes(response))
         else:
             self.send_response(404)
+
+
+def translator_service() -> HTTPServer:
+    """
+    :return: A HTTPServer class using the monarch translator class as a request handler
+    """
+    translator_address = ("localhost", 20000)
+    return HTTPServer(translator_address, MonarchTranslator)
