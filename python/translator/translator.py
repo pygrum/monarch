@@ -137,10 +137,12 @@ class MonarchTranslator(BaseHTTPRequestHandler):
             )
             from_response, error = self.translate_from(from_request)
             response_json = {
+                "success": len(error) == 0,
+                "error_msg": error,
                 "agent_id": from_response.agent_id,
                 "request_id": from_response.request_id,
                 "status": from_response.status,
-                "responses": from_response.responses
+                "responses": from_response.responses,
             }
             response = json.dumps(response_json)
             self.send_response(200)
