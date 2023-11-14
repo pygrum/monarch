@@ -31,11 +31,7 @@ cmd_schema:
     description_short: self delete and terminate process.
     description_long: self delete and terminate process.
 
-# The script, or binary, used to build the agent
-build_script: /build.sh
-# The path that the agent is created at after a successful build
-build_path: /tmp
-# The directory where the build routine takes place
+# agent source code root
 source_dir: /src
 # These are custom build arguments that can be used for building, in addition to default build arguments provided
 # by the C2 itself.
@@ -43,5 +39,3 @@ build_args:
   - name: email
     description: operator's email address
     required: true
-
-
