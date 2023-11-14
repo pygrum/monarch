@@ -9,7 +9,7 @@ type Builder struct {
 	BuilderID string `gorm:"primaryKey"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	Name      string
+	Name      string // This is technically the agent name and is used as so
 	Version   string
 	// The path that the agent files are installed at
 	InstalledAt string
