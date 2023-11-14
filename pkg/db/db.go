@@ -27,12 +27,24 @@ func Initialize() {
 	if err != nil {
 		l.Fatal("failed to connect to database: %v. Monarch cannot continue to operate", err)
 	}
-	if err = db.AutoMigrate(&Agent{}, &Translator{}); err != nil {
+	if err = db.AutoMigrate(&Builder{}, &Translator{}); err != nil {
 		l.Fatal("failed to migrate schema: %v. Monarch cannot continue to operate", err)
 	}
 }
 
 func Create(v interface{}) error {
 	result := db.Create(v)
+	return result.Error
+}
+
+// FindConditional retrieves rows based on a specific condition
+func FindConditional(query, target, v interface{}) error {
+	result := db.Where(query, target).Find(v)
+	return result.Error
+}
+
+// FindOneConditional works like FindConditional but returns the first instance
+func FindOneConditional(query, target, v interface{}) error {
+	result := db.Where(query, target).First(v)
 	return result.Error
 }

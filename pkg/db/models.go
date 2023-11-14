@@ -4,9 +4,9 @@ import (
 	"time"
 )
 
-type Agent struct {
+type Builder struct {
 	// A UUID that identifies an agent
-	AgentID   string `gorm:"primaryKey"`
+	BuilderID string `gorm:"primaryKey"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	Name      string
