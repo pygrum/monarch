@@ -20,4 +20,7 @@ docker network rm "${MONARCH_NET}"
 echo "purging configuration..."
 rm -rf "$MONARCH_PATH"
 
+echo "removing binary"
+rm -rf "${HOME}/.local/bin/monarch"
+
 echo "done"
