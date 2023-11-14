@@ -41,6 +41,7 @@ source_dir: /src
 # by the C2 itself.
 build_args:
   - name: email
+    description: operator's email address
     required: true
 
 
