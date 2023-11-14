@@ -51,7 +51,7 @@ func checkErr(err error) {
 	}
 }
 
-func cleanup(agent *db.Agent, translator *db.Translator) {
+func cleanup(agent *db.Builder, translator *db.Translator) {
 	err := os.RemoveAll(dir)
 	ctx := context.Background()
 	checkErr(err)

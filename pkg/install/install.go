@@ -6,8 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/go-git/go-git/v5"
@@ -16,6 +14,7 @@ import (
 	"github.com/pygrum/monarch/pkg/config"
 	"github.com/pygrum/monarch/pkg/consts"
 	"github.com/pygrum/monarch/pkg/db"
+	"github.com/pygrum/monarch/pkg/docker"
 	"github.com/pygrum/monarch/pkg/log"
 	"io"
 	"path/filepath"
@@ -82,7 +81,7 @@ func NewRepo(url string, private bool) error {
 	return db.Create(a)
 }
 
-func setup(path string) (*db.Agent, *db.Translator, error) {
+func setup(path string) (*db.Builder, *db.Translator, error) {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
@@ -95,7 +94,7 @@ func setup(path string) (*db.Agent, *db.Translator, error) {
 		return nil, nil, err
 	}
 	l.Success("success! installing: %s v%s", royal.Name, royal.Version)
-	// TODO:ImageBuild using dockerfile for agent, save image/container info to DB
+	// TODO:ImageBuild using dockerfile for builder, save image/container info to DB
 
 	reader, err := archive.Tar(path, archive.Gzip)
 	if err != nil {
@@ -110,7 +109,7 @@ func setup(path string) (*db.Agent, *db.Translator, error) {
 		PullParent: false,
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to build agent-builder image: %v", err)
+		return nil, nil, fmt.Errorf("failed to build builder-builder image: %v", err)
 	}
 	bytes, _ := io.ReadAll(resp.Body)
 
@@ -118,7 +117,7 @@ func setup(path string) (*db.Agent, *db.Translator, error) {
 
 	ID, buildErr, err := parseResponse(string(bytes))
 	if buildErr != nil {
-		return nil, nil, fmt.Errorf("build error while installing agent: %v", buildErr)
+		return nil, nil, fmt.Errorf("build error while installing builder: %v", buildErr)
 	}
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read build response: %v", err)
@@ -147,7 +146,7 @@ func setup(path string) (*db.Agent, *db.Translator, error) {
 		_ = resp.Body.Close()
 		ID, buildErr, err = parseResponse(string(bytes))
 		if buildErr != nil {
-			return nil, nil, fmt.Errorf("build error while installing agent: %v", err)
+			return nil, nil, fmt.Errorf("build error while installing builder: %v", err)
 		}
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to read build response: %v", err)
@@ -156,15 +155,15 @@ func setup(path string) (*db.Agent, *db.Translator, error) {
 		translatorImageTag = royal.TranslatorName + ":" + royal.Version
 		l.Success("successfully created translator image: %s", translatorImageID)
 	}
-	buildContainerID, trContainerID, err := startContainers(cli, ctx, builderImageTag, translatorImageTag)
+	buildContainerID, trContainerID, err := docker.StartContainers(cli, ctx, builderImageTag, translatorImageTag)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to start agent services: %v", err)
+		return nil, nil, fmt.Errorf("failed to start builder services: %v", err)
 	}
 
-	agentID := uuid.New().String()
+	builderID := uuid.New().String()
 	translatorID := uuid.New().String()
-	agent := &db.Agent{
-		AgentID:      agentID,
+	builder := &db.Builder{
+		BuilderID:    builderID,
 		Name:         royal.Name,
 		Version:      royal.Version,
 		InstalledAt:  path,
@@ -181,9 +180,9 @@ func setup(path string) (*db.Agent, *db.Translator, error) {
 			ImageID:      translatorImageID,
 			ContainerID:  trContainerID,
 		}
-		return agent, translator, nil
+		return builder, translator, nil
 	}
-	return agent, nil, nil
+	return builder, nil, nil
 }
 
 // parseResponse returns the image ID, build errors and any errors that occurred during parsing
@@ -208,53 +207,4 @@ func parseResponse(s string) (string, error, error) {
 		return success["ID"].(string), nil, nil
 	}
 	return "", errors.New("could not retrieve image ID"), nil
-}
-
-func startContainers(cli *client.Client, ctx context.Context, builderImageTag,
-	translatorImageTag string) (string, string, error) {
-	// Run container with same name as image
-	var builderID, translatorID string
-	bContainerName := strings.Split(builderImageTag, ":")[0]
-	tContainerName := strings.Split(translatorImageTag, ":")[0]
-	resp, err := cli.ContainerCreate(ctx, &container.Config{
-		Image: builderImageTag,
-		Tty:   false,
-	}, &container.HostConfig{RestartPolicy: container.RestartPolicy{Name: "unless-stopped"}},
-		&network.NetworkingConfig{
-			EndpointsConfig: map[string]*network.EndpointSettings{consts.MonarchNet: {
-				NetworkID: consts.MonarchNet,
-			}},
-		}, nil, bContainerName)
-	if err != nil {
-		return "", "", err
-	}
-	// Start builder container
-	if err = cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
-		return "", "", err
-	}
-	l.Info("started builder container %s", bContainerName)
-	builderID = resp.ID
-
-	// Only start translator image if it exists
-	if len(translatorImageTag) != 0 {
-		resp, err := cli.ContainerCreate(ctx, &container.Config{
-			Image: translatorImageTag,
-			Tty:   false,
-		}, &container.HostConfig{RestartPolicy: container.RestartPolicy{Name: "unless-stopped"}},
-			&network.NetworkingConfig{
-				EndpointsConfig: map[string]*network.EndpointSettings{consts.MonarchNet: {
-					NetworkID: consts.MonarchNet,
-				}},
-			}, nil, tContainerName)
-		if err != nil {
-			return "", "", err
-		}
-		// Start builder container
-		if err = cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
-			return "", "", err
-		}
-		l.Info("started translator container %s", tContainerName)
-		translatorID = resp.ID
-	}
-	return builderID, translatorID, nil
 }
