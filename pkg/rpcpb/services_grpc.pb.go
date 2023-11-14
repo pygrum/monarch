@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.12.4
-// source: services.proto
+// source: pkg/rpcpb/services.proto
 
 package rpcpb
 
@@ -173,7 +173,7 @@ var Translator_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "services.proto",
+	Metadata: "pkg/rpcpb/services.proto",
 }
 
 // BuilderClient is the client API for Builder service.
@@ -295,5 +295,5 @@ var Builder_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "services.proto",
+	Metadata: "pkg/rpcpb/services.proto",
 }
