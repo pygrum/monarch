@@ -60,17 +60,18 @@ func cleanup(agent *db.Builder, translator *db.Translator) {
 	if agent != nil {
 		err = cli.ContainerRemove(ctx, agent.ContainerID, types.ContainerRemoveOptions{Force: true})
 		checkErr(err)
-		_, err = cli.ImageRemove(ctx, agent.ImageID, types.ImageRemoveOptions{Force: true})
-		checkErr(err)
 	}
-	if translator != nil {
+	if len(translator.ImageID) != 0 {
 		err = cli.ContainerRemove(ctx, translator.ContainerID, types.ContainerRemoveOptions{Force: true})
 		checkErr(err)
-		// Handle identical images
-		if translator.ImageID != agent.ImageID {
-			_, err = cli.ImageRemove(ctx, translator.ImageID, types.ImageRemoveOptions{Force: true})
-			checkErr(err)
-		}
+		_, err = cli.ImageRemove(ctx, translator.ImageID, types.ImageRemoveOptions{Force: true})
+		checkErr(err)
+	}
+	// delete images last in case you try to delete an image in use by the translator.
+	// Also check if the images are the same - if they are, then it has already been removed.
+	if agent.ImageID != translator.ImageID {
+		_, err = cli.ImageRemove(ctx, agent.ImageID, types.ImageRemoveOptions{Force: true})
+		checkErr(err)
 	}
 }
 

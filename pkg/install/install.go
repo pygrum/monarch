@@ -182,7 +182,8 @@ func setup(path string) (*db.Builder, *db.Translator, error) {
 		}
 		return builder, translator, nil
 	}
-	return builder, nil, nil
+	// Return empty to avoid nil pointer dereference
+	return builder, &db.Translator{}, nil
 }
 
 // parseResponse returns the image ID, build errors and any errors that occurred during parsing
