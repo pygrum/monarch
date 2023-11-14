@@ -16,8 +16,10 @@ import (
 )
 
 const (
-	ListenPort     = 2000
-	serviceAddress = "http://localhost:20000" // The user-made translation service, localhost:20000
+	ListenPort        = 2000
+	serviceAddress    = "http://localhost:20000" // The user-made translation service, localhost:20000
+	toAgentEndpoint   = "/to"
+	fromAgentEndpoint = "/from"
 )
 
 type translatorServer struct {
@@ -38,8 +40,8 @@ func newServer() (*translatorServer, error) {
 }
 
 // sendServiceRequest sends a request to the translation service and returns the response body
-func (s *translatorServer) sendServiceRequest(method string, body []byte, receiver interface{}) error {
-	httpReq, err := http.NewRequest(method, serviceAddress, bytes.NewReader(body))
+func (s *translatorServer) sendServiceRequest(method, endpoint string, body []byte, receiver interface{}) error {
+	httpReq, err := http.NewRequest(method, serviceAddress+endpoint, bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
@@ -52,7 +54,7 @@ func (s *translatorServer) sendServiceRequest(method string, body []byte, receiv
 	return json.Unmarshal(b, receiver)
 }
 
-func (s *translatorServer) GetCmdDescriptions(_ context.Context, r *rpcpb.DescriptionsRequest) (*rpcpb.DescriptionsReply, error) {
+func (s *translatorServer) GetCmdDescriptions(context.Context, *rpcpb.DescriptionsRequest) (*rpcpb.DescriptionsReply, error) {
 	reply := &rpcpb.DescriptionsReply{
 		Descriptions: make([]*rpcpb.Description, len(s.config.CmdSchema)),
 	}
@@ -77,7 +79,7 @@ func (s *translatorServer) TranslateFrom(_ context.Context, r *rpcpb.Data) (*rpc
 		return nil, err
 	}
 	respObj := &fromAgentServiceResponse{}
-	if err = s.sendServiceRequest(http.MethodPost, b, respObj); err != nil {
+	if err = s.sendServiceRequest(http.MethodPost, fromAgentEndpoint, b, respObj); err != nil {
 		return nil, err
 	}
 	if !respObj.Success {
@@ -98,7 +100,7 @@ func (s *translatorServer) TranslateTo(_ context.Context, r *rpcpb.Request) (*rp
 		return nil, err
 	}
 	respObj := &toAgentServiceResponse{}
-	if err = s.sendServiceRequest(http.MethodPost, b, respObj); err != nil {
+	if err = s.sendServiceRequest(http.MethodPost, toAgentEndpoint, b, respObj); err != nil {
 		return nil, err
 	}
 	if !respObj.Success {
