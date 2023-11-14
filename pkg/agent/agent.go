@@ -18,7 +18,7 @@ func (a *Agent) RegisterAgentMenu() {
 		// Runs a function to translate the command data via RPC and process it for forwarding to destined host
 		c := &cobra.Command{
 			Use:   cmd.Usage,
-			Args:  cobra.ExactArgs(cmd.NArgs),
+			Args:  cobra.ExactArgs(int(cmd.NArgs)),
 			Short: cmd.DescriptionShort,
 			Long:  cmd.DescriptionLong,
 		}
