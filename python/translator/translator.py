@@ -47,6 +47,14 @@ class Response:
 
 class TranslateFromResponse:
     def __init__(self, agent_id: str, request_id: str, status: int, responses: list[Response]):
+        """
+        An object representing a reply to a translation request from the C2 for decoding a message received from
+        an agent.
+        :param agent_id: the agent ID
+        :param request_id: the request ID
+        :param status:
+        :param responses: the data received from the agent
+        """
         self.agent_id = agent_id
         self.request_id = request_id
         self.status = status
