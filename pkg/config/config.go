@@ -67,12 +67,12 @@ type ProjectConfig struct {
 type ProjectConfigCmd struct {
 	Name  string
 	Usage string
-	NArgs int `yaml:"n_args"`
+	NArgs uint32 `yaml:"n_args"`
 	// Specifies whether this command requires admin privileges or not
 	Admin bool
 	// If opcode is specified, the provided integer opcode is used in place of the command name,
 	// promoting better OpSec
-	Opcode           uint
+	Opcode           int32
 	DescriptionShort string `yaml:"description_short"`
 	DescriptionLong  string `yaml:"description_long"`
 }
