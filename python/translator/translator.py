@@ -111,7 +111,7 @@ class MonarchTranslator(BaseHTTPRequestHandler):
         post_data = self.rfile.read(content_length)
         data = json.loads(post_data)
 
-        if self.path == "/to":
+        if self.path.startswith("/to"):
             to_request = TranslateToRequest(
                 data["agent_id"],
                 data["request_id"],
@@ -128,9 +128,9 @@ class MonarchTranslator(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("content-type", "application/json")
             self.end_headers()
-            self.wfile.write(bytes(response))
+            self.wfile.write(bytes(response, "utf-8"))
 
-        elif self.path == "/from":
+        elif self.path.startswith("/from"):
             from_request = TranslateFromRequest(
                 data["message"]
             )
@@ -147,7 +147,7 @@ class MonarchTranslator(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("content-type", "application/json")
             self.end_headers()
-            self.wfile.write(bytes(response))
+            self.wfile.write(bytes(response, "utf-8"))
         else:
             self.send_response(404)
 
@@ -156,5 +156,5 @@ def translator_service() -> HTTPServer:
     """
     :return: A HTTPServer class using the monarch translator class as a request handler
     """
-    translator_address = ("localhost", 20000)
-    return HTTPServer(translator_address, MonarchTranslator)
+    service_address = ("localhost", 20000)
+    return HTTPServer(service_address, MonarchTranslator)
