@@ -11,6 +11,8 @@ type Builder struct {
 	UpdatedAt time.Time
 	Name      string // This is technically the agent name and is used as so
 	Version   string
+	Author    string
+	Url       string
 	// The path that the agent files are installed at
 	InstalledAt string
 	// ImageID and ContainerID identify the image / container used to build implants
@@ -29,6 +31,8 @@ type Translator struct {
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 	Name         string
+	Author       string
+	Url          string
 	InstalledAt  string
 	// Image and container that run the translator as a service
 	ImageID     string
