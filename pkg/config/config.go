@@ -43,6 +43,8 @@ type MonarchConfig struct {
 type ProjectConfig struct {
 	Name    string
 	Version string
+	Author  string
+	URL     string
 	// The translator is used to translate messages between the C2 and agent.
 	// A translator can use an existing translator (type=external) or the one included in the cloned project
 	// (type=native). The translator is installed as a container and given the name provided by `translator_name`.
@@ -53,10 +55,10 @@ type ProjectConfig struct {
 	// On installation of the agent, the command schema is used by the translator when an operator requests to
 	// view commands.
 	CmdSchema []ProjectConfigCmd `yaml:"cmd_schema"`
-	// The script used to build the agent
-	BuildScript string `yaml:"build_script"`
-	// The path that the agent is created at after a successful build
-	BuildPath string `yaml:"build_path"`
+	Builder   Builder            `yaml:"builder"`
+}
+
+type Builder struct {
 	// The directory where the build routine takes place
 	SourceDir string `yaml:"source_dir"`
 	// These are custom build arguments that can be used for building, in addition to default build arguments provided
@@ -78,8 +80,9 @@ type ProjectConfigCmd struct {
 }
 
 type ProjectConfigBuildArgs struct {
-	Name     string
-	Required bool
+	Name        string
+	Description string
+	Required    bool
 }
 
 func init() {

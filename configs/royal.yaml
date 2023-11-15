@@ -5,6 +5,8 @@
 
 name: example-agent
 version: 1.0
+author: pygrum
+url: https://github.com/pygrum/monarch
 
 # The translator is used to translate messages between the C2 and agent.
 translator_name: example_tr
@@ -32,11 +34,12 @@ cmd_schema:
     description_short: self delete and terminate process.
     description_long: self delete and terminate process.
 
-# agent source code root
-source_dir: /src
-# These are custom build arguments that can be used for building, in addition to default build arguments provided
-# by the C2 itself.
-build_args:
-  - name: email
-    description: operator's email address
-    required: true
+builder:
+  # agent source code root
+  source_dir: /src
+  # These are custom build arguments that can be used for building, in addition to default build arguments provided
+  # by the C2 itself.
+  build_args:
+    - name: email
+      description: operator's email address
+      required: true
