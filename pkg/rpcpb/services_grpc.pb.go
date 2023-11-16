@@ -180,7 +180,7 @@ var Translator_ServiceDesc = grpc.ServiceDesc{
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type BuilderClient interface {
-	GetParams(ctx context.Context, in *ParamsRequest, opts ...grpc.CallOption) (*ParamsReply, error)
+	GetOptions(ctx context.Context, in *OptionsRequest, opts ...grpc.CallOption) (*OptionsReply, error)
 	BuildAgent(ctx context.Context, in *BuildRequest, opts ...grpc.CallOption) (*BuildReply, error)
 }
 
@@ -192,9 +192,9 @@ func NewBuilderClient(cc grpc.ClientConnInterface) BuilderClient {
 	return &builderClient{cc}
 }
 
-func (c *builderClient) GetParams(ctx context.Context, in *ParamsRequest, opts ...grpc.CallOption) (*ParamsReply, error) {
-	out := new(ParamsReply)
-	err := c.cc.Invoke(ctx, "/rpcpb.Builder/GetParams", in, out, opts...)
+func (c *builderClient) GetOptions(ctx context.Context, in *OptionsRequest, opts ...grpc.CallOption) (*OptionsReply, error) {
+	out := new(OptionsReply)
+	err := c.cc.Invoke(ctx, "/rpcpb.Builder/GetOptions", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -214,7 +214,7 @@ func (c *builderClient) BuildAgent(ctx context.Context, in *BuildRequest, opts .
 // All implementations must embed UnimplementedBuilderServer
 // for forward compatibility
 type BuilderServer interface {
-	GetParams(context.Context, *ParamsRequest) (*ParamsReply, error)
+	GetOptions(context.Context, *OptionsRequest) (*OptionsReply, error)
 	BuildAgent(context.Context, *BuildRequest) (*BuildReply, error)
 	mustEmbedUnimplementedBuilderServer()
 }
@@ -223,8 +223,8 @@ type BuilderServer interface {
 type UnimplementedBuilderServer struct {
 }
 
-func (UnimplementedBuilderServer) GetParams(context.Context, *ParamsRequest) (*ParamsReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetParams not implemented")
+func (UnimplementedBuilderServer) GetOptions(context.Context, *OptionsRequest) (*OptionsReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetOptions not implemented")
 }
 func (UnimplementedBuilderServer) BuildAgent(context.Context, *BuildRequest) (*BuildReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BuildAgent not implemented")
@@ -242,20 +242,20 @@ func RegisterBuilderServer(s grpc.ServiceRegistrar, srv BuilderServer) {
 	s.RegisterService(&Builder_ServiceDesc, srv)
 }
 
-func _Builder_GetParams_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ParamsRequest)
+func _Builder_GetOptions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OptionsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(BuilderServer).GetParams(ctx, in)
+		return srv.(BuilderServer).GetOptions(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/rpcpb.Builder/GetParams",
+		FullMethod: "/rpcpb.Builder/GetOptions",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BuilderServer).GetParams(ctx, req.(*ParamsRequest))
+		return srv.(BuilderServer).GetOptions(ctx, req.(*OptionsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -286,8 +286,8 @@ var Builder_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*BuilderServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "GetParams",
-			Handler:    _Builder_GetParams_Handler,
+			MethodName: "GetOptions",
+			Handler:    _Builder_GetOptions_Handler,
 		},
 		{
 			MethodName: "BuildAgent",

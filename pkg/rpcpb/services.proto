@@ -8,7 +8,7 @@ service Translator {
   rpc GetCmdDescriptions (DescriptionsRequest) returns (DescriptionsReply) {}
 }
 service Builder {
-  rpc GetParams (ParamsRequest) returns (ParamsReply) {}
+  rpc GetOptions (OptionsRequest) returns (OptionsReply) {}
   rpc BuildAgent (BuildRequest) returns (BuildReply) {}
 }
 
@@ -58,21 +58,17 @@ message Description {
 message DescriptionsReply {
   repeated Description descriptions = 1;
 }
-message ParamsRequest {}
-message Param {
+message OptionsRequest {}
+message Option {
   string name = 1;
   string description = 2;
   bool required = 3;
 }
-message ParamsReply {
-  repeated Param params = 1;
+message OptionsReply {
+  repeated Option options = 1;
 }
 message BuildRequest {
-  message BuildParams {
-    string name = 1;
-    string value = 2;
-  }
-  repeated BuildParams params = 1;
+  map<string, string> options = 1;
 }
 
 message BuildReply {
