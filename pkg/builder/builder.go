@@ -38,7 +38,7 @@ func newServer() (*builderServer, error) {
 
 func (s *builderServer) BuildAgent(_ context.Context, r *rpcpb.BuildRequest) (*rpcpb.BuildReply, error) {
 	buildReply := &rpcpb.BuildReply{}
-	b, err := json.Marshal(r.GetParams())
+	b, err := json.Marshal(r.GetOptions())
 	if err != nil {
 		return nil, err
 	}
@@ -63,12 +63,12 @@ func (s *builderServer) sendServiceRequest(method, endpoint string, body []byte,
 	return json.Unmarshal(b, receiver)
 }
 
-func (s *builderServer) GetParams(context.Context, *rpcpb.ParamsRequest) (*rpcpb.ParamsReply, error) {
-	reply := &rpcpb.ParamsReply{
-		Params: make([]*rpcpb.Param, len(s.config.Builder.BuildArgs)),
+func (s *builderServer) GetParams(context.Context, *rpcpb.OptionsRequest) (*rpcpb.OptionsReply, error) {
+	reply := &rpcpb.OptionsReply{
+		Options: make([]*rpcpb.Option, len(s.config.Builder.BuildArgs)),
 	}
 	for i, a := range s.config.Builder.BuildArgs {
-		reply.Params[i] = &rpcpb.Param{
+		reply.Options[i] = &rpcpb.Option{
 			Name:        a.Name,
 			Description: a.Description,
 			Required:    a.Required,
