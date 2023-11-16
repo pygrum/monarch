@@ -16,11 +16,17 @@ import (
 )
 
 var (
-	l log.Logger
+	l   log.Logger
+	Cli *client.Client // global docker client
 )
 
 func init() {
+	var err error
 	l, _ = log.NewLogger(log.ConsoleLogger, "")
+	Cli, err = client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		l.Fatal("failed to initialize internal docker client: %v", err)
+	}
 }
 
 // RPCAddresses returns the rpc addresses of builder-translator pairs given an agent ID.
