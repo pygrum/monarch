@@ -28,9 +28,9 @@ func init() {
 	checkErr(err)
 
 	// Write build and translate Dockerfiles to respective files in simulated directory
-	buildBytes, err := os.ReadFile(filepath.Join("..", "..", consts.DockerfilesPath, consts.BuilderDockerfile))
+	buildBytes, err := os.ReadFile(filepath.Join("..", "..", "templates", consts.BuilderDockerfile))
 	checkErr(err)
-	trBytes, err := os.ReadFile(filepath.Join("..", "..", consts.DockerfilesPath, consts.TranslatorDockerfile))
+	trBytes, err := os.ReadFile(filepath.Join("..", "..", "templates", consts.TranslatorDockerfile))
 	checkErr(err)
 	err = os.WriteFile(filepath.Join(dockerDir, consts.BuilderDockerfile), buildBytes, 0666)
 	checkErr(err)
