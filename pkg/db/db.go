@@ -6,6 +6,7 @@ import (
 	"github.com/pygrum/monarch/pkg/log"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var db *gorm.DB
@@ -23,7 +24,10 @@ func Initialize() {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/monarch?charset=utf8mb4&parseTime=True&loc=Local",
 		conf.MysqlUsername, conf.MysqlPassword, conf.MysqlAddress)
 
-	db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
+
 	if err != nil {
 		l.Fatal("failed to connect to database: %v. Monarch cannot continue to operate", err)
 	}
