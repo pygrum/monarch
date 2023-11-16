@@ -6,7 +6,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 )
 
-func shutdownCmd() {
+func exitCmd() {
 	y := false
 	prompt := &survey.Confirm{
 		Message: "are you sure you want to quit? All listeners and sessions will be closed",

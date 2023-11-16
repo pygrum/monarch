@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"github.com/pygrum/monarch/pkg/commands/build"
 	"github.com/pygrum/monarch/pkg/log"
 	"github.com/spf13/cobra"
 )
@@ -21,10 +22,17 @@ func ConsoleCommands() []*cobra.Command {
 		Short: "shutdown the monarch server",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			shutdownCmd()
+			exitCmd()
 		},
 	}
-	root = append(root, cmdExit)
+	cmdBuild := &cobra.Command{
+		Use:   "build [agent]",
+		Short: "start the interactive builder for an installed agent",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			build.BuildCmd(args[0])
+		},
+	}
+	root = append(root, cmdBuild, cmdExit)
 	return root
-
 }
