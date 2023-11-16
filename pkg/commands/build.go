@@ -1,4 +1,4 @@
-package build
+package commands
 
 import (
 	"context"
@@ -17,13 +17,11 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
-	"text/tabwriter"
 	"time"
 )
 
 var (
 	l          log.Logger
-	w          = tabwriter.NewWriter(os.Stdout, 1, 1, 3, ' ', 0)
 	immutables = []string{"id"}
 )
 
@@ -40,8 +38,8 @@ func init() {
 	l, _ = log.NewLogger(log.ConsoleLogger, "")
 }
 
-// BuildCmd to start the interactive agent builder
-func BuildCmd(builderName string) {
+// buildCmd to start the interactive agent builder
+func buildCmd(builderName string) {
 	builder := &db.Builder{}
 	if err := db.FindOneConditional("name = ?", builderName, &builder); err != nil {
 		// Search using builderName as either name or ID
@@ -125,7 +123,7 @@ func loadBuildOptions(b *db.Builder) error {
 			l.Warn("duplicate instance(s) of option: %s", k.Name)
 			continue
 		}
-		// Do this so that we can quickly check if an option is valid using map indexing, check is done in SetCmd
+		// Do this so that we can quickly check if an option is valid using map indexing, check is done in setCmd
 		builderConfig.request.Options[k.Name] = ""
 	}
 	builderConfig.name = b.Name
@@ -135,8 +133,8 @@ func loadBuildOptions(b *db.Builder) error {
 	return nil
 }
 
-// SetCmd - for users to edit build configuration
-func SetCmd(name, value string) {
+// setCmd - for users to edit build configuration
+func setCmd(name, value string) {
 	name = strings.ToLower(name)
 	_, ok := builderConfig.request.Options[name]
 	if !ok {
@@ -150,14 +148,14 @@ func SetCmd(name, value string) {
 	builderConfig.request.Options[name] = value
 }
 
-// UnsetCmd - unsets variables in build config
-func UnsetCmd(name string) {
+// unsetCmd - unsets variables in build config
+func unsetCmd(name string) {
 	// must still do option checks as we do not want map to grow by spamming unsets, or add invalid options
-	SetCmd(name, "")
+	setCmd(name, "")
 }
 
-// OptionsCmd - returns all build configuration options
-func OptionsCmd() {
+// optionsCmd - returns all build configuration options
+func optionsCmd() {
 	headers := "NAME\tVALUE\tDESCRIPTION\tREQUIRED\t"
 	_, _ = fmt.Fprintln(w, headers)
 	for _, option := range builderConfig.options {
@@ -173,8 +171,8 @@ func OptionsCmd() {
 	_ = w.Flush()
 }
 
-// Build actually builds. duh
-func Build() {
+// build actually builds. duh
+func build() {
 	//TODO:Implement build (RPC, requirement checks etc.)
 	var required []string
 	for _, option := range builderConfig.options {
@@ -249,7 +247,7 @@ func consoleCommands() []*cobra.Command {
 		Args:  cobra.NoArgs,
 		Short: "view all modifiable build configuration options",
 		Run: func(cmd *cobra.Command, args []string) {
-			OptionsCmd()
+			optionsCmd()
 		},
 	}
 	cmdSet := &cobra.Command{
@@ -257,7 +255,7 @@ func consoleCommands() []*cobra.Command {
 		Args:  cobra.ExactArgs(2),
 		Short: "set a build option to the provided value",
 		Run: func(cmd *cobra.Command, args []string) {
-			SetCmd(args[0], args[1])
+			setCmd(args[0], args[1])
 		},
 	}
 	cmdUnset := &cobra.Command{
@@ -265,7 +263,7 @@ func consoleCommands() []*cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Short: "unsets the provided option",
 		Run: func(cmd *cobra.Command, args []string) {
-			UnsetCmd(args[0])
+			unsetCmd(args[0])
 		},
 	}
 	cmdBuild := &cobra.Command{
@@ -273,7 +271,7 @@ func consoleCommands() []*cobra.Command {
 		Args:  cobra.NoArgs,
 		Short: "builds the agent using the provided configuration options",
 		Run: func(cmd *cobra.Command, args []string) {
-			Build()
+			build()
 		},
 	}
 	cmds = append(cmds, cmdBuild, cmdOptions, cmdSet, cmdUnset)

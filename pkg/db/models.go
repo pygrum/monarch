@@ -26,6 +26,17 @@ type Builder struct {
 	TranslatorID string
 }
 
+type Agent struct {
+	AgentID   string `gorm:"primaryKey"`
+	Name      string
+	Version   string
+	OS        string
+	Arch      string
+	Builder   string // The builder used to build the agent
+	File      string // binary file associated with agent
+	CreatedAt time.Time
+}
+
 type Translator struct {
 	TranslatorID string `gorm:"primaryKey"`
 	Version      string

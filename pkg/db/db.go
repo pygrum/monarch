@@ -31,7 +31,7 @@ func Initialize() {
 	if err != nil {
 		l.Fatal("failed to connect to database: %v. Monarch cannot continue to operate", err)
 	}
-	if err = db.AutoMigrate(&Builder{}, &Translator{}); err != nil {
+	if err = db.AutoMigrate(&Builder{}, &Translator{}, &Agent{}); err != nil {
 		l.Fatal("failed to migrate schema: %v. Monarch cannot continue to operate", err)
 	}
 }
