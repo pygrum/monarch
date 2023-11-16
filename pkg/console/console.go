@@ -1,10 +1,9 @@
 package console
 
 import (
-	"github.com/pygrum/monarch/pkg/commands"
-	"github.com/pygrum/monarch/pkg/commands/build"
 	"github.com/pygrum/monarch/pkg/db"
 	"github.com/reeflective/console"
+	"github.com/spf13/cobra"
 )
 
 type monarchServer struct {
@@ -23,17 +22,15 @@ func init() {
 
 // BuildMode switches the console to build mode. The name parameter is the name of the agent to be built.
 // Only creating a new menu each time because I want it to be named
-func BuildMode(name string) {
+func BuildMode(name string, commands []*cobra.Command) {
 	buildMenu := server.App.NewMenu(name)
-	buildMenu.AddCommand(build.ConsoleCommands()...)
+	buildMenu.AddCommand(commands...)
 	server.App.SwitchMenu(name)
 }
 
-func Run() error {
-	// TODO:Start monarch console
+func Run(commands []*cobra.Command) error {
 	srvMenu := server.App.ActiveMenu()
-	srvMenu.AddCommand(commands.ConsoleCommands()...)
+	srvMenu.AddCommand(commands...)
 	srvMenu.CompletionOptions.HiddenDefaultCmd = true
-
 	return server.App.Start()
 }

@@ -33,6 +33,19 @@ func ConsoleCommands() []*cobra.Command {
 			build.BuildCmd(args[0])
 		},
 	}
-	root = append(root, cmdBuild, cmdExit)
+
+	var buildersShowTranslator bool
+	cmdBuilders := &cobra.Command{
+		Use:   "builders",
+		Short: "list installed builders",
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			buildersCmd(buildersShowTranslator)
+		},
+	}
+	cmdBuilders.Flags().BoolVarP(&buildersShowTranslator, "show-translator", "t", false,
+		"show corresponding translator IDs")
+
+	root = append(root, cmdBuilders, cmdBuild, cmdExit)
 	return root
 }

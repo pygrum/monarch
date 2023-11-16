@@ -72,6 +72,7 @@ func (s *builderServer) GetParams(context.Context, *rpcpb.OptionsRequest) (*rpcp
 			Name:        a.Name,
 			Description: a.Description,
 			Required:    a.Required,
+			Default:     a.Default,
 		}
 	}
 	return reply, nil

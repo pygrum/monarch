@@ -12,18 +12,21 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"os"
+	"path/filepath"
 	"text/tabwriter"
 )
 
 var (
-	l             log.Logger
-	builderConfig struct {
-		client  rpcpb.BuilderClient
-		request *rpcpb.BuildRequest
-		options []*rpcpb.Option
-	}
-	w = tabwriter.NewWriter(os.Stdout, 1, 1, 2, ' ', 0)
+	l log.Logger
+	w = tabwriter.NewWriter(os.Stdout, 1, 1, 3, ' ', 0)
 )
+
+var builderConfig struct {
+	name    string // Name of agent
+	client  rpcpb.BuilderClient
+	request *rpcpb.BuildRequest
+	options []*rpcpb.Option
+}
 
 func init() {
 	l, _ = log.NewLogger(log.ConsoleLogger, "")
@@ -35,7 +38,7 @@ func BuildCmd(builderName string) {
 	if err := db.FindOneConditional("name = ?", builderName, &builder); err != nil {
 		// Search using builderName as either name or ID
 		if err = db.FindOneConditional("builder_id = ?", builderName, &builder); err != nil {
-			l.Error("failed to retrieve specified agent: %v", err)
+			l.Error("could not find builder for '%s': %v", builderName, err)
 			return
 		}
 	}
@@ -46,7 +49,32 @@ func BuildCmd(builderName string) {
 	if err := loadBuildOptions(builder); err != nil {
 		l.Error("failed to load build options for %s: %v", builderName, err)
 	}
-	console.BuildMode(builder.Name)
+	console.BuildMode(builder.Name, consoleCommands())
+}
+
+// Returns default builder options
+func defaultOptions() []*rpcpb.Option {
+	var options []*rpcpb.Option
+	OS := &rpcpb.Option{
+		Name:        "OS",
+		Description: "the OS that the build targets",
+		Default:     "",
+		Required:    true, // must still set required so that they can't unset the value then build
+	}
+	arch := &rpcpb.Option{
+		Name:        "arch",
+		Description: "the platform architecture that the build targets",
+		Default:     "",
+		Required:    true,
+	}
+	out := &rpcpb.Option{
+		Name:        "outfile",
+		Description: "the name of the resulting binary",
+		Default:     "",
+		Required:    false,
+	}
+	options = append(options, OS, arch, out)
+	return options
 }
 
 // loadBuildOptions loads the build options into the BuildRequest in the builderConfig variable
@@ -65,11 +93,19 @@ func loadBuildOptions(b *db.Builder) error {
 	if err != nil {
 		return err
 	}
-	for _, k := range optionsReply.GetOptions() {
+	builderConfig.options = optionsReply.GetOptions()
+	// Add default options
+	builderConfig.options = append(builderConfig.options, defaultOptions()...)
+	for _, k := range builderConfig.options {
+		_, ok := builderConfig.request.Options[k.Name]
+		if ok {
+			l.Warn("duplicate instance(s) of option: %s", k.Name)
+			continue
+		}
 		// Do this so that we can quickly check if an option is valid using map indexing, check is done in SetCmd
 		builderConfig.request.Options[k.Name] = ""
+		builderConfig.name = b.Name
 	}
-	builderConfig.options = optionsReply.GetOptions()
 	builderConfig.client = client
 	return nil
 }
@@ -126,10 +162,36 @@ func Build() {
 		}
 		return
 	}
-	// TODO:builder service request (RPC)
+	resp, err := builderConfig.client.BuildAgent(context.Background(), builderConfig.request)
+	if err != nil {
+		l.Error("[RPC] failed to build agent: %v", err)
+		return
+	}
+	if resp.Status == rpcpb.Status_FailedWithMessage {
+		l.Error("build failed: %s", resp.Error)
+		return
+	}
+	outfile := filepath.Join(os.TempDir(), builderConfig.request.Options["outfile"])
+	var out *os.File
+	if len(outfile) == 0 {
+		out, err = os.CreateTemp(os.TempDir(), "*."+builderConfig.name)
+	} else {
+		out, err = os.Create(outfile)
+	}
+	if err != nil {
+		l.Error("creating temp file failed: %v", err)
+		return
+	}
+	defer out.Close()
+	_, err = out.Write(resp.Build)
+	if err != nil {
+		l.Error("failed to save build to %s: %v", out.Name(), err)
+		return
+	}
+	l.Success("build complete. saved to %s", out.Name())
 }
 
-func ConsoleCommands() []*cobra.Command {
+func consoleCommands() []*cobra.Command {
 	var cmds []*cobra.Command
 	cmdOptions := &cobra.Command{
 		Use:   "options",

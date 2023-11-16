@@ -62,7 +62,8 @@ message OptionsRequest {}
 message Option {
   string name = 1;
   string description = 2;
-  bool required = 3;
+  string default = 3;
+  bool required = 4;
 }
 message OptionsReply {
   repeated Option options = 1;
