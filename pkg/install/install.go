@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
@@ -83,19 +82,15 @@ func NewRepo(url string, private bool) error {
 
 func setup(path string) (*db.Builder, *db.Translator, error) {
 	ctx := context.Background()
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		return nil, nil, err
-	}
-
 	configPath := filepath.Join(path, configName)
 	royal := config.ProjectConfig{}
 	if err := config.YamlConfig(configPath, &royal); err != nil {
 		return nil, nil, err
 	}
 	l.Success("success! installing: %s v%s", royal.Name, royal.Version)
-	// TODO:ImageBuild using dockerfile for builder, save image/container info to DB
-
+	if len(royal.Name) == 0 || len(royal.Version) == 0 {
+		return nil, nil, fmt.Errorf("name and / or version missing (configuration file at %s)", path)
+	}
 	reader, err := archive.Tar(path, archive.Gzip)
 	if err != nil {
 		return nil, nil, err
@@ -103,7 +98,7 @@ func setup(path string) (*db.Builder, *db.Translator, error) {
 	defer reader.Close()
 	var builderImageID, translatorImageID, builderImageTag, translatorImageTag string
 	// Build builder image
-	resp, err := cli.ImageBuild(ctx, reader, types.ImageBuildOptions{
+	resp, err := docker.Cli.ImageBuild(ctx, reader, types.ImageBuildOptions{
 		Dockerfile: filepath.Join(consts.DockerfilesPath, consts.BuilderDockerfile),
 		Tags:       []string{royal.Name + ":" + royal.Version},
 		PullParent: false,
@@ -134,7 +129,7 @@ func setup(path string) (*db.Builder, *db.Translator, error) {
 			return nil, nil, err
 		}
 		defer trReader.Close()
-		resp, err = cli.ImageBuild(ctx, trReader, types.ImageBuildOptions{
+		resp, err = docker.Cli.ImageBuild(ctx, trReader, types.ImageBuildOptions{
 			Dockerfile: filepath.Join(consts.DockerfilesPath, consts.TranslatorDockerfile),
 			Tags:       []string{royal.TranslatorName + ":" + royal.Version},
 			PullParent: false,
@@ -155,7 +150,7 @@ func setup(path string) (*db.Builder, *db.Translator, error) {
 		translatorImageTag = royal.TranslatorName + ":" + royal.Version
 		l.Success("successfully created translator image: %s", translatorImageID)
 	}
-	buildContainerID, trContainerID, err := docker.StartContainers(cli, ctx, builderImageTag, translatorImageTag)
+	buildContainerID, trContainerID, err := docker.StartContainers(docker.Cli, ctx, builderImageTag, translatorImageTag)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to start builder services: %v", err)
 	}
