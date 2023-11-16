@@ -82,6 +82,7 @@ type ProjectConfigCmd struct {
 type ProjectConfigBuildArg struct {
 	Name        string
 	Description string
+	Default     string
 	Required    bool
 }
 

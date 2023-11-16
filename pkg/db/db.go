@@ -41,6 +41,11 @@ func Create(v interface{}) error {
 	return result.Error
 }
 
+func Find(v interface{}) error {
+	result := db.Find(v)
+	return result.Error
+}
+
 // FindConditional retrieves rows based on a specific condition
 func FindConditional(query, target, v interface{}) error {
 	result := db.Where(query, target).Find(v)
