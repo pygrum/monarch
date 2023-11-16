@@ -63,7 +63,7 @@ type Builder struct {
 	SourceDir string `yaml:"source_dir"`
 	// These are custom build arguments that can be used for building, in addition to default build arguments provided
 	// by the C2 itself.
-	BuildArgs []ProjectConfigBuildArgs `yaml:"build_args"`
+	BuildArgs []ProjectConfigBuildArg `yaml:"build_args"`
 }
 
 type ProjectConfigCmd struct {
@@ -79,7 +79,7 @@ type ProjectConfigCmd struct {
 	DescriptionLong  string `yaml:"description_long"`
 }
 
-type ProjectConfigBuildArgs struct {
+type ProjectConfigBuildArg struct {
 	Name        string
 	Description string
 	Required    bool
