@@ -1,6 +1,9 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 
+STATUS_SUCCESS = 0
+STATUS_ERROR = 1
+
 
 class TranslateToRequest:
     def __init__(self, agent_id: str, request_id: str, opcode: int, args: list[bytes]):
@@ -52,7 +55,7 @@ class TranslateFromResponse:
         an agent.
         :param agent_id: the agent ID
         :param request_id: the request ID
-        :param status:
+        :param status: the execution status for the command issued by C2
         :param responses: the data received from the agent
         """
         self.agent_id = agent_id
@@ -118,12 +121,18 @@ class MonarchTranslator(BaseHTTPRequestHandler):
                 data["opcode"],
                 data["args"]
             )
-            to_response = self.translate_to(to_request)
-            response_json = {
-                "success": to_response.success,
-                "error_msg": to_response.error_msg,
-                "message": to_response.message
-            }
+            if not hasattr(self, "translate_to"):
+                response_json = {
+                    "success": False,
+                    "error_msg": "build routine has not been registered."
+                }
+            else:
+                to_response = self.translate_to(to_request)
+                response_json = {
+                    "success": to_response.success,
+                    "error_msg": to_response.error_msg,
+                    "message": to_response.message
+                }
             response = json.dumps(response_json)
             self.send_response(200)
             self.send_header("content-type", "application/json")

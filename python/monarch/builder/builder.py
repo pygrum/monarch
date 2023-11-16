@@ -57,19 +57,20 @@ class MonarchBuilder(BaseHTTPRequestHandler):
         data = json.loads(post_data)
 
         if self.path.startswith("/build"):
-            params = {}
-            # Convert array of key-values to dict
-            for i in data:
-                params[i.get("name")] = i.get("value")
-
-            request = BuildRequest(params=params)
-            response_object = self.build(request)
-
-            response_json = {
-                "status": response_object.status,
-                "error": response_object.error,
-                "build": response_object.build
-            }
+            # data is a dict<string, string> as defined in protobuf
+            request = BuildRequest(params=data)
+            if not hasattr(self, "build"):
+                response_json = {
+                    "status": STATUS_ERROR,
+                    "error": "build routine has not been registered."
+                }
+            else:
+                response_object = self.build(request)
+                response_json = {
+                    "status": response_object.status,
+                    "error": response_object.error,
+                    "build": response_object.build
+                }
             response = json.dumps(response_json)
             self.send_response(200)
             self.send_header("content-type", "application/json")
