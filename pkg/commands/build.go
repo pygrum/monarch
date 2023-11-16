@@ -2,6 +2,8 @@ package build
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"github.com/pygrum/monarch/pkg/console"
 	"github.com/pygrum/monarch/pkg/db"
@@ -13,16 +15,22 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"text/tabwriter"
+	"time"
 )
 
 var (
-	l log.Logger
-	w = tabwriter.NewWriter(os.Stdout, 1, 1, 3, ' ', 0)
+	l          log.Logger
+	w          = tabwriter.NewWriter(os.Stdout, 1, 1, 3, ' ', 0)
+	immutables = []string{"id"}
 )
 
 var builderConfig struct {
-	name    string // Name of agent
+	name    string // Name of builder
+	version string
+	ID      string // ID of resulting agent
 	client  rpcpb.BuilderClient
 	request *rpcpb.BuildRequest
 	options []*rpcpb.Option
@@ -55,8 +63,20 @@ func BuildCmd(builderName string) {
 // Returns default builder options
 func defaultOptions() []*rpcpb.Option {
 	var options []*rpcpb.Option
+	ID := &rpcpb.Option{
+		Name:        "id",
+		Description: "[immutable] the agent ID assigned to the build",
+		Default:     builderConfig.ID,
+		Required:    true,
+	}
+	name := &rpcpb.Option{
+		Name:        "name",
+		Description: "name of this particular agent instance",
+		Default:     builderConfig.ID,
+		Required:    true,
+	}
 	OS := &rpcpb.Option{
-		Name:        "OS",
+		Name:        "os",
 		Description: "the OS that the build targets",
 		Default:     "",
 		Required:    true, // must still set required so that they can't unset the value then build
@@ -73,7 +93,7 @@ func defaultOptions() []*rpcpb.Option {
 		Default:     "",
 		Required:    false,
 	}
-	options = append(options, OS, arch, out)
+	options = append(options, ID, name, OS, arch, out)
 	return options
 }
 
@@ -96,7 +116,10 @@ func loadBuildOptions(b *db.Builder) error {
 	builderConfig.options = optionsReply.GetOptions()
 	// Add default options
 	builderConfig.options = append(builderConfig.options, defaultOptions()...)
-	for _, k := range builderConfig.options {
+	for i, k := range builderConfig.options {
+		k.Name = strings.ToLower(k.Name)
+		builderConfig.options[i].Name = strings.ToLower(k.Name)
+
 		_, ok := builderConfig.request.Options[k.Name]
 		if ok {
 			l.Warn("duplicate instance(s) of option: %s", k.Name)
@@ -104,17 +127,24 @@ func loadBuildOptions(b *db.Builder) error {
 		}
 		// Do this so that we can quickly check if an option is valid using map indexing, check is done in SetCmd
 		builderConfig.request.Options[k.Name] = ""
-		builderConfig.name = b.Name
 	}
+	builderConfig.name = b.Name
+	builderConfig.version = b.Version
+	builderConfig.ID = agentID()
 	builderConfig.client = client
 	return nil
 }
 
 // SetCmd - for users to edit build configuration
 func SetCmd(name, value string) {
+	name = strings.ToLower(name)
 	_, ok := builderConfig.request.Options[name]
 	if !ok {
 		l.Error("'%s' is not an option", name)
+		return
+	}
+	if slices.Contains(immutables, name) {
+		l.Error("'%s' is enforced by the engine and cannot be changed", name)
 		return
 	}
 	builderConfig.request.Options[name] = value
@@ -189,6 +219,27 @@ func Build() {
 		return
 	}
 	l.Success("build complete. saved to %s", out.Name())
+	// save to agents table
+	agent := &db.Agent{
+		AgentID:   builderConfig.ID,
+		Name:      builderConfig.request.Options["name"],
+		Version:   builderConfig.version,
+		OS:        builderConfig.request.Options["os"],
+		Arch:      builderConfig.request.Options["arch"],
+		Builder:   builderConfig.name,
+		File:      out.Name(),
+		CreatedAt: time.Now(),
+	}
+	if err = db.Create(agent); err != nil {
+		l.Error("failed to save agent instance: %v", err)
+	}
+}
+
+// agentID generates an ID for an agent.
+func agentID() string {
+	idBytes := make([]byte, 16) // 32l
+	_, _ = rand.Read(idBytes)
+	return hex.EncodeToString(idBytes)
 }
 
 func consoleCommands() []*cobra.Command {
