@@ -1,6 +1,7 @@
 package console
 
 import (
+	"github.com/pygrum/monarch/pkg/config"
 	"github.com/pygrum/monarch/pkg/db"
 	"github.com/reeflective/console"
 	"github.com/spf13/cobra"
@@ -27,7 +28,10 @@ func NamedMenu(name string, commands []*cobra.Command) {
 	server.App.SwitchMenu(name)
 }
 
+// Run entrypoint for the entire application
 func Run(commands []*cobra.Command) error {
+	config.Init()
+
 	srvMenu := server.App.ActiveMenu()
 	srvMenu.AddCommand(commands...)
 	srvMenu.CompletionOptions.HiddenDefaultCmd = true

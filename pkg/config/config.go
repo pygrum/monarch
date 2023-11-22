@@ -81,7 +81,7 @@ type ProjectConfigBuildArg struct {
 	Required    bool
 }
 
-func init() {
+func Init() {
 	home, _ := os.UserHomeDir()
 	MonarchConfigFile = filepath.Join(home, ".monarch", "monarch.yaml")
 
