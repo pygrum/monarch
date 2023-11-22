@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"github.com/pygrum/monarch/pkg/config"
 	"github.com/pygrum/monarch/pkg/console"
 	"github.com/pygrum/monarch/pkg/db"
 	"github.com/pygrum/monarch/pkg/docker"
@@ -26,12 +27,13 @@ var (
 )
 
 var builderConfig struct {
-	name    string // Name of builder
-	version string
-	ID      string // ID of resulting agent
-	client  rpcpb.BuilderClient
-	request *rpcpb.BuildRequest
-	options []*rpcpb.Option
+	builderID string // ID of builder
+	name      string
+	version   string
+	ID        string // ID of resulting agent
+	client    rpcpb.BuilderClient
+	request   *rpcpb.BuildRequest
+	options   []*rpcpb.Option
 }
 
 func init() {
@@ -55,7 +57,7 @@ func buildCmd(builderName string) {
 	if err := loadBuildOptions(builder); err != nil {
 		l.Error("failed to load build options for %s: %v", builderName, err)
 	}
-	console.BuildMode(builder.Name, consoleCommands())
+	console.NamedMenu(builder.Name, consoleCommands())
 }
 
 // Returns default builder options
@@ -71,19 +73,31 @@ func defaultOptions() []*rpcpb.Option {
 		Name:        "name",
 		Description: "name of this particular agent instance",
 		Default:     builderConfig.ID,
-		Required:    true,
+		Required:    false,
 	}
 	OS := &rpcpb.Option{
 		Name:        "os",
 		Description: "the OS that the build targets",
 		Default:     "",
-		Required:    true, // must still set required so that they can't unset the value then build
+		Required:    false,
 	}
 	arch := &rpcpb.Option{
 		Name:        "arch",
 		Description: "the platform architecture that the build targets",
+		Default:     "x64",
+		Required:    false,
+	}
+	host := &rpcpb.Option{
+		Name:        "host",
+		Description: "the host that the agent calls back to",
+		Default:     config.MainConfig.Interface,
+		Required:    false,
+	}
+	port := &rpcpb.Option{
+		Name:        "port",
+		Description: "the port on which to connect to the host on callback",
 		Default:     "",
-		Required:    true,
+		Required:    false,
 	}
 	out := &rpcpb.Option{
 		Name:        "outfile",
@@ -91,14 +105,14 @@ func defaultOptions() []*rpcpb.Option {
 		Default:     "",
 		Required:    false,
 	}
-	options = append(options, ID, name, OS, arch, out)
+	options = append(options, ID, name, OS, arch, host, port, out)
 	return options
 }
 
 // loadBuildOptions loads the build options into the BuildRequest in the builderConfig variable
 func loadBuildOptions(b *db.Builder) error {
 	ctx := context.Background()
-	builderRPC, _, err := docker.RPCAddresses(docker.Cli, ctx, b.BuilderID)
+	builderRPC, err := docker.RPCAddresses(docker.Cli, ctx, b.BuilderID)
 	if err != nil {
 		return err
 	}
@@ -126,6 +140,7 @@ func loadBuildOptions(b *db.Builder) error {
 		// Do this so that we can quickly check if an option is valid using map indexing, check is done in setCmd
 		builderConfig.request.Options[k.Name] = ""
 	}
+	builderConfig.builderID = b.BuilderID
 	builderConfig.name = b.Name
 	builderConfig.version = b.Version
 	builderConfig.ID = agentID()
@@ -224,7 +239,9 @@ func build() {
 		Version:   builderConfig.version,
 		OS:        builderConfig.request.Options["os"],
 		Arch:      builderConfig.request.Options["arch"],
-		Builder:   builderConfig.name,
+		Host:      builderConfig.request.Options["host"],
+		Port:      builderConfig.request.Options["port"],
+		Builder:   builderConfig.ID,
 		File:      out.Name(),
 		CreatedAt: time.Now(),
 	}
