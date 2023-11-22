@@ -105,7 +105,7 @@ func defaultOptions() []*rpcpb.Option {
 		Default:     "",
 		Required:    false,
 	}
-	options = append(options, ID, name, OS, arch, host, port, out
+	options = append(options, ID, name, OS, arch, host, port, out)
 	return options
 }
 
