@@ -29,7 +29,7 @@ func useCmd(id int) {
 		cLogger.Error("failed to acquire commands: %v", err)
 		return
 	}
-	rpc, err := docker.RPCAddresses(docker.Cli, ctx, builder.BuilderID)
+	rpc, err := docker.RPCAddress(docker.Cli, ctx, builder.BuilderID)
 	if err != nil {
 		cLogger.Error("failed to acquire commands: %v", err)
 		return
