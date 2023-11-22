@@ -21,7 +21,7 @@ func init() {
 	}
 	dockerDir := filepath.Join(dir, consts.DockerfilesPath)
 	builderDir := filepath.Join(dir, consts.DockerfilesPath, "builder")
-	translateDir := filepath.Join(dir, consts.DockerfilesPath, "translator")
+	translateDir := filepath.Join(dir, consts.DockerfilesPath, "builder")
 	err = os.MkdirAll(builderDir, 0777)
 	checkErr(err)
 	err = os.Mkdir(translateDir, 0777)

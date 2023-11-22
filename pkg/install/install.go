@@ -66,7 +66,6 @@ func NewRepo(url string, private bool) error {
 	if err != nil {
 		return err
 	}
-	// TODO:Find config, then find agent builder Dockerfile (and if necessary, translator) and start containers.
 	// Build arguments passed with environment variables.
 	a, err := setup(clonePath)
 	if err != nil {

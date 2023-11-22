@@ -47,7 +47,7 @@ type ProjectConfig struct {
 	URL     string
 	// The command schema defines the possible commands that can be used with the agent.
 	// If the agent doesn't use commands to operate, then this configuration parameter is not necessary.
-	// On installation of the agent, the command schema is used by the translator when an operator requests to
+	// On installation of the agent, the command schema is used by the builder when an operator requests to
 	// view commands.
 	CmdSchema []ProjectConfigCmd `yaml:"cmd_schema"`
 	Builder   Builder            `yaml:"builder"`

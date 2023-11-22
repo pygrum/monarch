@@ -82,7 +82,7 @@ class MonarchBuilder(BaseHTTPRequestHandler):
 
 def builder_service() -> HTTPServer:
     """
-    :return: A HTTPServer class using the monarch translator class as a request handler
+    :return: A HTTPServer class using the monarch builder class as a request handler
     """
     service_address = ("localhost", 20000)
     return HTTPServer(service_address, MonarchBuilder)

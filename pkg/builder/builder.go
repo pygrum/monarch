@@ -38,6 +38,7 @@ func newServer() (*builderServer, error) {
 
 func (s *builderServer) BuildAgent(_ context.Context, r *rpcpb.BuildRequest) (*rpcpb.BuildReply, error) {
 	buildReply := &rpcpb.BuildReply{}
+	r.Options["src_directory"] = s.config.Builder.SourceDir
 	b, err := json.Marshal(r.GetOptions())
 	if err != nil {
 		return nil, err
