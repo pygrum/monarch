@@ -20,7 +20,6 @@ func Initialize() {
 	if err != nil {
 		l.Fatal("failed to retrieve configuration for database: %v. Monarch cannot continue to operate", err)
 	}
-	// mysql operates on localhost
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/monarch?charset=utf8mb4&parseTime=True&loc=Local",
 		conf.MysqlUsername, conf.MysqlPassword, conf.MysqlAddress)
 
@@ -31,7 +30,7 @@ func Initialize() {
 	if err != nil {
 		l.Fatal("failed to connect to database: %v. Monarch cannot continue to operate", err)
 	}
-	if err = db.AutoMigrate(&Builder{}, &Translator{}, &Agent{}); err != nil {
+	if err = db.AutoMigrate(&Builder{}, &Agent{}); err != nil {
 		l.Fatal("failed to migrate schema: %v. Monarch cannot continue to operate", err)
 	}
 }
