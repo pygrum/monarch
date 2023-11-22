@@ -24,8 +24,10 @@ func buildersCmd(args []string) {
 		}
 	} else {
 		if err := db.FindConditional("builder_id IN ?", args, &builders); err != nil {
-			cLogger.Error("failed to retrieve the specified builders: %v", err)
-			return
+			if err = db.FindConditional("name IN ?", args, &builders); err != nil {
+				cLogger.Error("failed to retrieve the specified builders: %v", err)
+				return
+			}
 		}
 	}
 	header := "AGENT NAME\tVERSION\tAUTHOR\tINSTALLATION DATE\tID\t"
