@@ -15,16 +15,20 @@ func init() {
 }
 
 // buildersCmd lists installed builders
-func buildersCmd(showTranslator bool) {
+func buildersCmd(args []string) {
 	var builders []db.Builder
-	if err := db.Find(&builders); err != nil {
-		cLogger.Error("failed to retrieve installed builders: %v", err)
-		return
+	if len(args) == 0 {
+		if err := db.Find(&builders); err != nil {
+			cLogger.Error("failed to retrieve installed builders: %v", err)
+			return
+		}
+	} else {
+		if err := db.FindConditional("builder_id IN ?", args, &builders); err != nil {
+			cLogger.Error("failed to retrieve the specified builders: %v", err)
+			return
+		}
 	}
 	header := "AGENT NAME\tVERSION\tAUTHOR\tINSTALLATION DATE\tID\t"
-	if showTranslator {
-		header += "TRANSLATOR ID\t"
-	}
 	_, _ = fmt.Fprintln(w, header)
 	for _, builder := range builders {
 		line := fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t",
@@ -34,9 +38,6 @@ func buildersCmd(showTranslator bool) {
 			builder.CreatedAt.Format(time.DateTime),
 			builder.BuilderID,
 		)
-		if showTranslator {
-			line += fmt.Sprintf("%s\t", builder.TranslatorID)
-		}
 		_, _ = fmt.Fprintln(w, line)
 	}
 	_ = w.Flush()
