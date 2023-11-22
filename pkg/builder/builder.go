@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	ListenPort     = 2001
+	ListenPort     = 2000
 	serviceAddress = "http://localhost:20000"
 )
 
@@ -63,7 +63,7 @@ func (s *builderServer) sendServiceRequest(method, endpoint string, body []byte,
 	return json.Unmarshal(b, receiver)
 }
 
-func (s *builderServer) GetParams(context.Context, *rpcpb.OptionsRequest) (*rpcpb.OptionsReply, error) {
+func (s *builderServer) GetOptions(context.Context, *rpcpb.OptionsRequest) (*rpcpb.OptionsReply, error) {
 	reply := &rpcpb.OptionsReply{
 		Options: make([]*rpcpb.Option, len(s.config.Builder.BuildArgs)),
 	}
@@ -73,6 +73,24 @@ func (s *builderServer) GetParams(context.Context, *rpcpb.OptionsRequest) (*rpcp
 			Description: a.Description,
 			Required:    a.Required,
 			Default:     a.Default,
+		}
+	}
+	return reply, nil
+}
+
+func (s *builderServer) GetCommands(context.Context, *rpcpb.DescriptionsRequest) (*rpcpb.DescriptionsReply, error) {
+	reply := &rpcpb.DescriptionsReply{
+		Descriptions: make([]*rpcpb.Description, len(s.config.CmdSchema)),
+	}
+	for i, sch := range s.config.CmdSchema {
+		reply.Descriptions[i] = &rpcpb.Description{
+			Name:             sch.Name,
+			Opcode:           sch.Opcode,
+			Usage:            sch.Usage,
+			DescriptionShort: sch.DescriptionShort,
+			DescriptionLong:  sch.DescriptionLong,
+			NumArgs:          sch.NArgs,
+			Admin:            sch.Admin,
 		}
 	}
 	return reply, nil
@@ -91,5 +109,6 @@ func Run() error {
 		return err
 	}
 	rpcpb.RegisterBuilderServer(grpcServer, srv)
+	// deliberately blocking
 	return grpcServer.Serve(lis)
 }
