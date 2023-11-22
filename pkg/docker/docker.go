@@ -7,10 +7,10 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
+	"github.com/pygrum/monarch/pkg/builder"
 	"github.com/pygrum/monarch/pkg/consts"
 	"github.com/pygrum/monarch/pkg/db"
 	"github.com/pygrum/monarch/pkg/log"
-	"github.com/pygrum/monarch/pkg/translator"
 	"strconv"
 	"strings"
 )
@@ -29,44 +29,32 @@ func init() {
 	}
 }
 
-// RPCAddresses returns the rpc addresses of builder-translator pairs given an agent ID.
-func RPCAddresses(cli *client.Client, ctx context.Context, BuilderID string) (string, string, error) {
-	var builder db.Builder
-	var trltr db.Translator
-	var builderAddress, translatorAddress string
-	if err := db.FindOneConditional("agent_id = ?", BuilderID, &builder); err != nil {
-		return "", "", err
+// RPCAddress returns the rpc endpoint of the builder container given an agent ID.
+func RPCAddress(cli *client.Client, ctx context.Context, BuilderID string) (string, error) {
+	var bldr db.Builder
+	var builderAddress string
+	if err := db.FindOneConditional("agent_id = ?", BuilderID, &bldr); err != nil {
+		return "", err
 	}
-	if len(builder.BuilderID) == 0 {
-		return "", "", fmt.Errorf("no builder with ID %s exists", BuilderID)
+	if len(bldr.BuilderID) == 0 {
+		return "", fmt.Errorf("no bldr with ID %s exists", BuilderID)
 	}
-	// Use builder's linked translator as ID
-	if err := db.FindOneConditional("translator_id = ?", builder.TranslatorID, &trltr); err != nil {
-		return "", "", err
+	if len(bldr.BuilderID) == 0 {
+		return "", fmt.Errorf("no bldr with ID %s exists", BuilderID)
 	}
-	if len(builder.BuilderID) == 0 {
-		return "", "", fmt.Errorf("no builder with ID %s exists", BuilderID)
-	}
-	cJson, err := cli.ContainerInspect(ctx, builder.ContainerID)
+	cJson, err := cli.ContainerInspect(ctx, bldr.ContainerID)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to inspect builder %s: %v", BuilderID, err)
+		return "", fmt.Errorf("failed to inspect bldr %s: %v", BuilderID, err)
 	}
-	builderAddress = cJson.NetworkSettings.IPAddress + ":" + strconv.Itoa(translator.ListenPort)
-	cJson, err = cli.ContainerInspect(ctx, trltr.ContainerID)
-	if err != nil {
-		return "", "", fmt.Errorf("failed to inspect builder %s: %v", BuilderID, err)
-	}
-	translatorAddress = cJson.NetworkSettings.IPAddress + ":" + strconv.Itoa(translator.ListenPort)
-	return builderAddress, translatorAddress, nil
+	builderAddress = cJson.NetworkSettings.IPAddress + ":" + strconv.Itoa(builder.ListenPort)
+	return builderAddress, nil
 }
 
-// StartContainers starts the pair of containers (or, just the builder) that are created when a new agent is installed
-func StartContainers(cli *client.Client, ctx context.Context, builderImageTag,
-	translatorImageTag string) (string, string, error) {
+// StartContainer starts the builder container that is created when a new agent is installed
+func StartContainer(cli *client.Client, ctx context.Context, builderImageTag string) (string, error) {
 	// Run container with same name as image
-	var builderID, translatorID string
+	var builderID string
 	bContainerName := strings.Split(builderImageTag, ":")[0]
-	tContainerName := strings.Split(translatorImageTag, ":")[0]
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: builderImageTag,
 		Tty:   false,
@@ -77,35 +65,14 @@ func StartContainers(cli *client.Client, ctx context.Context, builderImageTag,
 			}},
 		}, nil, bContainerName)
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 	// Start builder container
 	if err = cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
-		return "", "", err
+		return "", err
 	}
 	l.Info("started builder container %s", bContainerName)
 	builderID = resp.ID
 
-	// Only start translator image if it exists
-	if len(translatorImageTag) != 0 {
-		resp, err := cli.ContainerCreate(ctx, &container.Config{
-			Image: translatorImageTag,
-			Tty:   false,
-		}, &container.HostConfig{RestartPolicy: container.RestartPolicy{Name: "unless-stopped"}},
-			&network.NetworkingConfig{
-				EndpointsConfig: map[string]*network.EndpointSettings{consts.MonarchNet: {
-					NetworkID: consts.MonarchNet,
-				}},
-			}, nil, tContainerName)
-		if err != nil {
-			return "", "", err
-		}
-		// Start builder container
-		if err = cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
-			return "", "", err
-		}
-		l.Info("started translator container %s", tContainerName)
-		translatorID = resp.ID
-	}
-	return builderID, translatorID, nil
+	return builderID, nil
 }
