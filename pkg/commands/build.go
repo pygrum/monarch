@@ -105,14 +105,14 @@ func defaultOptions() []*rpcpb.Option {
 		Default:     "",
 		Required:    false,
 	}
-	options = append(options, ID, name, OS, arch, host, port, out)
+	options = append(options, ID, name, OS, arch, host, port, out
 	return options
 }
 
 // loadBuildOptions loads the build options into the BuildRequest in the builderConfig variable
 func loadBuildOptions(b *db.Builder) error {
 	ctx := context.Background()
-	builderRPC, err := docker.RPCAddresses(docker.Cli, ctx, b.BuilderID)
+	builderRPC, err := docker.RPCAddress(docker.Cli, ctx, b.BuilderID)
 	if err != nil {
 		return err
 	}
