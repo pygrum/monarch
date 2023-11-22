@@ -20,11 +20,10 @@ func init() {
 
 }
 
-// BuildMode switches the console to build mode. The name parameter is the name of the agent to be built.
-// Only creating a new menu each time because I want it to be named
-func BuildMode(name string, commands []*cobra.Command) {
-	buildMenu := server.App.NewMenu(name)
-	buildMenu.AddCommand(commands...)
+// NamedMenu switches the console to a new menu with the provided name.
+func NamedMenu(name string, commands []*cobra.Command) {
+	namedMenu := server.App.NewMenu(name)
+	namedMenu.AddCommand(commands...)
 	server.App.SwitchMenu(name)
 }
 
@@ -33,4 +32,9 @@ func Run(commands []*cobra.Command) error {
 	srvMenu.AddCommand(commands...)
 	srvMenu.CompletionOptions.HiddenDefaultCmd = true
 	return server.App.Start()
+}
+
+// MainMenu switches back to the main menu
+func MainMenu() {
+	server.App.SwitchMenu("")
 }
