@@ -18,168 +18,11 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// TranslatorClient is the client API for Translator service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type TranslatorClient interface {
-	TranslateTo(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Data, error)
-	TranslateFrom(ctx context.Context, in *Data, opts ...grpc.CallOption) (*Reply, error)
-	GetCmdDescriptions(ctx context.Context, in *DescriptionsRequest, opts ...grpc.CallOption) (*DescriptionsReply, error)
-}
-
-type translatorClient struct {
-	cc grpc.ClientConnInterface
-}
-
-func NewTranslatorClient(cc grpc.ClientConnInterface) TranslatorClient {
-	return &translatorClient{cc}
-}
-
-func (c *translatorClient) TranslateTo(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Data, error) {
-	out := new(Data)
-	err := c.cc.Invoke(ctx, "/rpcpb.Translator/TranslateTo", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *translatorClient) TranslateFrom(ctx context.Context, in *Data, opts ...grpc.CallOption) (*Reply, error) {
-	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/rpcpb.Translator/TranslateFrom", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *translatorClient) GetCmdDescriptions(ctx context.Context, in *DescriptionsRequest, opts ...grpc.CallOption) (*DescriptionsReply, error) {
-	out := new(DescriptionsReply)
-	err := c.cc.Invoke(ctx, "/rpcpb.Translator/GetCmdDescriptions", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// TranslatorServer is the server API for Translator service.
-// All implementations must embed UnimplementedTranslatorServer
-// for forward compatibility
-type TranslatorServer interface {
-	TranslateTo(context.Context, *Request) (*Data, error)
-	TranslateFrom(context.Context, *Data) (*Reply, error)
-	GetCmdDescriptions(context.Context, *DescriptionsRequest) (*DescriptionsReply, error)
-	mustEmbedUnimplementedTranslatorServer()
-}
-
-// UnimplementedTranslatorServer must be embedded to have forward compatible implementations.
-type UnimplementedTranslatorServer struct {
-}
-
-func (UnimplementedTranslatorServer) TranslateTo(context.Context, *Request) (*Data, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method TranslateTo not implemented")
-}
-func (UnimplementedTranslatorServer) TranslateFrom(context.Context, *Data) (*Reply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method TranslateFrom not implemented")
-}
-func (UnimplementedTranslatorServer) GetCmdDescriptions(context.Context, *DescriptionsRequest) (*DescriptionsReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetCmdDescriptions not implemented")
-}
-func (UnimplementedTranslatorServer) mustEmbedUnimplementedTranslatorServer() {}
-
-// UnsafeTranslatorServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to TranslatorServer will
-// result in compilation errors.
-type UnsafeTranslatorServer interface {
-	mustEmbedUnimplementedTranslatorServer()
-}
-
-func RegisterTranslatorServer(s grpc.ServiceRegistrar, srv TranslatorServer) {
-	s.RegisterService(&Translator_ServiceDesc, srv)
-}
-
-func _Translator_TranslateTo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(TranslatorServer).TranslateTo(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/rpcpb.Translator/TranslateTo",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TranslatorServer).TranslateTo(ctx, req.(*Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Translator_TranslateFrom_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Data)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(TranslatorServer).TranslateFrom(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/rpcpb.Translator/TranslateFrom",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TranslatorServer).TranslateFrom(ctx, req.(*Data))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Translator_GetCmdDescriptions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DescriptionsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(TranslatorServer).GetCmdDescriptions(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/rpcpb.Translator/GetCmdDescriptions",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TranslatorServer).GetCmdDescriptions(ctx, req.(*DescriptionsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-// Translator_ServiceDesc is the grpc.ServiceDesc for Translator service.
-// It's only intended for direct use with grpc.RegisterService,
-// and not to be introspected or modified (even as a copy)
-var Translator_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "rpcpb.Translator",
-	HandlerType: (*TranslatorServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "TranslateTo",
-			Handler:    _Translator_TranslateTo_Handler,
-		},
-		{
-			MethodName: "TranslateFrom",
-			Handler:    _Translator_TranslateFrom_Handler,
-		},
-		{
-			MethodName: "GetCmdDescriptions",
-			Handler:    _Translator_GetCmdDescriptions_Handler,
-		},
-	},
-	Streams:  []grpc.StreamDesc{},
-	Metadata: "pkg/rpcpb/services.proto",
-}
-
 // BuilderClient is the client API for Builder service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type BuilderClient interface {
+	GetCommands(ctx context.Context, in *DescriptionsRequest, opts ...grpc.CallOption) (*DescriptionsReply, error)
 	GetOptions(ctx context.Context, in *OptionsRequest, opts ...grpc.CallOption) (*OptionsReply, error)
 	BuildAgent(ctx context.Context, in *BuildRequest, opts ...grpc.CallOption) (*BuildReply, error)
 }
@@ -190,6 +33,15 @@ type builderClient struct {
 
 func NewBuilderClient(cc grpc.ClientConnInterface) BuilderClient {
 	return &builderClient{cc}
+}
+
+func (c *builderClient) GetCommands(ctx context.Context, in *DescriptionsRequest, opts ...grpc.CallOption) (*DescriptionsReply, error) {
+	out := new(DescriptionsReply)
+	err := c.cc.Invoke(ctx, "/rpcpb.Builder/GetCommands", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *builderClient) GetOptions(ctx context.Context, in *OptionsRequest, opts ...grpc.CallOption) (*OptionsReply, error) {
@@ -214,6 +66,7 @@ func (c *builderClient) BuildAgent(ctx context.Context, in *BuildRequest, opts .
 // All implementations must embed UnimplementedBuilderServer
 // for forward compatibility
 type BuilderServer interface {
+	GetCommands(context.Context, *DescriptionsRequest) (*DescriptionsReply, error)
 	GetOptions(context.Context, *OptionsRequest) (*OptionsReply, error)
 	BuildAgent(context.Context, *BuildRequest) (*BuildReply, error)
 	mustEmbedUnimplementedBuilderServer()
@@ -223,6 +76,9 @@ type BuilderServer interface {
 type UnimplementedBuilderServer struct {
 }
 
+func (UnimplementedBuilderServer) GetCommands(context.Context, *DescriptionsRequest) (*DescriptionsReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetCommands not implemented")
+}
 func (UnimplementedBuilderServer) GetOptions(context.Context, *OptionsRequest) (*OptionsReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetOptions not implemented")
 }
@@ -240,6 +96,24 @@ type UnsafeBuilderServer interface {
 
 func RegisterBuilderServer(s grpc.ServiceRegistrar, srv BuilderServer) {
 	s.RegisterService(&Builder_ServiceDesc, srv)
+}
+
+func _Builder_GetCommands_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DescriptionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BuilderServer).GetCommands(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpcpb.Builder/GetCommands",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BuilderServer).GetCommands(ctx, req.(*DescriptionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _Builder_GetOptions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -285,6 +159,10 @@ var Builder_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "rpcpb.Builder",
 	HandlerType: (*BuilderServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetCommands",
+			Handler:    _Builder_GetCommands_Handler,
+		},
 		{
 			MethodName: "GetOptions",
 			Handler:    _Builder_GetOptions_Handler,

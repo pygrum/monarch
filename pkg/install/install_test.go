@@ -27,10 +27,11 @@ func init() {
 	err = os.Mkdir(translateDir, 0777)
 	checkErr(err)
 
+	templateDir := filepath.Join("..", "..", "templates")
 	// Write build and translate Dockerfiles to respective files in simulated directory
-	buildBytes, err := os.ReadFile(filepath.Join("..", "..", "templates", consts.BuilderDockerfile))
+	buildBytes, err := os.ReadFile(filepath.Join(templateDir, consts.BuilderDockerfile))
 	checkErr(err)
-	trBytes, err := os.ReadFile(filepath.Join("..", "..", "templates", consts.TranslatorDockerfile))
+	trBytes, err := os.ReadFile(filepath.Join(templateDir, consts.TranslatorDockerfile))
 	checkErr(err)
 	err = os.WriteFile(filepath.Join(dockerDir, consts.BuilderDockerfile), buildBytes, 0666)
 	checkErr(err)
@@ -51,7 +52,7 @@ func checkErr(err error) {
 	}
 }
 
-func cleanup(agent *db.Builder, translator *db.Translator) {
+func cleanup(agent *db.Builder) {
 	err := os.RemoveAll(dir)
 	ctx := context.Background()
 	checkErr(err)
@@ -61,25 +62,13 @@ func cleanup(agent *db.Builder, translator *db.Translator) {
 		err = cli.ContainerRemove(ctx, agent.ContainerID, types.ContainerRemoveOptions{Force: true})
 		checkErr(err)
 	}
-	if len(translator.ImageID) != 0 {
-		err = cli.ContainerRemove(ctx, translator.ContainerID, types.ContainerRemoveOptions{Force: true})
-		checkErr(err)
-		_, err = cli.ImageRemove(ctx, translator.ImageID, types.ImageRemoveOptions{Force: true})
-		checkErr(err)
-	}
-	// delete images last in case you try to delete an image in use by the translator.
-	// Also check if the images are the same - if they are, then it has already been removed.
-	if agent.ImageID != translator.ImageID {
-		_, err = cli.ImageRemove(ctx, agent.ImageID, types.ImageRemoveOptions{Force: true})
-		checkErr(err)
-	}
 }
 
 func TestSetup(t *testing.T) {
-	a, tr, err := setup(dir)
+	a, err := setup(dir)
 	if err != nil {
-		cleanup(a, tr)
+		cleanup(a)
 		t.Fatalf("setup(%s): failed with error %v", dir, err)
 	}
-	cleanup(a, tr)
+	cleanup(a)
 }

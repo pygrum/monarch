@@ -2,12 +2,8 @@ syntax = "proto3";
 package rpcpb;
 option go_package = "github.com/pygrum/monarch/pkg/rpcpb";
 
-service Translator {
-  rpc TranslateTo (Request) returns (Data) {}
-  rpc TranslateFrom (Data) returns (Reply) {}
-  rpc GetCmdDescriptions (DescriptionsRequest) returns (DescriptionsReply) {}
-}
 service Builder {
+  rpc GetCommands (DescriptionsRequest) returns (DescriptionsReply) {}
   rpc GetOptions (OptionsRequest) returns (OptionsReply) {}
   rpc BuildAgent (BuildRequest) returns (BuildReply) {}
 }
@@ -16,33 +12,6 @@ enum Status {
   Success = 0;
   FailedWithMessage = 1; // The message is contained as the first response in the responses field
 }
-
-// External //////////////////////////////////////////
-message Request {
-  string agent_id = 1;
-  int32 request_id = 2;
-  int32 opcode = 3;
-  repeated bytes args = 4;
-
-}
-message Reply {
-  string agent_id = 1;
-  int32  request_id = 2;
-  Status status = 3;
-  repeated Response responses = 4;
-}
-message Response {
-  bytes data = 1;
-  enum Dst {
-    File = 0;
-    Stdout = 1;
-  }
-  Dst destination = 2; // Whether to save response to file, or send to stdout
-}
-message Data {
-  bytes message = 1;
-}
-/////////////////////////////////////////////////////
 
 // Internal /////////////////////////////////////////
 message DescriptionsRequest {} // Empty request, needs no values

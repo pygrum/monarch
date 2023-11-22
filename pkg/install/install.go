@@ -68,35 +68,30 @@ func NewRepo(url string, private bool) error {
 	}
 	// TODO:Find config, then find agent builder Dockerfile (and if necessary, translator) and start containers.
 	// Build arguments passed with environment variables.
-	a, t, err := setup(clonePath)
+	a, err := setup(clonePath)
 	if err != nil {
 		return err
-	}
-	if t != nil {
-		if err = db.Create(t); err != nil {
-			return err
-		}
 	}
 	return db.Create(a)
 }
 
-func setup(path string) (*db.Builder, *db.Translator, error) {
+func setup(path string) (*db.Builder, error) {
 	ctx := context.Background()
 	configPath := filepath.Join(path, configName)
 	royal := config.ProjectConfig{}
 	if err := config.YamlConfig(configPath, &royal); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	l.Success("success! installing: %s v%s", royal.Name, royal.Version)
 	if len(royal.Name) == 0 || len(royal.Version) == 0 {
-		return nil, nil, fmt.Errorf("name and / or version missing (configuration file at %s)", path)
+		return nil, fmt.Errorf("name and / or version missing (configuration file at %s)", path)
 	}
 	reader, err := archive.Tar(path, archive.Gzip)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	defer reader.Close()
-	var builderImageID, translatorImageID, builderImageTag, translatorImageTag string
+	var builderImageID, builderImageTag string
 	// Build builder image
 	resp, err := docker.Cli.ImageBuild(ctx, reader, types.ImageBuildOptions{
 		Dockerfile: filepath.Join(consts.DockerfilesPath, consts.BuilderDockerfile),
@@ -104,7 +99,7 @@ func setup(path string) (*db.Builder, *db.Translator, error) {
 		PullParent: false,
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to build builder-builder image: %v", err)
+		return nil, fmt.Errorf("failed to build builder-builder image: %v", err)
 	}
 	bytes, _ := io.ReadAll(resp.Body)
 
@@ -112,77 +107,33 @@ func setup(path string) (*db.Builder, *db.Translator, error) {
 
 	ID, buildErr, err := parseResponse(string(bytes))
 	if buildErr != nil {
-		return nil, nil, fmt.Errorf("build error while installing builder: %v", buildErr)
+		return nil, fmt.Errorf("build error while installing builder: %v", buildErr)
 	}
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read build response: %v", err)
+		return nil, fmt.Errorf("failed to read build response: %v", err)
 	}
 	builderImageID = ID
 	builderImageTag = royal.Name + ":" + royal.Version
 	l.Success("successfully created builder image: %s", builderImageID)
-	// Create translator image if translator is inbuilt
-	if royal.TranslatorType == nativeTranslator {
-		l.Info("building native translator %s", royal.TranslatorName)
-		// Need to create a new reader, I think that calling an image build closes the old one
-		trReader, err := archive.Tar(path, archive.Gzip)
-		if err != nil {
-			return nil, nil, err
-		}
-		defer trReader.Close()
-		resp, err = docker.Cli.ImageBuild(ctx, trReader, types.ImageBuildOptions{
-			Dockerfile: filepath.Join(consts.DockerfilesPath, consts.TranslatorDockerfile),
-			Tags:       []string{royal.TranslatorName + ":" + royal.Version},
-			PullParent: false,
-		})
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to build translator image: %v", err)
-		}
-		bytes, _ = io.ReadAll(resp.Body)
-		_ = resp.Body.Close()
-		ID, buildErr, err = parseResponse(string(bytes))
-		if buildErr != nil {
-			return nil, nil, fmt.Errorf("build error while installing builder: %v", err)
-		}
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to read build response: %v", err)
-		}
-		translatorImageID = ID
-		translatorImageTag = royal.TranslatorName + ":" + royal.Version
-		l.Success("successfully created translator image: %s", translatorImageID)
-	}
-	buildContainerID, trContainerID, err := docker.StartContainers(docker.Cli, ctx, builderImageTag, translatorImageTag)
+
+	buildContainerID, err := docker.StartContainer(docker.Cli, ctx, builderImageTag)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to start builder services: %v", err)
+		return nil, fmt.Errorf("failed to start builder services: %v", err)
 	}
 
 	builderID := uuid.New().String()
-	translatorID := uuid.New().String()
 	builder := &db.Builder{
-		BuilderID:    builderID,
-		Name:         royal.Name,
-		Version:      royal.Version,
-		Author:       royal.Author,
-		Url:          royal.URL,
-		InstalledAt:  path,
-		ImageID:      builderImageID,
-		ContainerID:  buildContainerID,
-		TranslatorID: translatorID,
-	}
-	if len(trContainerID) != 0 {
-		translator := &db.Translator{
-			TranslatorID: translatorID,
-			Name:         royal.TranslatorName,
-			Version:      royal.Version,
-			Author:       royal.Author,
-			Url:          royal.URL,
-			InstalledAt:  path,
-			ImageID:      translatorImageID,
-			ContainerID:  trContainerID,
-		}
-		return builder, translator, nil
+		BuilderID:   builderID,
+		Name:        royal.Name,
+		Version:     royal.Version,
+		Author:      royal.Author,
+		Url:         royal.URL,
+		InstalledAt: path,
+		ImageID:     builderImageID,
+		ContainerID: buildContainerID,
 	}
 	// Return empty to avoid nil pointer dereference
-	return builder, &db.Translator{}, nil
+	return builder, nil
 }
 
 // parseResponse returns the image ID, build errors and any errors that occurred during parsing

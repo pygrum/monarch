@@ -45,11 +45,6 @@ type ProjectConfig struct {
 	Version string
 	Author  string
 	URL     string
-	// The translator is used to translate messages between the C2 and agent.
-	// A translator can use an existing translator (type=external) or the one included in the cloned project
-	// (type=native). The translator is installed as a container and given the name provided by `translator_name`.
-	TranslatorName string `yaml:"translator_name"`
-	TranslatorType string `yaml:"translator_type"`
 	// The command schema defines the possible commands that can be used with the agent.
 	// If the agent doesn't use commands to operate, then this configuration parameter is not necessary.
 	// On installation of the agent, the command schema is used by the translator when an operator requests to
