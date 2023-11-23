@@ -1,9 +1,8 @@
 package consts
 
 const (
-	DockerfilesPath      = "docker"
-	TranslatorDockerfile = "translator/Dockerfile"
-	BuilderDockerfile    = "builder/Dockerfile"
+	DockerfilesPath   = "docker"
+	BuilderDockerfile = "builder/Dockerfile"
 
 	MonarchNet = "monarch-net"
 )

@@ -21,21 +21,14 @@ func init() {
 	}
 	dockerDir := filepath.Join(dir, consts.DockerfilesPath)
 	builderDir := filepath.Join(dir, consts.DockerfilesPath, "builder")
-	translateDir := filepath.Join(dir, consts.DockerfilesPath, "builder")
 	err = os.MkdirAll(builderDir, 0777)
-	checkErr(err)
-	err = os.Mkdir(translateDir, 0777)
 	checkErr(err)
 
 	templateDir := filepath.Join("..", "..", "templates")
 	// Write build and translate Dockerfiles to respective files in simulated directory
 	buildBytes, err := os.ReadFile(filepath.Join(templateDir, consts.BuilderDockerfile))
 	checkErr(err)
-	trBytes, err := os.ReadFile(filepath.Join(templateDir, consts.TranslatorDockerfile))
-	checkErr(err)
 	err = os.WriteFile(filepath.Join(dockerDir, consts.BuilderDockerfile), buildBytes, 0666)
-	checkErr(err)
-	err = os.WriteFile(filepath.Join(dockerDir, consts.TranslatorDockerfile), trBytes, 0666)
 	checkErr(err)
 
 	// Create config file in folder

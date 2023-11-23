@@ -6,13 +6,12 @@ MONARCH_NET=monarch-net
 MONARCH_PATH=${HOME}/.monarch
 
 ACTIVE_CONTAINERS=$(docker network inspect \
-  -f '{{ range $key, $value := .Containers }}{{ printf "%s\n" $key}}{{ end }}' \
-  ${MONARCH_NET})
+  -f '{{ range $key, $value := .Containers }}{{ printf "%s\n" $key}}{{ end }}' ${MONARCH_NET})
 
 if [ "$ACTIVE_CONTAINERS" ]; then
   echo "stopping and removing active containers on existing network"
-  docker container stop "$ACTIVE_CONTAINERS"
-  docker container rm "$ACTIVE_CONTAINERS"
+  docker container stop $ACTIVE_CONTAINERS
+  docker container rm $ACTIVE_CONTAINERS
 fi
 echo "removing monarch-net"
 docker network rm "${MONARCH_NET}"

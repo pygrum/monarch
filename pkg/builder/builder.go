@@ -14,11 +14,12 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"time"
 )
 
 const (
 	ListenPort     = 2000
-	serviceAddress = "http://localhost:20000"
+	serviceAddress = "http://127.0.0.1:20000"
 )
 
 type builderServer struct {
@@ -33,7 +34,7 @@ func newServer(conf string) (*builderServer, error) {
 	if err := config.YamlConfig(conf, &royalConfig); err != nil {
 		return nil, err
 	}
-	c := &http.Client{Timeout: 10}
+	c := &http.Client{Timeout: 10 * time.Second}
 	return &builderServer{config: &royalConfig, serviceClient: c}, nil
 }
 

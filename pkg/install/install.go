@@ -39,10 +39,7 @@ type imageBuildResponse struct {
 
 // NewRepo and use GitHub credentials if repository is private
 func NewRepo(url string, private bool) error {
-	c := config.MonarchConfig{}
-	if err := config.YamlConfig(config.MonarchConfigFile, &c); err != nil {
-		return err
-	}
+	c := config.MainConfig
 	o := &git.CloneOptions{
 		URL: url,
 	}

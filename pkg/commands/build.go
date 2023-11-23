@@ -22,11 +22,12 @@ import (
 )
 
 var (
-	l          log.Logger
-	immutables = []string{"id"}
+	l             log.Logger
+	immutables    = []string{"id"}
+	builderConfig BuilderConfig
 )
 
-var builderConfig struct {
+type BuilderConfig struct {
 	builderID string // ID of builder
 	name      string
 	version   string
@@ -56,6 +57,7 @@ func buildCmd(builderName string) {
 	}
 	if err := loadBuildOptions(builder); err != nil {
 		l.Error("failed to load build options for %s: %v", builderName, err)
+		return
 	}
 	console.NamedMenu(builder.Name, consoleCommands)
 }
@@ -111,6 +113,13 @@ func defaultOptions() []*rpcpb.Option {
 
 // loadBuildOptions loads the build options into the BuildRequest in the builderConfig variable
 func loadBuildOptions(b *db.Builder) error {
+	// initialize pointer
+	builderConfig = BuilderConfig{
+		ID: agentID(),
+		request: &rpcpb.BuildRequest{
+			Options: make(map[string]string),
+		},
+	}
 	ctx := context.Background()
 	builderRPC, err := docker.RPCAddress(docker.Cli, ctx, b.BuilderID)
 	if err != nil {
@@ -131,19 +140,16 @@ func loadBuildOptions(b *db.Builder) error {
 	for i, k := range builderConfig.options {
 		k.Name = strings.ToLower(k.Name)
 		builderConfig.options[i].Name = strings.ToLower(k.Name)
-
 		_, ok := builderConfig.request.Options[k.Name]
 		if ok {
 			l.Warn("duplicate instance(s) of option: %s", k.Name)
 			continue
 		}
-		// Do this so that we can quickly check if an option is valid using map indexing, check is done in setCmd
-		builderConfig.request.Options[k.Name] = ""
+		builderConfig.request.Options[k.Name] = k.Default
 	}
 	builderConfig.builderID = b.BuilderID
 	builderConfig.name = b.Name
 	builderConfig.version = b.Version
-	builderConfig.ID = agentID()
 	builderConfig.client = client
 	return nil
 }
@@ -171,13 +177,13 @@ func unsetCmd(name string) {
 
 // optionsCmd - returns all build configuration options
 func optionsCmd() {
-	headers := "NAME\tVALUE\tDESCRIPTION\tREQUIRED\t"
-	_, _ = fmt.Fprintln(w, headers)
+	header := "NAME\tVALUE\tDESCRIPTION\tREQUIRED\t"
+	_, _ = fmt.Fprintln(w, header)
 	for _, option := range builderConfig.options {
 		tableLine := fmt.Sprintf("%s\t%s\t%s\t%v\t",
 			option.Name,
 			// color set options green
-			fmt.Sprintf("%s%s%s", "\033[32m", builderConfig.request.Options[option.Name], "\033[0m"),
+			builderConfig.request.Options[option.Name],
 			option.Description, option.Required)
 
 		_, _ = fmt.Fprintln(w, tableLine)
@@ -205,7 +211,11 @@ func build() {
 		}
 		return
 	}
-	resp, err := builderConfig.client.BuildAgent(context.Background(), builderConfig.request)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancel()
+	// receive large bins
+	maxSizeOption := grpc.MaxCallRecvMsgSize(32 * 10e6)
+	resp, err := builderConfig.client.BuildAgent(ctx, builderConfig.request, maxSizeOption)
 	if err != nil {
 		l.Error("[RPC] failed to build agent: %v", err)
 		return
@@ -241,7 +251,7 @@ func build() {
 		Arch:      builderConfig.request.Options["arch"],
 		Host:      builderConfig.request.Options["host"],
 		Port:      builderConfig.request.Options["port"],
-		Builder:   builderConfig.ID,
+		Builder:   builderConfig.builderID,
 		File:      out.Name(),
 		CreatedAt: time.Now(),
 	}
@@ -252,7 +262,7 @@ func build() {
 
 // agentID generates an ID for an agent.
 func agentID() string {
-	idBytes := make([]byte, 16) // 32l
+	idBytes := make([]byte, 8) // 16l
 	_, _ = rand.Read(idBytes)
 	return hex.EncodeToString(idBytes)
 }
@@ -291,7 +301,7 @@ func consoleCommands() *cobra.Command {
 			build()
 		},
 	}
-	rootCmd.AddCommand(cmdBuild, cmdOptions, cmdSet, cmdUnset)
+	rootCmd.AddCommand(cmdBuild, cmdOptions, cmdSet, cmdUnset, exit("exit the interactive builder"))
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
 	return rootCmd
 }

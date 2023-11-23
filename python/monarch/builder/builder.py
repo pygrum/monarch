@@ -15,7 +15,7 @@ class BuildRequest:
 
 
 class BuildResponse:
-    def __init__(self, status: int, error: str, build: bytes):
+    def __init__(self, status: int, error: str, build: str):
         """
         An object representing a response to a build request received from the main C2 server.
         A build would typically end with a status (STATUS_SUCCESS | STATUS_ERROR), an error message (if applicable),
@@ -40,15 +40,12 @@ class BuildFunction:
         self.routine = routine
 
     def __call__(self, request: BuildRequest) -> BuildResponse:
-        return self.routine(BuildRequest)
+        return self.routine(request)
 
 
 class MonarchBuilder(BaseHTTPRequestHandler):
 
     build: BuildFunction
-
-    def register_build(self, function: BuildFunction):
-        self.build = function
 
     def do_POST(self):
         content_length = int(self.headers.get('Content-Length'))
@@ -75,14 +72,15 @@ class MonarchBuilder(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("content-type", "application/json")
             self.end_headers()
-            self.wfile.write(bytes(response, "utf-8"))
+            self.wfile.write(response.encode("utf-8"))
         else:
             self.send_response(404)
 
 
-def builder_service() -> HTTPServer:
+def builder_service(build_function: BuildFunction) -> HTTPServer:
     """
     :return: A HTTPServer class using the monarch builder class as a request handler
     """
+    MonarchBuilder.build = build_function
     service_address = ("localhost", 20000)
     return HTTPServer(service_address, MonarchBuilder)

@@ -1,0 +1,24 @@
+name: PyPi Package Publisher (twine)
+on:
+  push:
+    branches:
+      - main
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: testpypi
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+
+      - name: upgrade pip packages
+        run: python3 -m pip install --user --upgrade setuptools wheel twine
+      - name: setup distribution
+        run: python3 setup.py sdist bdist_wheel
+
+      - name: Publish to test PyPi
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          password: ${{ secrets.TWINE_PASSWORD }}

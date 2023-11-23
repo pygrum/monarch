@@ -90,6 +90,7 @@ func Init() {
 	}
 	MainConfig.CertFile = filepath.Join(home, ".monarch", MainConfig.CertFile)
 	MainConfig.KeyFile = filepath.Join(home, ".monarch", MainConfig.KeyFile)
+	MainConfig.InstallDir = filepath.Join(home, ".monarch", MainConfig.InstallDir)
 }
 
 // YamlConfig will unmarshal yaml data into the provided template pointer.

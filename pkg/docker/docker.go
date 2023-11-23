@@ -33,7 +33,7 @@ func init() {
 func RPCAddress(cli *client.Client, ctx context.Context, BuilderID string) (string, error) {
 	var bldr db.Builder
 	var builderAddress string
-	if err := db.FindOneConditional("agent_id = ?", BuilderID, &bldr); err != nil {
+	if err := db.FindOneConditional("builder_id = ?", BuilderID, &bldr); err != nil {
 		return "", err
 	}
 	if len(bldr.BuilderID) == 0 {
@@ -46,7 +46,11 @@ func RPCAddress(cli *client.Client, ctx context.Context, BuilderID string) (stri
 	if err != nil {
 		return "", fmt.Errorf("failed to inspect bldr %s: %v", BuilderID, err)
 	}
-	builderAddress = cJson.NetworkSettings.IPAddress + ":" + strconv.Itoa(builder.ListenPort)
+	netSettings, ok := cJson.NetworkSettings.Networks[consts.MonarchNet]
+	if !ok {
+		return "", fmt.Errorf("could not find %s", consts.MonarchNet)
+	}
+	builderAddress = netSettings.IPAddress + ":" + strconv.Itoa(builder.ListenPort)
 	return builderAddress, nil
 }
 

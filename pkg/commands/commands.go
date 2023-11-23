@@ -96,7 +96,19 @@ func ConsoleCommands() *cobra.Command {
 	}
 	cmdHttps.Flags().BoolVarP(&httpsStop, "stop", "s", false, "stop the https listener")
 
-	root.AddCommand(cmdSessions, cmdUse, cmdHttp, cmdHttps, cmdAgents, cmdBuilders, cmdBuild, cmdExit)
+	var installPrivate bool
+	cmdInstall := &cobra.Command{
+		Use:   "install [flags] REPO",
+		Short: "install a builder from a Git repository",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			installCmd(args[0], installPrivate)
+		},
+	}
+	cmdInstall.Flags().BoolVarP(&installPrivate, "use-creds", "c", false,
+		"use GitHub credentials for installation")
+
+	root.AddCommand(cmdSessions, cmdUse, cmdHttp, cmdHttps, cmdAgents, cmdBuilders, cmdBuild, cmdInstall, cmdExit)
 	root.CompletionOptions.HiddenDefaultCmd = true
 	return root
 }
