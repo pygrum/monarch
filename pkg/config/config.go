@@ -88,6 +88,8 @@ func Init() {
 	if err := YamlConfig(MonarchConfigFile, &MainConfig); err != nil {
 		panic(fmt.Errorf("%v. was monarch installed with install-monarch.sh? ", err))
 	}
+	MainConfig.CertFile = filepath.Join(home, ".monarch", MainConfig.CertFile)
+	MainConfig.KeyFile = filepath.Join(home, ".monarch", MainConfig.KeyFile)
 }
 
 // YamlConfig will unmarshal yaml data into the provided template pointer.

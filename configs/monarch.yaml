@@ -4,8 +4,8 @@ loglevel: 2
 certfile: monarch.crt # cert file relative to monarch home dir
 keyfile: monarch.key
 interface: 0.0.0.0
-httpport: 80
-httpsport: 443
+httpport: 8000
+httpsport: 4433
 installdir: agents
 # gitusername:
 # gitpat:

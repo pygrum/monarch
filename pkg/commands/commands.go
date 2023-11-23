@@ -18,14 +18,17 @@ func ConsoleCommands() *cobra.Command {
 
 	root := &cobra.Command{}
 
+	var yesExit bool
 	cmdExit := &cobra.Command{
 		Use:   "exit",
 		Short: "shutdown the monarch server",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			exitCmd()
+			exitCmd(yesExit)
 		},
 	}
+	cmdExit.Flags().BoolVarP(&yesExit, "yes", "y", false, "confirm exit")
+
 	cmdBuild := &cobra.Command{
 		Use:   "build [agent]",
 		Short: "start the interactive builder for an installed agent",
@@ -71,7 +74,29 @@ func ConsoleCommands() *cobra.Command {
 			useCmd(id)
 		},
 	}
-	root.AddCommand(cmdSessions, cmdUse, cmdAgents, cmdBuilders, cmdBuild, cmdExit)
+	var httpStop bool
+	cmdHttp := &cobra.Command{
+		Use:   "http",
+		Short: "start an http listener",
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			httpCmd(httpStop)
+		},
+	}
+	cmdHttp.Flags().BoolVarP(&httpStop, "stop", "s", false, "stop the http listener")
+
+	var httpsStop bool
+	cmdHttps := &cobra.Command{
+		Use:   "https",
+		Short: "start an https listener",
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			httpsCmd(httpsStop)
+		},
+	}
+	cmdHttps.Flags().BoolVarP(&httpsStop, "stop", "s", false, "stop the https listener")
+
+	root.AddCommand(cmdSessions, cmdUse, cmdHttp, cmdHttps, cmdAgents, cmdBuilders, cmdBuild, cmdExit)
 	root.CompletionOptions.HiddenDefaultCmd = true
 	return root
 }

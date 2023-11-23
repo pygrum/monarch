@@ -1,6 +1,8 @@
 package xhttp
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/pygrum/monarch/pkg/config"
@@ -22,10 +24,13 @@ var (
 )
 
 type HTTPHandler struct {
-	CertFile string
-	KeyFile  string
-	sessions *sessions
-	Router   *mux.Router
+	CertFile    string
+	KeyFile     string
+	httpServer  *http.Server
+	httpsServer *http.Server
+	httpsLock   bool
+	httpLock    bool
+	sessions    *sessions
 }
 
 func init() {
@@ -69,33 +74,72 @@ func NewHandler() *HTTPHandler {
 		KeyFile:  config.MainConfig.KeyFile,
 		sessions: ssns,
 	}
-	r := mux.NewRouter()
+	router := mux.NewRouter()
+	sRouter := mux.NewRouter()
 	// Handles all requests
-	r.PathPrefix("/").HandlerFunc(ssns.defaultHandler)
-	h.Router = r
+	router.PathPrefix("/").HandlerFunc(ssns.defaultHandler)
+	sRouter.PathPrefix("/").HandlerFunc(ssns.defaultHandler)
+	h.httpServer = &http.Server{
+		Handler: router,
+		Addr:    net.JoinHostPort(config.MainConfig.Interface, strconv.Itoa(config.MainConfig.HttpPort)),
+	}
+	h.httpsServer = &http.Server{
+		Handler: sRouter,
+		Addr:    net.JoinHostPort(config.MainConfig.Interface, strconv.Itoa(config.MainConfig.HttpsPort)),
+	}
 	return h
 }
 
-func (h *HTTPHandler) Serve(iface string) error {
-	if len(iface) == 0 {
-		iface = config.MainConfig.Interface
+func (h *HTTPHandler) Serve() {
+	// ensures can only be started once the server is available
+	h.httpLock = true
+	if err := h.httpServer.ListenAndServe(); err != nil &&
+		!errors.Is(err, http.ErrServerClosed) {
+		l.Error("listener failed: %v", err)
+		return
 	}
-	server := http.Server{
-		Handler: h.Router,
-		Addr:    net.JoinHostPort(iface, strconv.Itoa(config.MainConfig.HttpsPort)),
-	}
-	return server.ListenAndServe()
 }
 
-func (h *HTTPHandler) ServeTLS(iface string) error {
-	if len(iface) == 0 {
-		iface = config.MainConfig.Interface
+func (h *HTTPHandler) ServeTLS() {
+	// ensures can only be started once the server is available
+	h.httpsLock = true
+	if err := h.httpsServer.ListenAndServeTLS(h.CertFile, h.KeyFile); err != nil &&
+		!errors.Is(err, http.ErrServerClosed) {
+		l.Error("listener failed: %v", err)
 	}
-	server := http.Server{
-		Handler: h.Router,
-		Addr:    net.JoinHostPort(iface, strconv.Itoa(config.MainConfig.HttpsPort)),
+}
+
+func (h *HTTPHandler) Stop() error {
+	if err := h.httpServer.Shutdown(context.Background()); err != nil {
+		return err
 	}
-	return server.ListenAndServeTLS(h.CertFile, h.KeyFile)
+	// create new server since shutdown destroys the old one
+	h.httpServer = &http.Server{
+		Handler: h.httpServer.Handler,
+		Addr:    h.httpServer.Addr,
+	}
+	h.httpLock = false
+	return nil
+}
+
+func (h *HTTPHandler) StopTLS() error {
+	if err := h.httpsServer.Shutdown(context.Background()); err != nil {
+		return err
+	}
+	h.httpsServer = &http.Server{
+		Handler: h.httpsServer.Handler,
+		Addr:    h.httpsServer.Addr,
+	}
+	h.httpsLock = false
+	return nil
+}
+
+func (h *HTTPHandler) IsActive() bool {
+	return h.httpLock
+}
+
+func (h *HTTPHandler) IsActiveTLS() bool {
+	return h.httpsLock
 }
 
 func (h *HTTPHandler) QueueRequest(sessionID int, req *transport.GenericHTTPRequest) error {

@@ -6,7 +6,11 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 )
 
-func exitCmd() {
+func exitCmd(yes bool) {
+	if yes {
+		cLogger.Info("Goodbye!")
+		os.Exit(0)
+	}
 	y := false
 	prompt := &survey.Confirm{
 		Message: "are you sure you want to quit? All listeners and sessions will be closed",
