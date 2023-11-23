@@ -88,6 +88,7 @@ func useCmd(id int) {
 		rootCmd.AddCommand(cmd)
 	}
 	rootCmd.AddCommand(exit(""))
+	rootCmd.CompletionOptions.HiddenDefaultCmd = true
 	console.NamedMenu(strconv.Itoa(sessionInfo.ID), func() *cobra.Command {
 		return rootCmd
 	})

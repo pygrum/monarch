@@ -292,5 +292,6 @@ func consoleCommands() *cobra.Command {
 		},
 	}
 	rootCmd.AddCommand(cmdBuild, cmdOptions, cmdSet, cmdUnset)
+	rootCmd.CompletionOptions.HiddenDefaultCmd = true
 	return rootCmd
 }

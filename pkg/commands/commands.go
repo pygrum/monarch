@@ -72,6 +72,7 @@ func ConsoleCommands() *cobra.Command {
 		},
 	}
 	root.AddCommand(cmdSessions, cmdUse, cmdAgents, cmdBuilders, cmdBuild, cmdExit)
+	root.CompletionOptions.HiddenDefaultCmd = true
 	return root
 }
 

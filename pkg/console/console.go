@@ -31,7 +31,6 @@ func NamedMenu(name string, commands func() *cobra.Command) {
 func Run(rootCmd func() *cobra.Command) error {
 	srvMenu := server.App.ActiveMenu()
 	srvMenu.SetCommands(rootCmd)
-	srvMenu.CompletionOptions.HiddenDefaultCmd = true
 	return server.App.Start()
 }
 

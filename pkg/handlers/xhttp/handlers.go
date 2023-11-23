@@ -58,8 +58,10 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 	var resp *transport.GenericHTTPRequest
 	// should always return a session
 	session, ok := s.sessionMap[sessionID]
+	// potentially won't let someone re-auth if server goes down despite having valid cookie
 	if !ok {
-		w.WriteHeader(http.StatusInternalServerError)
+		// use status bad request to tell client to ditch the cookie, since the server restarted
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	handleResponse(session, first)
