@@ -45,7 +45,7 @@ func useCmd(id int) {
 		cLogger.Error("failed to acquire command descriptions (rpc): %v", err)
 		return
 	}
-	var cmds []*cobra.Command
+	rootCmd := &cobra.Command{}
 	for _, description := range descriptions.Descriptions {
 		args := cobra.NoArgs
 		if description.NumArgs > 0 {
@@ -85,8 +85,10 @@ func useCmd(id int) {
 				}
 			},
 		}
-		cmds = append(cmds, cmd)
+		rootCmd.AddCommand(cmd)
 	}
-	cmds = append(cmds, cmdExit(""))
-	console.NamedMenu(strconv.Itoa(sessionInfo.ID), cmds)
+	rootCmd.AddCommand(exit(""))
+	console.NamedMenu(strconv.Itoa(sessionInfo.ID), func() *cobra.Command {
+		return rootCmd
+	})
 }

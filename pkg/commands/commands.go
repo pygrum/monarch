@@ -14,9 +14,9 @@ func init() {
 }
 
 // ConsoleCommands returns all commands used by the console
-func ConsoleCommands() []*cobra.Command {
+func ConsoleCommands() *cobra.Command {
 
-	var root []*cobra.Command
+	root := &cobra.Command{}
 
 	cmdExit := &cobra.Command{
 		Use:   "exit",
@@ -71,12 +71,12 @@ func ConsoleCommands() []*cobra.Command {
 			useCmd(id)
 		},
 	}
-	root = append(root, cmdSessions, cmdUse, cmdAgents, cmdBuilders, cmdBuild, cmdExit)
+	root.AddCommand(cmdSessions, cmdUse, cmdAgents, cmdBuilders, cmdBuild, cmdExit)
 	return root
 }
 
 // exits any named menus spawned by any commands
-func cmdExit(short string) *cobra.Command {
+func exit(short string) *cobra.Command {
 	if len(short) == 0 {
 		short = "exit the interactive menu"
 	}

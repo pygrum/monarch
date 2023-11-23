@@ -1,7 +1,6 @@
 package console
 
 import (
-	"github.com/pygrum/monarch/pkg/config"
 	"github.com/pygrum/monarch/pkg/db"
 	"github.com/reeflective/console"
 	"github.com/spf13/cobra"
@@ -22,18 +21,16 @@ func init() {
 }
 
 // NamedMenu switches the console to a new menu with the provided name.
-func NamedMenu(name string, commands []*cobra.Command) {
+func NamedMenu(name string, commands func() *cobra.Command) {
 	namedMenu := server.App.NewMenu(name)
-	namedMenu.AddCommand(commands...)
+	namedMenu.SetCommands(commands)
 	server.App.SwitchMenu(name)
 }
 
 // Run entrypoint for the entire application
-func Run(commands []*cobra.Command) error {
-	config.Init()
-
+func Run(rootCmd func() *cobra.Command) error {
 	srvMenu := server.App.ActiveMenu()
-	srvMenu.AddCommand(commands...)
+	srvMenu.SetCommands(rootCmd)
 	srvMenu.CompletionOptions.HiddenDefaultCmd = true
 	return server.App.Start()
 }

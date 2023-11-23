@@ -57,7 +57,7 @@ func buildCmd(builderName string) {
 	if err := loadBuildOptions(builder); err != nil {
 		l.Error("failed to load build options for %s: %v", builderName, err)
 	}
-	console.NamedMenu(builder.Name, consoleCommands())
+	console.NamedMenu(builder.Name, consoleCommands)
 }
 
 // Returns default builder options
@@ -257,8 +257,8 @@ func agentID() string {
 	return hex.EncodeToString(idBytes)
 }
 
-func consoleCommands() []*cobra.Command {
-	var cmds []*cobra.Command
+func consoleCommands() *cobra.Command {
+	rootCmd := &cobra.Command{}
 	cmdOptions := &cobra.Command{
 		Use:   "options",
 		Args:  cobra.NoArgs,
@@ -291,6 +291,6 @@ func consoleCommands() []*cobra.Command {
 			build()
 		},
 	}
-	cmds = append(cmds, cmdBuild, cmdOptions, cmdSet, cmdUnset)
-	return cmds
+	rootCmd.AddCommand(cmdBuild, cmdOptions, cmdSet, cmdUnset)
+	return rootCmd
 }
