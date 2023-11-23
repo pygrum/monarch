@@ -64,4 +64,5 @@ mkdir -p "${HOME}/.local/bin" 2>/dev/null
 go build ../cmd/monarch/monarch.go
 mv ./monarch "${HOME}/.local/bin"
 
-echo "done. please wait for all services to start"
+echo "done. waiting for all services to start..."
+sleep 5

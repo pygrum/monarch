@@ -15,14 +15,11 @@ var l log.Logger
 // Initialize database
 func Initialize() {
 	l, _ = log.NewLogger(log.ConsoleLogger, "")
-	conf := config.MonarchConfig{}
-	err := config.YamlConfig(config.MonarchConfigFile, &conf)
-	if err != nil {
-		l.Fatal("failed to retrieve configuration for database: %v. Monarch cannot continue to operate", err)
-	}
+	config.Init()
+	conf := config.MainConfig
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/monarch?charset=utf8mb4&parseTime=True&loc=Local",
 		conf.MysqlUsername, conf.MysqlPassword, conf.MysqlAddress)
-
+	var err error
 	db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
 	})
