@@ -9,9 +9,11 @@ import (
 	"github.com/pygrum/monarch/pkg/rpcpb"
 	"google.golang.org/grpc"
 	"io"
+	"log"
 	"net"
 	"net/http"
-	"path/filepath"
+	"os"
+	"os/exec"
 )
 
 const (
@@ -25,11 +27,10 @@ type builderServer struct {
 	config        *config.ProjectConfig
 }
 
-func newServer() (*builderServer, error) {
+func newServer(conf string) (*builderServer, error) {
 	// /config/royal.yaml is where the config file must be placed, as shown in dockerfile
-	royal := filepath.Join("/config", "royal.yaml")
 	royalConfig := config.ProjectConfig{}
-	if err := config.YamlConfig(royal, &royalConfig); err != nil {
+	if err := config.YamlConfig(conf, &royalConfig); err != nil {
 		return nil, err
 	}
 	c := &http.Client{Timeout: 10}
@@ -98,6 +99,25 @@ func (s *builderServer) GetCommands(context.Context, *rpcpb.DescriptionsRequest)
 }
 
 func Run() error {
+	if len(os.Args) < 3 {
+		return fmt.Errorf("usage: %s /path/to/royal.yml /path/to/service.py /path/to/requirements.txt",
+			os.Args[0])
+	}
+	var cerr bytes.Buffer
+	if len(os.Args) > 3 {
+		cmd := exec.Command("pip3", "install", "-r", os.Args[3])
+		cmd.Stderr = &cerr
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("failed to install service dependencies: %v: %v", err, cerr.String())
+		}
+	}
+	go func() {
+		cmd := exec.Command("python3", os.Args[2])
+		cmd.Stderr = &cerr
+		if err := cmd.Run(); err != nil {
+			log.Fatalf("failed to start service service: %v: %v", err, cerr.String())
+		}
+	}()
 	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", ListenPort))
 	if err != nil {
 		return err
@@ -105,7 +125,7 @@ func Run() error {
 	var opts []grpc.ServerOption
 
 	grpcServer := grpc.NewServer(opts...)
-	srv, err := newServer()
+	srv, err := newServer(os.Args[1])
 	if err != nil {
 		return err
 	}
