@@ -92,7 +92,8 @@ func (s *builderServer) GetCommands(context.Context, *rpcpb.DescriptionsRequest)
 			Usage:            sch.Usage,
 			DescriptionShort: sch.DescriptionShort,
 			DescriptionLong:  sch.DescriptionLong,
-			NumArgs:          sch.NArgs,
+			MinArgs:          sch.MinArgs,
+			MaxArgs:          sch.MaxArgs,
 			Admin:            sch.Admin,
 		}
 	}
