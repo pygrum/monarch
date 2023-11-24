@@ -14,7 +14,7 @@ import (
 
 var (
 	// new secret each restart
-	key = uuid.New().String()
+	key = []byte(uuid.New().String())
 )
 
 type HTTPSession struct {
