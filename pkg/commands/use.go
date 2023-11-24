@@ -13,7 +13,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"os"
-	"strconv"
 )
 
 func useCmd(id int) {
@@ -48,10 +47,8 @@ func useCmd(id int) {
 	rootCmd := &cobra.Command{}
 	for _, description := range descriptions.Descriptions {
 		args := cobra.NoArgs
-		if description.NumArgs > 0 {
-			args = cobra.ExactArgs(int(description.NumArgs))
-		} else if description.NumArgs < 0 {
-			args = cobra.ArbitraryArgs
+		if description.MaxArgs > 0 {
+			args = cobra.RangeArgs(int(description.MinArgs), int(description.MaxArgs))
 		}
 		cmd := &cobra.Command{
 			Use:   description.Usage,
@@ -89,7 +86,7 @@ func useCmd(id int) {
 	}
 	rootCmd.AddCommand(exit(""))
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
-	console.NamedMenu(strconv.Itoa(sessionInfo.ID), func() *cobra.Command {
+	console.NamedMenu(sessionInfo.Agent.Name, func() *cobra.Command {
 		return rootCmd
 	})
 }
