@@ -155,12 +155,18 @@ func (h *HTTPHandler) CancelRequest(sessionID int, req *transport.GenericHTTPReq
 
 func (h *HTTPHandler) Sessions(sessIDs []int) []*HTTPSession {
 	var ss []*HTTPSession
-	for _, sessID := range sessIDs {
-		session := h.SessionByID(sessID)
-		if session == nil {
-			continue
+	if len(sessIDs) == 0 {
+		for _, v := range h.sessions.sessionMap {
+			ss = append(ss, v)
 		}
-		ss = append(ss, session)
+	} else {
+		for _, sessID := range sessIDs {
+			session := h.SessionByID(sessID)
+			if session == nil {
+				continue
+			}
+			ss = append(ss, session)
+		}
 	}
 	return ss
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/pygrum/monarch/pkg/db"
 	"github.com/pygrum/monarch/pkg/rpcpb"
 	"github.com/pygrum/monarch/pkg/transport"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -13,7 +14,9 @@ import (
 
 func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 	first := &transport.GenericHTTPResponse{}
-	if err := json.NewDecoder(r.Body).Decode(first); err != nil {
+	defer r.Body.Close()
+	b, _ := io.ReadAll(r.Body)
+	if err := json.Unmarshal(b, first); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -31,6 +34,7 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 		// sessions can't be indexed by agent id otherwise there could be duplication
 		token, expiresAt, id, err := s.newSession(agent)
 		if err != nil {
+			fmt.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -50,6 +54,7 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 		// verify JWT
 		claims, err := validateJwt(c)
 		if err != nil {
+			fmt.Println(err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -72,6 +77,7 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 			// Then someone queued request, so send it
 			b, err := json.Marshal(resp)
 			if err != nil {
+				fmt.Println(err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
