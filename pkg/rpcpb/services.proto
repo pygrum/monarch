@@ -21,8 +21,9 @@ message Description {
   string usage = 3;
   string description_short = 4;
   string description_long = 5;
-  uint32 num_args = 6;
-  bool admin = 7; // True if admin is needed to run the command
+  uint32 min_args = 6;
+  uint32 max_args = 7;
+  bool admin = 8; // True if admin is needed to run the command
 }
 message DescriptionsReply {
   repeated Description descriptions = 1;
