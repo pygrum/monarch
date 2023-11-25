@@ -60,6 +60,7 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		claims, err := validateJwt(c) // is invalid after server restart
 		if err != nil {
+			fl.Error("jwt validation failed: %v", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -70,6 +71,7 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 	session, ok := s.sessionMap[sessionID]
 	// potentially won't let someone re-auth if server goes down despite having valid cookie
 	if !ok {
+		fl.Error("session '%d' not found", sessionID)
 		// use status bad request to tell client to ditch the cookie, since the server restarted
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -83,6 +85,7 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 		// must be a response to an issued request since the agent is already authenticated
 		response := &transport.GenericHTTPResponse{}
 		if err = json.Unmarshal(connectInfoBytes, response); err != nil {
+			fl.Error("failed to parse response from agent %s: %v", connectInfo.AgentID, err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -96,6 +99,7 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 			// Then someone queued request, so send it
 			b, err := json.Marshal(resp)
 			if err != nil {
+				fl.Error("marshalling request %s failed: %v", ShortID(resp.RequestID), err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
