@@ -1,12 +1,12 @@
 package xhttp
 
 import (
+	"errors"
 	"fmt"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/pygrum/monarch/pkg/coop"
 	"github.com/pygrum/monarch/pkg/db"
-	"github.com/pygrum/monarch/pkg/transport"
 	"net/http"
 	"sync"
 	"time"
@@ -18,18 +18,14 @@ var (
 )
 
 type HTTPSession struct {
-	ID         int
-	Queue      *RQueue
-	Agent      *db.Agent
-	LastActive time.Time
-	Player     *coop.Player // nil if console is using it
-	lock       sync.Mutex
-}
-
-// RQueue holds up to queueCapacity responses for a callback.
-// If full, an error is raised.
-type RQueue struct {
-	channel chan *transport.GenericHTTPRequest
+	ID            int
+	RequestQueue  Queue
+	ResponseQueue Queue
+	Agent         *db.Agent
+	LastActive    time.Time
+	Player        *coop.Player // nil if console is using it
+	lock          sync.Mutex
+	Authenticated bool
 }
 
 type Claims struct {
@@ -48,9 +44,19 @@ func (s *sessions) newSession(agent *db.Agent) (string, time.Time, int, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	id := s.count
+	// check if session with given agent exists anywhere
+	for _, sess := range s.sessionMap {
+		if agent.AgentID == sess.Agent.AgentID && !sess.Authenticated {
+			// can't have multiple unauthenticated agents with the same ID, so invalidate
+			return "", time.Time{}, 0, errors.New("cannot have multiple unauthenticated agents with the same ID")
+		}
+	}
 	newSession := &HTTPSession{
-		Queue: NewRQueue(),
-		Agent: agent,
+		ID:            id,
+		RequestQueue:  NewRequestQueue(),
+		ResponseQueue: NewResponseQueue(),
+		Agent:         agent,
+		Player:        &coop.Player{},
 	}
 	expiresAt := time.Now().Add(5 * time.Minute)
 	tokenString, err := newToken(id, expiresAt)

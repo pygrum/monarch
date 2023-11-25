@@ -33,35 +33,75 @@ type HTTPHandler struct {
 	sessions    *sessions
 }
 
+type Queue interface {
+	Enqueue(interface{}) error
+	Dequeue() interface{}
+	Size() int
+}
+
+// RequestQueue holds up to queueCapacity responses for a callback.
+// If full, an error is raised.
+type RequestQueue struct {
+	channel chan *transport.GenericHTTPRequest
+}
+
+type ResponseQueue struct {
+	channel chan *transport.GenericHTTPResponse
+}
+
 func init() {
 	Handler = NewHandler()
 	l, _ = log.NewLogger(log.ConsoleLogger, "")
 }
 
-func (r *RQueue) Enqueue(req *transport.GenericHTTPRequest) error {
+func (r *RequestQueue) Enqueue(req interface{}) error {
 	select {
-	case r.channel <- req:
+	case r.channel <- req.(*transport.GenericHTTPRequest):
 		return nil
 	default:
 		return fmt.Errorf("queue is full - max capacity of %d\n", queueCapacity)
 	}
 }
 
-func (r *RQueue) Dequeue() *transport.GenericHTTPRequest {
+func (r *RequestQueue) Dequeue() interface{} {
+	// Must block, as we wait for a request to queue
 	select {
 	case req := <-r.channel:
 		return req
-	default:
-		return nil
 	}
 }
 
-func (r *RQueue) Size() int {
+func (r *RequestQueue) Size() int {
 	return len(r.channel)
 }
 
-func NewRQueue() *RQueue {
-	return &RQueue{channel: make(chan *transport.GenericHTTPRequest, queueCapacity)}
+func (r *ResponseQueue) Enqueue(req interface{}) error {
+	select {
+	case r.channel <- req.(*transport.GenericHTTPResponse):
+		return nil
+	default:
+		return fmt.Errorf("queue is full - max capacity of %d\n", queueCapacity)
+	}
+}
+
+func (r *ResponseQueue) Dequeue() interface{} {
+	// Must block, as we wait for a request to queue
+	select {
+	case req := <-r.channel:
+		return req
+	}
+}
+
+func (r *ResponseQueue) Size() int {
+	return len(r.channel)
+}
+
+func NewRequestQueue() *RequestQueue {
+	return &RequestQueue{channel: make(chan *transport.GenericHTTPRequest, queueCapacity)}
+}
+
+func NewResponseQueue() *ResponseQueue {
+	return &ResponseQueue{channel: make(chan *transport.GenericHTTPResponse, queueCapacity)}
 }
 
 func NewHandler() *HTTPHandler {
@@ -143,21 +183,21 @@ func (h *HTTPHandler) IsActiveTLS() bool {
 }
 
 func (h *HTTPHandler) QueueRequest(sessionID int, req *transport.GenericHTTPRequest) error {
-	return h.sessions.sessionMap[sessionID].Queue.Enqueue(req) // returns error if queue is full
+	return h.sessions.sessionMap[sessionID].RequestQueue.Enqueue(req) // returns error if queue is full
 }
 
-func (h *HTTPHandler) CancelRequest(sessionID int, req *transport.GenericHTTPRequest) error {
-	if h.sessions.sessionMap[sessionID].Queue.Dequeue() == nil {
-		return fmt.Errorf("no request to cancel")
-	}
-	return nil
+func (h *HTTPHandler) AwaitResponse(sessionID int) *transport.GenericHTTPResponse {
+	return h.sessions.sessionMap[sessionID].ResponseQueue.Dequeue().(*transport.GenericHTTPResponse) // returns error if queue is full
 }
 
 func (h *HTTPHandler) Sessions(sessIDs []int) []*HTTPSession {
+	h.sessions.lock.Lock()
+	defer h.sessions.lock.Unlock()
 	var ss []*HTTPSession
 	if len(sessIDs) == 0 {
-		for _, v := range h.sessions.sessionMap {
-			ss = append(ss, v)
+		ss = make([]*HTTPSession, len(h.sessions.sessionMap))
+		for k, v := range h.sessions.sessionMap {
+			ss[k] = v
 		}
 	} else {
 		for _, sessID := range sessIDs {
