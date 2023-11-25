@@ -21,6 +21,7 @@ const (
 var (
 	Handler *HTTPHandler
 	l       log.Logger
+	fl      log.Logger
 )
 
 type HTTPHandler struct {
@@ -52,6 +53,12 @@ type ResponseQueue struct {
 func init() {
 	Handler = NewHandler()
 	l, _ = log.NewLogger(log.ConsoleLogger, "")
+
+	var err error
+	fl, err = log.NewLogger(log.FileLogger, "handler")
+	if err != nil {
+		l.Warn("could not create file logger: %v", err)
+	}
 }
 
 func (r *RequestQueue) Enqueue(req interface{}) error {
@@ -183,11 +190,17 @@ func (h *HTTPHandler) IsActiveTLS() bool {
 }
 
 func (h *HTTPHandler) QueueRequest(sessionID int, req *transport.GenericHTTPRequest) error {
-	return h.sessions.sessionMap[sessionID].RequestQueue.Enqueue(req) // returns error if queue is full
+	ss := h.sessions.sessionMap[sessionID]
+	if ss == nil {
+		return fmt.Errorf("session '%d' no longer exists - it may have expired due to a new connection",
+			sessionID)
+	}
+	return ss.RequestQueue.Enqueue(req) // returns error if queue is full
 }
 
 func (h *HTTPHandler) AwaitResponse(sessionID int) *transport.GenericHTTPResponse {
-	return h.sessions.sessionMap[sessionID].ResponseQueue.Dequeue().(*transport.GenericHTTPResponse) // returns error if queue is full
+	// returns error if queue is full
+	return h.sessions.sessionMap[sessionID].ResponseQueue.Dequeue().(*transport.GenericHTTPResponse)
 }
 
 func (h *HTTPHandler) Sessions(sessIDs []int) []*HTTPSession {
@@ -195,10 +208,7 @@ func (h *HTTPHandler) Sessions(sessIDs []int) []*HTTPSession {
 	defer h.sessions.lock.Unlock()
 	var ss []*HTTPSession
 	if len(sessIDs) == 0 {
-		ss = make([]*HTTPSession, len(h.sessions.sessionMap))
-		for k, v := range h.sessions.sessionMap {
-			ss[k] = v
-		}
+		return h.sessions.sortedSessions
 	} else {
 		for _, sessID := range sessIDs {
 			session := h.SessionByID(sessID)

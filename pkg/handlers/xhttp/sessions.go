@@ -1,12 +1,12 @@
 package xhttp
 
 import (
-	"errors"
 	"fmt"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/pygrum/monarch/pkg/coop"
 	"github.com/pygrum/monarch/pkg/db"
+	"github.com/pygrum/monarch/pkg/transport"
 	"net/http"
 	"sync"
 	"time"
@@ -23,9 +23,11 @@ type HTTPSession struct {
 	ResponseQueue Queue
 	Agent         *db.Agent
 	LastActive    time.Time
+	Status        string
 	Player        *coop.Player // nil if console is using it
 	lock          sync.Mutex
 	Authenticated bool
+	Info          transport.Registration
 }
 
 type Claims struct {
@@ -34,21 +36,27 @@ type Claims struct {
 }
 
 type sessions struct {
-	lock       sync.Mutex
-	count      int
-	sessionMap map[int]*HTTPSession
+	lock           sync.Mutex
+	count          int
+	sessionMap     map[int]*HTTPSession
+	sortedSessions []*HTTPSession
 }
 
 // newSession registers a session and creates a cookie for auth
-func (s *sessions) newSession(agent *db.Agent) (string, time.Time, int, error) {
+func (s *sessions) newSession(agent *db.Agent, connectInfo *transport.Registration) (string, time.Time, int, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	id := s.count
+	status := ""
 	// check if session with given agent exists anywhere
-	for _, sess := range s.sessionMap {
-		if agent.AgentID == sess.Agent.AgentID && !sess.Authenticated {
-			// can't have multiple unauthenticated agents with the same ID, so invalidate
-			return "", time.Time{}, 0, errors.New("cannot have multiple unauthenticated agents with the same ID")
+	for i, sess := range s.sortedSessions {
+		if agent.AgentID == sess.Agent.AgentID {
+			if !sess.Authenticated {
+				return "", time.Time{}, 0, fmt.Errorf("agent %s was not previously authenticated", agent.AgentID)
+			}
+			delete(s.sessionMap, sess.ID) // remove session from map
+			s.sortedSessions = append(s.sortedSessions[:i], s.sortedSessions[i+1:]...)
+			status = "renewed"
 		}
 	}
 	newSession := &HTTPSession{
@@ -57,6 +65,8 @@ func (s *sessions) newSession(agent *db.Agent) (string, time.Time, int, error) {
 		ResponseQueue: NewResponseQueue(),
 		Agent:         agent,
 		Player:        &coop.Player{},
+		Info:          *connectInfo,
+		Status:        status,
 	}
 	expiresAt := time.Now().Add(5 * time.Minute)
 	tokenString, err := newToken(id, expiresAt)
@@ -64,6 +74,7 @@ func (s *sessions) newSession(agent *db.Agent) (string, time.Time, int, error) {
 		return "", time.Time{}, 0, err
 	}
 	s.sessionMap[id] = newSession
+	s.sortedSessions = append(s.sortedSessions, newSession)
 	s.count += 1 // increment session count
 	return tokenString, expiresAt, id, nil
 }

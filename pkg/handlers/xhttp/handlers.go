@@ -14,16 +14,21 @@ import (
 )
 
 func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
-	first := &transport.GenericHTTPResponse{}
+	connectInfo := &transport.Registration{}
 	defer r.Body.Close()
-	b, _ := io.ReadAll(r.Body)
-	if err := json.Unmarshal(b, first); err != nil {
+	connectInfoBytes, err := io.ReadAll(r.Body)
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	uuid := first.AgentID
+	if err := json.Unmarshal(connectInfoBytes, connectInfo); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	uuid := connectInfo.AgentID
 	agent := &db.Agent{}
 	if err := db.FindOneConditional("agent_id = ?", uuid, agent); err != nil || agent.AgentID == "" {
+		fl.Error("couldn't find agent '%s': %v", uuid, err)
 		// Just report as online
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -33,8 +38,9 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil || c == nil {
 		// create new session and set cookie.
 		// sessions can't be indexed by agent id otherwise there could be duplication
-		token, expiresAt, id, err := s.newSession(agent)
+		token, expiresAt, id, err := s.newSession(agent, connectInfo)
 		if err != nil {
+			fl.Error("failed to create new session: %v", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -47,6 +53,8 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		// allows agent to use cookie from first request for subsequent ones
 		http.SetCookie(w, c)
+		// TODO: this returns err if writefile failed - handle that with a logger later
+		_ = HandleFirst(s.sessionMap[sessionID], connectInfo)
 		w.WriteHeader(http.StatusOK)
 		return
 	} else {
@@ -69,9 +77,17 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 	// session is authenticated if JWT has been validated
 	if !session.Authenticated {
 		session.Authenticated = true
+		session.Status = "active"
+		session.LastActive = time.Now()
 	} else {
+		// must be a response to an issued request since the agent is already authenticated
+		response := &transport.GenericHTTPResponse{}
+		if err = json.Unmarshal(connectInfoBytes, response); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 		// Queue the message as a response since this is not the first authenticated message
-		_ = session.ResponseQueue.Enqueue(first)
+		_ = session.ResponseQueue.Enqueue(response)
 	}
 	for {
 		// Keep checking for new response
@@ -88,7 +104,25 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 			return // exit so we can get a response
 		}
 	}
-	// TODO: DO something with the request body. save it to an agent-specific history file or something
+}
+
+func HandleFirst(session *HTTPSession, reg *transport.Registration) error {
+	for _, d := range reg.Data {
+		if d.Dest == transport.DestStdout {
+			if session.Player.ConsolePlayer() {
+				fmt.Println("Initial data received from", reg.AgentID, ":\n", string(d.Data))
+			}
+		} else if d.Dest == transport.DestFile {
+			file := filepath.Join(os.TempDir(), filepath.Base(d.Name))
+			if err := os.WriteFile(file, d.Data, 0666); err != nil {
+				return err
+			}
+			if session.Player.ConsolePlayer() {
+				l.Info("%s:\nfile saved to %s", reg.AgentID, file)
+			}
+		}
+	}
+	return nil
 }
 
 func HandleResponse(session *HTTPSession, resp *transport.GenericHTTPResponse) {
@@ -105,24 +139,35 @@ func HandleResponse(session *HTTPSession, resp *transport.GenericHTTPResponse) {
 		}
 	} else {
 		for _, response := range resp.Responses {
-			if response.Dest == transport.DestStdout {
-				if session.Player.ConsolePlayer() {
-					fmt.Println(string(response.Data))
-				}
-			} else if response.Dest == transport.DestFile {
-				file := filepath.Join(os.TempDir(), response.Name)
-				if err := os.WriteFile(file, response.Data, 0666); err != nil {
-					if session.Player.ConsolePlayer() {
-						l.Error("failed writing response to %s to file: %v", ShortID(resp.RequestID), err)
-					}
-					return
-				}
-				if session.Player.ConsolePlayer() {
-					l.Info("%s: file saved to %s", ShortID(resp.RequestID), file)
-				}
-			}
+			handleResponseDetails(session, response, resp.RequestID)
+		}
+		if session.Player.ConsolePlayer() {
+			fmt.Println()
 		}
 	}
+}
+
+func handleResponseDetails(session *HTTPSession, response transport.ResponseDetail, rid string) {
+	if response.Dest == transport.DestStdout {
+		if session.Player.ConsolePlayer() {
+			fmt.Println(string(response.Data))
+		}
+	} else if response.Dest == transport.DestFile {
+		file := filepath.Join(os.TempDir(), response.Name)
+		if err := os.WriteFile(file, response.Data, 0666); err != nil {
+			if session.Player.ConsolePlayer() {
+				l.Error("failed writing response to %s to file: %v", ShortID(rid), err)
+			}
+			return
+		}
+		if session.Player.ConsolePlayer() {
+			l.Info("%s: file saved to %s", ShortID(rid), file)
+		}
+	}
+}
+
+func LoggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(Handler.sessions.defaultHandler)
 }
 
 func ShortID(uuid string) string {
