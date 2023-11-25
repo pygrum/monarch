@@ -1,8 +1,10 @@
 package commands
 
 import (
+	"fmt"
 	"github.com/pygrum/monarch/pkg/console"
 	"github.com/pygrum/monarch/pkg/log"
+	"github.com/pygrum/monarch/pkg/transport"
 	"github.com/spf13/cobra"
 	"strconv"
 )
@@ -124,6 +126,36 @@ func exit(short string) *cobra.Command {
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			console.MainMenu()
+		},
+	}
+	return cmd
+}
+
+func info(systemInfo transport.Registration) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "info",
+		Short: "view information about the agent's host",
+		Long: "Information is typically compiled and sent by an agent when it first connects to the server. " +
+			"This information includes details such as the user running the process, the process ID, UID, GID, " +
+			"IP address, and more; however if an agent doesn't transmit this information, you'd have to find out " +
+			"yourself.",
+		Args: cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println()
+			fmt.Println("System Information")
+			fmt.Println("==================")
+			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "Agent ID:", systemInfo.AgentID))
+			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "Host OS:", systemInfo.OS))
+			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "Architecture:", systemInfo.Arch))
+			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "Username:", systemInfo.Username))
+			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "Hostname:", systemInfo.Hostname))
+			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "UID:", systemInfo.UID))
+			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "GID:", systemInfo.GID))
+			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "PID:", systemInfo.PID))
+			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "Home Directory:", systemInfo.HomeDir))
+			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "IP:", systemInfo.IPAddress))
+			_ = w.Flush()
+			fmt.Println()
 		},
 	}
 	return cmd
