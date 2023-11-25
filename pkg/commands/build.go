@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"time"
@@ -80,13 +81,13 @@ func defaultOptions() []*rpcpb.Option {
 	OS := &rpcpb.Option{
 		Name:        "os",
 		Description: "the OS that the build targets",
-		Default:     "",
+		Default:     runtime.GOOS,
 		Required:    false,
 	}
 	arch := &rpcpb.Option{
 		Name:        "arch",
 		Description: "the platform architecture that the build targets",
-		Default:     "x64",
+		Default:     "amd64",
 		Required:    false,
 	}
 	host := &rpcpb.Option{
