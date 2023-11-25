@@ -44,49 +44,57 @@ func useCmd(id int) {
 		cLogger.Error("failed to acquire command descriptions (rpc): %v", err)
 		return
 	}
-	rootCmd := &cobra.Command{}
-	for _, description := range descriptions.Descriptions {
-		args := cobra.NoArgs
-		if description.MaxArgs > 0 {
-			args = cobra.RangeArgs(int(description.MinArgs), int(description.MaxArgs))
-		}
-		cmd := &cobra.Command{
-			Use:   description.Usage,
-			Short: description.DescriptionShort,
-			Long:  description.DescriptionLong,
-			Args:  args,
-			Run: func(cmd *cobra.Command, args []string) {
-				byteArgs := make([][]byte, len(args))
-				for i, arg := range args {
-					data := []byte(arg)
-					// Refers to a file if prefixed and suffixed with @
-					if arg[0] == '@' && arg[len(arg)-1] == '@' {
-						filename := arg[1 : len(arg)-1]
-						bytes, err := os.ReadFile(filename)
-						if err != nil {
-							cLogger.Error("failed to read file %s", filename)
-							return
-						}
-						data = bytes
-					}
-					byteArgs[i] = data
-				}
-				req := &transport.GenericHTTPRequest{
-					AgentID:   sessionInfo.Agent.AgentID,
-					RequestID: uuid.New().String(),
-					Opcode:    description.Opcode,
-					Args:      byteArgs,
-				}
-				if err = xhttp.Handler.QueueRequest(sessionInfo.ID, req); err != nil {
-					cLogger.Error("failed to queue request: %v", err)
-				}
-			},
-		}
-		rootCmd.AddCommand(cmd)
-	}
-	rootCmd.AddCommand(exit(""))
-	rootCmd.CompletionOptions.HiddenDefaultCmd = true
 	console.NamedMenu(sessionInfo.Agent.Name, func() *cobra.Command {
+		// rootCmd must be defined in here to prevent help flag bug
+		rootCmd := &cobra.Command{}
+		for _, description := range descriptions.Descriptions {
+			args := cobra.NoArgs
+			if description.MaxArgs > 0 {
+				args = cobra.RangeArgs(int(description.MinArgs), int(description.MaxArgs))
+			}
+			cmd := &cobra.Command{
+				Use:   description.Usage,
+				Short: description.DescriptionShort,
+				Long:  description.DescriptionLong,
+				Args:  args,
+				Run: func(cmd *cobra.Command, args []string) {
+					byteArgs := make([][]byte, len(args))
+					for i, arg := range args {
+						data := []byte(arg)
+						// Refers to a file if prefixed and suffixed with @
+						if arg[0] == '@' && arg[len(arg)-1] == '@' {
+							filename := arg[1 : len(arg)-1]
+							bytes, err := os.ReadFile(filename)
+							if err != nil {
+								cLogger.Error("failed to read file %s", filename)
+								return
+							}
+							data = bytes
+						}
+						byteArgs[i] = data
+					}
+					req := &transport.GenericHTTPRequest{
+						AgentID:   sessionInfo.Agent.AgentID,
+						RequestID: uuid.New().String(),
+						Opcode:    description.Opcode,
+						Args:      byteArgs,
+					}
+					l.Info("queueing request %s for %s", xhttp.ShortID(req.RequestID), sessionInfo.Agent.Name)
+					if err = xhttp.Handler.QueueRequest(sessionInfo.ID, req); err != nil {
+						cLogger.Error("failed to queue request: %v", err)
+					}
+					resp := xhttp.Handler.AwaitResponse(sessionInfo.ID)
+					xhttp.HandleResponse(sessionInfo, resp)
+				},
+			}
+			rootCmd.AddCommand(cmd)
+		}
+		rootCmd.AddCommand(exit(""))
+		rootCmd.CompletionOptions.HiddenDefaultCmd = true
 		return rootCmd
 	})
 }
+
+// TODO: DECIDE WHETHER TO ONLY ALLOW ONE SESSION PER AGENT (this can be enforced in newSession)
+// TODO: SPECIFY A FLAG TO NOT WAIT FOR A RESPONSE (AwaitResponse) and handle resp in separate goroutine instead
+// TODO: multiplayer?
