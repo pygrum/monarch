@@ -18,15 +18,16 @@ func sessionsCmd(sessionIDs []string) {
 		sessIDs[i] = intID
 	}
 	sessions := xhttp.Handler.Sessions(sessIDs)
-	header := "ID\tAGENT ID\tAGENT NAME\tQUEUE SIZE\tLAST ACTIVE\t"
+	header := "ID\tAGENT ID\tAGENT NAME\tQUEUE SIZE\tLAST ACTIVE\tSTATUS\t"
 	_, _ = fmt.Fprintln(w, header)
 	for _, session := range sessions {
-		line := fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t",
+		line := fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t",
 			session.ID,
 			session.Agent.AgentID,
 			session.Agent.Name,
 			session.RequestQueue.Size(),
 			session.LastActive.Format(time.DateTime),
+			session.Status,
 		)
 		_, _ = fmt.Fprintln(w, line)
 	}
