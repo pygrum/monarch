@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
@@ -24,18 +25,17 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 	agent := &db.Agent{}
 	if err := db.FindOneConditional("agent_id = ?", uuid, agent); err != nil || agent.AgentID == "" {
 		// Just report as online
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 	var sessionID int
 	c, err := r.Cookie("PHPSESSID")
-	if err != nil {
+	if err != nil || c == nil {
 		// create new session and set cookie.
 		// sessions can't be indexed by agent id otherwise there could be duplication
 		token, expiresAt, id, err := s.newSession(agent)
 		if err != nil {
-			fmt.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 		sessionID = id
@@ -45,16 +45,13 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 			Value:   token,
 			Secure:  true,
 		}
+		// allows agent to use cookie from first request for subsequent ones
 		http.SetCookie(w, c)
+		w.WriteHeader(http.StatusOK)
+		return
 	} else {
-		if c == nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		// verify JWT
-		claims, err := validateJwt(c)
+		claims, err := validateJwt(c) // is invalid after server restart
 		if err != nil {
-			fmt.Println(err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -69,15 +66,20 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	handleResponse(session, first)
+	// session is authenticated if JWT has been validated
+	if !session.Authenticated {
+		session.Authenticated = true
+	} else {
+		// Queue the message as a response since this is not the first authenticated message
+		_ = session.ResponseQueue.Enqueue(first)
+	}
 	for {
 		// Keep checking for new response
-		resp = session.Queue.Dequeue()
+		resp = session.RequestQueue.Dequeue().(*transport.GenericHTTPRequest)
 		if resp != nil {
 			// Then someone queued request, so send it
 			b, err := json.Marshal(resp)
 			if err != nil {
-				fmt.Println(err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
@@ -89,7 +91,8 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 	// TODO: DO something with the request body. save it to an agent-specific history file or something
 }
 
-func handleResponse(session *HTTPSession, resp *transport.GenericHTTPResponse) {
+func HandleResponse(session *HTTPSession, resp *transport.GenericHTTPResponse) {
+	session.LastActive = time.Now()
 	if resp.Status == rpcpb.Status_FailedWithMessage {
 		// Will definitely be a console player as we don't have multiplayer yet so no need to add the clause
 		if session.Player.ConsolePlayer() {
