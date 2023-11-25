@@ -44,7 +44,7 @@ func useCmd(id int) {
 		cLogger.Error("failed to acquire command descriptions (rpc): %v", err)
 		return
 	}
-	console.NamedMenu(sessionInfo.Agent.Name, func() *cobra.Command {
+	console.NamedMenu("\033[35m"+sessionInfo.Agent.Name+"\033[0m", func() *cobra.Command {
 		// rootCmd must be defined in here to prevent help flag bug
 		rootCmd := &cobra.Command{}
 		for _, description := range descriptions.Descriptions {
@@ -79,10 +79,12 @@ func useCmd(id int) {
 						Opcode:    description.Opcode,
 						Args:      byteArgs,
 					}
-					l.Info("queueing request %s for %s", xhttp.ShortID(req.RequestID), sessionInfo.Agent.Name)
 					if err = xhttp.Handler.QueueRequest(sessionInfo.ID, req); err != nil {
-						cLogger.Error("failed to queue request: %v", err)
+						cLogger.Error("%v", err)
+						console.MainMenu()
+						return
 					}
+					l.Info("queued request %s for %s", xhttp.ShortID(req.RequestID), sessionInfo.Agent.Name)
 					resp := xhttp.Handler.AwaitResponse(sessionInfo.ID)
 					xhttp.HandleResponse(sessionInfo, resp)
 				},
@@ -90,11 +92,11 @@ func useCmd(id int) {
 			rootCmd.AddCommand(cmd)
 		}
 		rootCmd.AddCommand(exit(""))
+		rootCmd.AddCommand(info(sessionInfo.Info))
 		rootCmd.CompletionOptions.HiddenDefaultCmd = true
 		return rootCmd
 	})
 }
 
-// TODO: DECIDE WHETHER TO ONLY ALLOW ONE SESSION PER AGENT (this can be enforced in newSession)
 // TODO: SPECIFY A FLAG TO NOT WAIT FOR A RESPONSE (AwaitResponse) and handle resp in separate goroutine instead
 // TODO: multiplayer?
