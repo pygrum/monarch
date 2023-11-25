@@ -25,7 +25,7 @@ func sessionsCmd(sessionIDs []string) {
 			session.ID,
 			session.Agent.AgentID,
 			session.Agent.Name,
-			session.Queue.Size(),
+			session.RequestQueue.Size(),
 			session.LastActive.Format(time.DateTime),
 		)
 		_, _ = fmt.Fprintln(w, line)
