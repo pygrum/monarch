@@ -76,6 +76,8 @@ func (s *builderServer) GetOptions(context.Context, *rpcpb.OptionsRequest) (*rpc
 			Description: a.Description,
 			Required:    a.Required,
 			Default:     a.Default,
+			Type:        a.Type,
+			Choices:     a.Choices,
 		}
 	}
 	return reply, nil

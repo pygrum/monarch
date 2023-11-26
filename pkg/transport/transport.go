@@ -1,8 +1,6 @@
 package transport
 
-import (
-	"github.com/pygrum/monarch/pkg/rpcpb"
-)
+import "github.com/pygrum/monarch/pkg/rpcpb"
 
 const (
 	DestFile int32 = iota
@@ -18,9 +16,10 @@ type GenericHTTPRequest struct {
 }
 
 type ResponseDetail struct {
-	Dest int32  `json:"dest"` // Where to send response to (file, stdout)
-	Name string `json:"name"` // Name of file to save, if applicable
-	Data []byte `json:"data"` // file or output data
+	Status rpcpb.Status `json:"status"`
+	Dest   int32        `json:"dest"` // Where to send response to (file, stdout)
+	Name   string       `json:"name"` // Name of file to save, if applicable
+	Data   []byte       `json:"data"` // file or output data
 }
 
 // Registration is the initial data that is received from a first-time authenticating agent
@@ -44,6 +43,5 @@ type Registration struct {
 type GenericHTTPResponse struct {
 	AgentID   string           `json:"agent_id"`
 	RequestID string           `json:"request_id"`
-	Status    rpcpb.Status     `json:"status"`
 	Responses []ResponseDetail `json:"responses"`
 }

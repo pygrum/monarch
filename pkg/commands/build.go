@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -25,6 +26,7 @@ import (
 var (
 	l             log.Logger
 	immutables    = []string{"id"}
+	validTypes    = []string{"bool", "int", "string"}
 	builderConfig BuilderConfig
 )
 
@@ -139,6 +141,11 @@ func loadBuildOptions(b *db.Builder) error {
 	// Add default options
 	builderConfig.options = append(builderConfig.options, defaultOptions()...)
 	for i, k := range builderConfig.options {
+		k.Type = strings.ToLower(k.Type)
+		if !slices.Contains(validTypes, k.Type) {
+			return fmt.Errorf("%s has an invalid type '%s'. Please report this issue to the maintainer",
+				k.Name, k.Type)
+		}
 		k.Name = strings.ToLower(k.Name)
 		builderConfig.options[i].Name = strings.ToLower(k.Name)
 		_, ok := builderConfig.request.Options[k.Name]
@@ -163,6 +170,41 @@ func setCmd(name, value string) {
 		l.Error("'%s' is not an option", name)
 		return
 	}
+	// o(n^2) search for valid option ;(
+	for _, o := range builderConfig.options {
+		if o.Name == name {
+			found := false
+			if len(o.Choices) == 0 {
+				found = true
+			}
+			for _, c := range o.Choices {
+				if c == value {
+					found = true
+					break
+				}
+			}
+			if !found {
+				l.Error("'%s' is not a valid option. choose between one of the options below:")
+				fmt.Println(strings.Join(o.Choices, ", "))
+				return
+			}
+			switch o.Type {
+			case "int":
+				if _, err := strconv.Atoi(value); err != nil {
+					l.Error("set failed: %v", err)
+					return
+				}
+			case "bool":
+				if _, err := strconv.ParseBool(value); err != nil {
+					l.Error("set failed: %v", err)
+					return
+				}
+			// Accept anything if it is a string type
+			default:
+				break
+			}
+		}
+	}
 	if slices.Contains(immutables, name) {
 		l.Error("'%s' is enforced by the engine and cannot be changed", name)
 		return
@@ -178,14 +220,16 @@ func unsetCmd(name string) {
 
 // optionsCmd - returns all build configuration options
 func optionsCmd() {
-	header := "NAME\tVALUE\tDESCRIPTION\tREQUIRED\t"
+	header := "NAME\tVALUE\tDESCRIPTION\tREQUIRED\tCHOICES\t"
 	_, _ = fmt.Fprintln(w, header)
 	for _, option := range builderConfig.options {
-		tableLine := fmt.Sprintf("%s\t%s\t%s\t%v\t",
+		tableLine := fmt.Sprintf("%s\t%s\t%s\t%v\t%v\t",
 			option.Name,
 			// color set options green
 			builderConfig.request.Options[option.Name],
-			option.Description, option.Required)
+			option.Description,
+			option.Required,
+			strings.Join(option.Choices, ", "))
 
 		_, _ = fmt.Fprintln(w, tableLine)
 	}

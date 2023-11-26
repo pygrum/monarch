@@ -131,27 +131,26 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 
 func HandleResponse(session *HTTPSession, resp *transport.GenericHTTPResponse) {
 	session.LastActive = time.Now()
-	if resp.Status == rpcpb.Status_FailedWithMessage {
-		// Will definitely be a console player as we don't have multiplayer yet so no need to add the clause
-		if session.Player.ConsolePlayer() {
-			if len(resp.Responses) == 0 {
-				l.Error("request %s failed but no message was returned", resp.RequestID)
-				return
-			}
-			l.Error("%s failed: %s", ShortID(resp.RequestID), string(resp.Responses[0].Data))
-			return
-		}
-	} else {
-		for _, response := range resp.Responses {
-			handleResponseDetails(session, response, resp.RequestID)
-		}
-		if session.Player.ConsolePlayer() {
-			fmt.Println()
-		}
+	for _, response := range resp.Responses {
+		handleResponseDetails(session, response, ShortID(resp.RequestID))
+	}
+	if session.Player.ConsolePlayer() {
+		fmt.Println()
 	}
 }
 
 func handleResponseDetails(session *HTTPSession, response transport.ResponseDetail, rid string) {
+	if response.Status == rpcpb.Status_FailedWithMessage {
+		// Will definitely be a console player as we don't have multiplayer yet so no need to add the clause
+		if session.Player.ConsolePlayer() {
+			if len(response.Data) == 0 {
+				l.Error("request %s failed but no message was returned", rid)
+				return
+			}
+			l.Error("%s failed: %s", rid, string(response.Data))
+			return
+		}
+	}
 	if response.Dest == transport.DestStdout {
 		if session.Player.ConsolePlayer() {
 			fmt.Println(string(response.Data))
@@ -160,12 +159,12 @@ func handleResponseDetails(session *HTTPSession, response transport.ResponseDeta
 		file := filepath.Join(os.TempDir(), response.Name)
 		if err := os.WriteFile(file, response.Data, 0666); err != nil {
 			if session.Player.ConsolePlayer() {
-				l.Error("failed writing response to %s to file: %v", ShortID(rid), err)
+				l.Error("failed writing response to %s to file: %v", rid, err)
 			}
 			return
 		}
 		if session.Player.ConsolePlayer() {
-			l.Info("%s: file saved to %s", ShortID(rid), file)
+			l.Info("%s: file saved to %s", rid, file)
 		}
 	}
 }

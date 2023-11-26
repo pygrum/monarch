@@ -34,6 +34,8 @@ message Option {
   string description = 2;
   string default = 3;
   bool required = 4;
+  repeated string choices = 5;
+  string type = 6;
 }
 message OptionsReply {
   repeated Option options = 1;

@@ -53,14 +53,6 @@ type ProjectConfig struct {
 	Builder   Builder            `yaml:"builder"`
 }
 
-type Builder struct {
-	// The directory where the build routine takes place
-	SourceDir string `yaml:"source_dir"`
-	// These are custom build arguments that can be used for building, in addition to default build arguments provided
-	// by the C2 itself.
-	BuildArgs []ProjectConfigBuildArg `yaml:"build_args"`
-}
-
 type ProjectConfigCmd struct {
 	Name    string
 	Usage   string
@@ -75,11 +67,21 @@ type ProjectConfigCmd struct {
 	DescriptionLong  string `yaml:"description_long"`
 }
 
+type Builder struct {
+	// The directory where the build routine takes place
+	SourceDir string `yaml:"source_dir"`
+	// These are custom build arguments that can be used for building, in addition to default build arguments provided
+	// by the C2 itself.
+	BuildArgs []ProjectConfigBuildArg `yaml:"build_args"`
+}
+
 type ProjectConfigBuildArg struct {
 	Name        string
 	Description string
 	Default     string
 	Required    bool
+	Type        string
+	Choices     []string
 }
 
 func Init() {
