@@ -62,7 +62,7 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fl.Error("jwt validation failed: %v", err)
 			// if there was a leftover response from an expired session, queue it anyway
-			// kinda dangerous if there was no response, so we should verify there's a request with the ID matches
+			// kinda dangerous if there was no response, so we should verify there's a request with a matching ID
 			// TODO: have a 'lostRequests' map that contains requests that haven't been fulfilled, so we can verify
 			if errors.Is(err, jwt.ErrTokenExpired) {
 				if connectInfo.Data != nil {
