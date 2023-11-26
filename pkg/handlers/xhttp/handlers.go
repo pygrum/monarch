@@ -170,8 +170,11 @@ func handleResponseDetails(session *HTTPSession, response transport.ResponseDeta
 	}
 }
 
-func LoggingMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(Handler.sessions.defaultHandler)
+func loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fl.Info("method=%s url=%s content-length=%d", r.Method, r.URL.String(), r.ContentLength)
+		next.ServeHTTP(w, r)
+	})
 }
 
 func ShortID(uuid string) string {

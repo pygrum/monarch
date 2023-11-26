@@ -115,51 +115,6 @@ func NewResponseQueue() *ResponseQueue {
 	return &ResponseQueue{channel: make(chan *transport.GenericHTTPResponse, queueCapacity)}
 }
 
-func NewHandler() *HTTPHandler {
-	ssns := &sessions{
-		lock:       sync.Mutex{},
-		sessionMap: make(map[int]*HTTPSession),
-	}
-	h := &HTTPHandler{
-		CertFile: config.MainConfig.CertFile,
-		KeyFile:  config.MainConfig.KeyFile,
-		sessions: ssns,
-	}
-	router := mux.NewRouter()
-	sRouter := mux.NewRouter()
-	// Handles all requests
-	router.PathPrefix("/").HandlerFunc(ssns.defaultHandler)
-	sRouter.PathPrefix("/").HandlerFunc(ssns.defaultHandler)
-	h.httpServer = &http.Server{
-		Handler: router,
-		Addr:    net.JoinHostPort(config.MainConfig.Interface, strconv.Itoa(config.MainConfig.HttpPort)),
-	}
-	h.httpsServer = &http.Server{
-		Handler: sRouter,
-		Addr:    net.JoinHostPort(config.MainConfig.Interface, strconv.Itoa(config.MainConfig.HttpsPort)),
-	}
-	return h
-}
-
-func (h *HTTPHandler) Serve() {
-	// ensures can only be started once the server is available
-	h.httpLock = true
-	if err := h.httpServer.ListenAndServe(); err != nil &&
-		!errors.Is(err, http.ErrServerClosed) {
-		l.Error("listener failed: %v", err)
-		return
-	}
-}
-
-func (h *HTTPHandler) ServeTLS() {
-	// ensures can only be started once the server is available
-	h.httpsLock = true
-	if err := h.httpsServer.ListenAndServeTLS(h.CertFile, h.KeyFile); err != nil &&
-		!errors.Is(err, http.ErrServerClosed) {
-		l.Error("listener failed: %v", err)
-	}
-}
-
 func (h *HTTPHandler) Stop() error {
 	if err := h.httpServer.Shutdown(context.Background()); err != nil {
 		return err
@@ -223,4 +178,51 @@ func (h *HTTPHandler) Sessions(sessIDs []int) []*HTTPSession {
 		}
 	}
 	return ss
+}
+
+func NewHandler() *HTTPHandler {
+	ssns := &sessions{
+		lock:       sync.Mutex{},
+		sessionMap: make(map[int]*HTTPSession),
+	}
+	h := &HTTPHandler{
+		CertFile: config.MainConfig.CertFile,
+		KeyFile:  config.MainConfig.KeyFile,
+		sessions: ssns,
+	}
+	router := mux.NewRouter()
+	sRouter := mux.NewRouter()
+	// Handles all requests
+	router.PathPrefix("/").HandlerFunc(ssns.defaultHandler)
+	router.Use(loggingMiddleware)
+	sRouter.PathPrefix("/").HandlerFunc(ssns.defaultHandler)
+	sRouter.Use(loggingMiddleware)
+	h.httpServer = &http.Server{
+		Handler: router,
+		Addr:    net.JoinHostPort(config.MainConfig.Interface, strconv.Itoa(config.MainConfig.HttpPort)),
+	}
+	h.httpsServer = &http.Server{
+		Handler: sRouter,
+		Addr:    net.JoinHostPort(config.MainConfig.Interface, strconv.Itoa(config.MainConfig.HttpsPort)),
+	}
+	return h
+}
+
+func (h *HTTPHandler) Serve() {
+	// ensures can only be started once the server is available
+	h.httpLock = true
+	if err := h.httpServer.ListenAndServe(); err != nil &&
+		!errors.Is(err, http.ErrServerClosed) {
+		l.Error("listener failed: %v", err)
+		return
+	}
+}
+
+func (h *HTTPHandler) ServeTLS() {
+	// ensures can only be started once the server is available
+	h.httpsLock = true
+	if err := h.httpsServer.ListenAndServeTLS(h.CertFile, h.KeyFile); err != nil &&
+		!errors.Is(err, http.ErrServerClosed) {
+		l.Error("listener failed: %v", err)
+	}
 }

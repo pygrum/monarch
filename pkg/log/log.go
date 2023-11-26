@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/pygrum/monarch/pkg/config"
+	"github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
+	"sync"
 )
 
 const (
@@ -65,15 +67,15 @@ type settings struct {
 	logLevel uint16
 }
 
-// Implementing the Logger interface, and is used for writing log messages to the console.
 type consoleLogger struct {
 	settings
 }
 
-// Implementing the Logger interface, and is used for writing log files.
 type fileLogger struct {
 	settings
 	logFile *os.File
+	lrus    *logrus.Logger
+	mu      sync.Mutex
 }
 
 func init() {
@@ -100,12 +102,16 @@ func NewLogger(loggerType uint16, name string) (Logger, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to create log file: %v", err)
 		}
+		lrLogger := logrus.New()
 		logger = &fileLogger{
 			settings: settings{
 				logLevel: logLevel,
 			},
 			logFile: f,
+			lrus:    lrLogger,
 		}
+		lrLogger.SetFormatter(&logrus.JSONFormatter{})
+		lrLogger.SetOutput(f)
 	default:
 		return nil, errors.New("invalid logger type specified")
 	}

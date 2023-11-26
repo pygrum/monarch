@@ -2,48 +2,54 @@ package log
 
 import (
 	"errors"
-	"fmt"
 	"os"
-	"time"
 )
 
-func t() string {
-	return time.Now().Format(time.DateTime)
-}
-
 func (f *fileLogger) Fatal(format string, v ...interface{}) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	// ignore returned error
-	_, _ = fmt.Fprintln(f.logFile, t(), "[FATAL]", fmt.Sprintf(format, v...))
+	f.lrus.Fatalf(format, v)
 	os.Exit(1)
 }
 
 func (f *fileLogger) Error(format string, v ...interface{}) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	if f.logLevel <= LevelError {
-		_, _ = fmt.Fprintln(f.logFile, t(), "[ERROR]", fmt.Sprintf(format, v...))
+		f.lrus.Errorf(format, v)
 	}
 }
 
 func (f *fileLogger) Warn(format string, v ...interface{}) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	if f.logLevel <= LevelWarn {
-		_, _ = fmt.Fprintln(f.logFile, t(), "[WARN]", fmt.Sprintf(format, v...))
+		f.lrus.Warnf(format, v)
 	}
 }
 
 func (f *fileLogger) Success(format string, v ...interface{}) {
-	if f.logLevel <= LevelSuccess {
-		_, _ = fmt.Fprintln(f.logFile, t(), "[SUCCESS]", fmt.Sprintf(format, v...))
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.logLevel <= LevelInfo {
+		f.lrus.Infof(format, v)
 	}
 }
 
 func (f *fileLogger) Info(format string, v ...interface{}) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	if f.logLevel <= LevelInfo {
-		_, _ = fmt.Fprintln(f.logFile, t(), "[INFO]", fmt.Sprintf(format, v...))
+		f.lrus.Infof(format, v)
 	}
 }
 
 func (f *fileLogger) Debug(format string, v ...interface{}) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	if f.logLevel <= LevelDebug {
-		_, _ = fmt.Fprintln(f.logFile, t(), "[DEBUG]", fmt.Sprintf(format, v...))
+		f.lrus.Debugf(format, v)
 	}
 }
 
@@ -56,5 +62,7 @@ func (f *fileLogger) SetLogLevel(logLevel uint16) error {
 }
 
 func (f *fileLogger) Close() error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	return f.logFile.Close()
 }
