@@ -63,10 +63,19 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 			fl.Error("jwt validation failed: %v", err)
 			// if there was a leftover response from an expired session, queue it anyway
 			// kinda dangerous if there was no initial request, so we should verify there's a request with a matching ID
-			// TODO: have a 'lostRequests' map that contains requests that haven't been fulfilled, so we can verify
 			if errors.Is(err, jwt.ErrTokenExpired) {
 				if connectInfo.Data != nil {
+					rid := connectInfo.Data.RequestID
+					sent := s.sessionMap[sessionID].SentRequests
+					// check if there's a corresponding request
+					_, ok := sent[rid]
+					if !ok {
+						w.WriteHeader(http.StatusUnauthorized)
+						return
+					}
+					// ingest response even if unauthenticated
 					_ = s.sessionMap[sessionID].ResponseQueue.Enqueue(connectInfo.Data)
+					delete(s.sortedSessions[sessionID].SentRequests, rid)
 				}
 			}
 			w.WriteHeader(http.StatusUnauthorized)
@@ -113,6 +122,8 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			w.WriteHeader(http.StatusOK)
 			w.Write(b)
+			// add to sent requests, the number doesn't matter
+			session.SentRequests[resp.RequestID] = 0
 			return // exit so we can get a response
 		}
 	}

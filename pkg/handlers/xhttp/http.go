@@ -40,6 +40,10 @@ type Queue interface {
 	Size() int
 }
 
+type rMap struct {
+	requests map[string]*transport.GenericHTTPRequest
+}
+
 // RequestQueue holds up to queueCapacity responses for a callback.
 // If full, an error is raised.
 type RequestQueue struct {

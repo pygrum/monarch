@@ -28,6 +28,7 @@ type HTTPSession struct {
 	lock          sync.Mutex
 	Authenticated bool
 	Info          transport.Registration
+	SentRequests  map[string]int
 }
 
 type Claims struct {
@@ -67,6 +68,7 @@ func (s *sessions) newSession(agent *db.Agent, connectInfo *transport.Registrati
 		Player:        &coop.Player{},
 		Info:          *connectInfo,
 		Status:        status,
+		SentRequests:  make(map[string]int),
 	}
 	expiresAt := time.Now().Add(5 * time.Minute)
 	tokenString, err := newToken(id, expiresAt)
