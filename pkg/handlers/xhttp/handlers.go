@@ -2,7 +2,9 @@ package xhttp
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/pygrum/monarch/pkg/db"
 	"github.com/pygrum/monarch/pkg/rpcpb"
 	"github.com/pygrum/monarch/pkg/transport"
@@ -53,14 +55,20 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		// allows agent to use cookie from first request for subsequent ones
 		http.SetCookie(w, c)
-		// TODO: this returns err if writefile failed - handle that with a logger later
-		_ = HandleFirst(s.sessionMap[sessionID], connectInfo)
 		w.WriteHeader(http.StatusOK)
 		return
 	} else {
 		claims, err := validateJwt(c) // is invalid after server restart
 		if err != nil {
 			fl.Error("jwt validation failed: %v", err)
+			// if there was a leftover response from an expired session, queue it anyway
+			// kinda dangerous if there was no response, so we should verify there's a request with the ID matches
+			// TODO: have a 'lostRequests' map that contains requests that haven't been fulfilled, so we can verify
+			if errors.Is(err, jwt.ErrTokenExpired) {
+				if connectInfo.Data != nil {
+					_ = s.sessionMap[sessionID].ResponseQueue.Enqueue(connectInfo.Data)
+				}
+			}
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -93,7 +101,7 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 		_ = session.ResponseQueue.Enqueue(response)
 	}
 	for {
-		// Keep checking for new response
+		// Keep checking for new request (blocking)
 		resp = session.RequestQueue.Dequeue().(*transport.GenericHTTPRequest)
 		if resp != nil {
 			// Then someone queued request, so send it
@@ -108,25 +116,6 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 			return // exit so we can get a response
 		}
 	}
-}
-
-func HandleFirst(session *HTTPSession, reg *transport.Registration) error {
-	for _, d := range reg.Data {
-		if d.Dest == transport.DestStdout {
-			if session.Player.ConsolePlayer() {
-				fmt.Println("Initial data received from", reg.AgentID, ":\n", string(d.Data))
-			}
-		} else if d.Dest == transport.DestFile {
-			file := filepath.Join(os.TempDir(), filepath.Base(d.Name))
-			if err := os.WriteFile(file, d.Data, 0666); err != nil {
-				return err
-			}
-			if session.Player.ConsolePlayer() {
-				l.Info("%s:\nfile saved to %s", reg.AgentID, file)
-			}
-		}
-	}
-	return nil
 }
 
 func HandleResponse(session *HTTPSession, resp *transport.GenericHTTPResponse) {
