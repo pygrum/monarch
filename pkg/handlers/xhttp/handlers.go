@@ -63,6 +63,7 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 	var sessionID int
 	c, err := r.Cookie(cookieName)
 	if err != nil || c == nil {
+		fl.Error("%v", err)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
