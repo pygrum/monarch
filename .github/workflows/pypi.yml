@@ -2,7 +2,7 @@ name: PyPi Package Publisher (twine)
 on:
   push:
     branches:
-      - main
+      - monarch-sdk-deploy-pypi
 jobs:
   publish:
     runs-on: ubuntu-latest

@@ -19,6 +19,10 @@ jobs:
         continue-on-error: false
         run: bash ./scripts/install-monarch.sh
 
+      - name: Setup Monarch Container
+        continue-on-error: false
+        run: docker build -t monarch -f docker/builder/Dockerfile .
+
       - name: Run Monarch tests
         run: go test ./...
       - name: Cleanup
