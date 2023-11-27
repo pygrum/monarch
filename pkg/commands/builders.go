@@ -34,15 +34,16 @@ func buildersCmd(args []string) {
 			}
 		}
 	}
-	header := "AGENT NAME\tVERSION\tAUTHOR\tINSTALLATION DATE\tID\t"
+	header := "AGENT NAME\tVERSION\tAUTHOR\tINSTALLATION DATE\tID\tRUNS ON\t"
 	_, _ = fmt.Fprintln(w, header)
 	for _, builder := range builders {
-		line := fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t",
+		line := fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t",
 			builder.Name,
 			builder.Version,
 			builder.Author,
 			builder.CreatedAt.Format(time.DateTime),
 			builder.BuilderID,
+			builder.SupportedOS,
 		)
 		_, _ = fmt.Fprintln(w, line)
 	}

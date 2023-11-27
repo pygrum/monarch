@@ -41,10 +41,11 @@ type MonarchConfig struct {
 }
 
 type ProjectConfig struct {
-	Name    string
-	Version string
-	Author  string
-	URL     string
+	Name          string
+	Version       string
+	Author        string
+	URL           string
+	SupportedOSes []string `yaml:"supported_os"`
 	// The command schema defines the possible commands that can be used with the agent.
 	// If the agent doesn't use commands to operate, then this configuration parameter is not necessary.
 	// On installation of the agent, the command schema is used by the builder when an operator requests to

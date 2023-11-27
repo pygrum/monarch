@@ -152,6 +152,7 @@ func Setup(path string) (*db.Builder, error) {
 		InstalledAt: path,
 		ImageID:     builderImageID,
 		ContainerID: buildContainerID,
+		SupportedOS: strings.Join(royal.SupportedOSes, ", "),
 	}
 	// Return empty to avoid nil pointer dereference
 	return builder, nil
