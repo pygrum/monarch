@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/go-git/go-git/v5"
@@ -15,6 +16,7 @@ import (
 	"github.com/pygrum/monarch/pkg/db"
 	"github.com/pygrum/monarch/pkg/docker"
 	"github.com/pygrum/monarch/pkg/log"
+	"github.com/pygrum/monarch/pkg/utils"
 	"io"
 	"path/filepath"
 	"strings"
@@ -31,10 +33,6 @@ var (
 
 func init() {
 	l, _ = log.NewLogger(log.ConsoleLogger, "")
-}
-
-type imageBuildResponse struct {
-	Aux map[string]string
 }
 
 // NewRepo and use GitHub credentials if repository is private
@@ -61,17 +59,20 @@ func NewRepo(url string, private bool) error {
 		filepath.Ext(filepath.Base(url))))
 	_, err := git.PlainClone(clonePath, false, o)
 	if err != nil {
+		if errors.Is(err, git.ErrRepositoryAlreadyExists) {
+			return fmt.Errorf("a repository with that name already exists")
+		}
 		return err
 	}
 	// Build arguments passed with environment variables.
-	a, err := setup(clonePath)
+	a, err := Setup(clonePath)
 	if err != nil {
 		return err
 	}
 	return db.Create(a)
 }
 
-func setup(path string) (*db.Builder, error) {
+func Setup(path string) (*db.Builder, error) {
 	ctx := context.Background()
 	configPath := filepath.Join(path, configName)
 	royal := config.ProjectConfig{}
@@ -83,6 +84,26 @@ func setup(path string) (*db.Builder, error) {
 		return nil, fmt.Errorf("name and / or version missing (configuration file at %s)", path)
 	}
 	royal.Name = strings.ToLower(royal.Name)
+	b := &db.Builder{}
+	if err := db.FindOneConditional("name = ?", royal.Name, b); err == nil {
+		// just to check that we actually returned sum
+		if b.Name == royal.Name {
+			y := false
+			prompt := &survey.Confirm{
+				Message: fmt.Sprintf("a builder named '%s' is already installed. Do you wish to replace it?",
+					b.Name),
+			}
+			_ = survey.AskOne(prompt, &y)
+			if y {
+				if err = utils.Cleanup(b); err != nil {
+					return nil, fmt.Errorf("failed to delete existing builder: %v", err)
+				}
+			} else {
+				return nil,
+					fmt.Errorf("duplicate install names - try renaming from royal.yaml and installing from local")
+			}
+		}
+	}
 	reader, err := archive.Tar(path, archive.Gzip)
 	if err != nil {
 		return nil, err

@@ -58,10 +58,10 @@ func cleanup(agent *db.Builder) {
 }
 
 func TestSetup(t *testing.T) {
-	a, err := setup(dir)
+	a, err := Setup(dir)
 	if err != nil {
 		cleanup(a)
-		t.Fatalf("setup(%s): failed with error %v", dir, err)
+		t.Fatalf("Setup(%s): failed with error %v", dir, err)
 	}
 	cleanup(a)
 }
