@@ -17,7 +17,6 @@ func init() {
 
 // ConsoleCommands returns all commands used by the console
 func ConsoleCommands() *cobra.Command {
-
 	root := &cobra.Command{}
 
 	var yesExit bool
@@ -48,12 +47,21 @@ func ConsoleCommands() *cobra.Command {
 		},
 	}
 	cmdAgents := &cobra.Command{
-		Use:   "agents [names...]",
+		Use:   "agents [flags] AGENTS...",
 		Short: "list compiled agents",
 		Run: func(cmd *cobra.Command, args []string) {
 			agentsCmd(args)
 		},
 	}
+	cmdAgentsRm := &cobra.Command{
+		Use:   "rm [flags] AGENTS...",
+		Short: "remove compiled agents from listing",
+		Args:  cobra.MinimumNArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			cmdRm(args)
+		},
+	}
+	cmdAgents.AddCommand(cmdAgentsRm)
 
 	cmdSessions := &cobra.Command{
 		Use:   "sessions [ids...]",
@@ -110,7 +118,27 @@ func ConsoleCommands() *cobra.Command {
 	cmdInstall.Flags().BoolVarP(&installPrivate, "use-creds", "c", false,
 		"use GitHub credentials for installation")
 
-	root.AddCommand(cmdSessions, cmdUse, cmdHttp, cmdHttps, cmdAgents, cmdBuilders, cmdBuild, cmdInstall, cmdExit)
+	cmdLocal := &cobra.Command{
+		Use:   "local [flags] FOLDER",
+		Short: "install a builder from a local folder",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			localCmd(args[0])
+		},
+	}
+	// it's a subcommand of the 'install' command
+	cmdInstall.AddCommand(cmdLocal)
+
+	cmdUninstall := &cobra.Command{
+		Use:   "uninstall [flags] BUILDERS...",
+		Short: "uninstall builder(s) by name or ID",
+		Args:  cobra.MinimumNArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			uninstallCmd(args)
+		},
+	}
+	root.AddCommand(cmdSessions, cmdUse, cmdHttp, cmdHttps, cmdAgents, cmdBuilders, cmdBuild, cmdInstall, cmdUninstall,
+		cmdExit)
 	root.CompletionOptions.HiddenDefaultCmd = true
 	return root
 }
