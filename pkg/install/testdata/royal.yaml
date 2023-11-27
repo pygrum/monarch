@@ -3,7 +3,7 @@
 # The following file is simply an EXAMPLE of how a royal.yaml config file looks like, and should not be used
 # anywhere outside a testing environment.
 
-name: example-agent
+name: example-agent-320954208345
 version: 1.0
 author: pygrum
 url: https://github.com/pygrum/monarch

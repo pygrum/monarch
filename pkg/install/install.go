@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/docker/docker/api/types"
@@ -85,22 +86,24 @@ func Setup(path string) (*db.Builder, error) {
 	}
 	royal.Name = strings.ToLower(royal.Name)
 	b := &db.Builder{}
-	if err := db.FindOneConditional("name = ?", royal.Name, b); err == nil {
-		// just to check that we actually returned sum
-		if b.Name == royal.Name {
-			y := false
-			prompt := &survey.Confirm{
-				Message: fmt.Sprintf("a builder named '%s' is already installed. Do you wish to replace it?",
-					b.Name),
-			}
-			_ = survey.AskOne(prompt, &y)
-			if y {
-				if err = utils.Cleanup(b); err != nil {
-					return nil, fmt.Errorf("failed to delete existing builder: %v", err)
+	if flag.Lookup("test.v") == nil {
+		if err := db.FindOneConditional("name = ?", royal.Name, b); err == nil {
+			// just to check that we actually returned sum
+			if b.Name == royal.Name {
+				y := false
+				prompt := &survey.Confirm{
+					Message: fmt.Sprintf("a builder named '%s' is already installed. Do you wish to replace it?",
+						b.Name),
 				}
-			} else {
-				return nil,
-					fmt.Errorf("duplicate install names - try renaming from royal.yaml and installing from local")
+				_ = survey.AskOne(prompt, &y)
+				if y {
+					if err = utils.Cleanup(b); err != nil {
+						return nil, fmt.Errorf("failed to delete existing builder: %v", err)
+					}
+				} else {
+					return nil,
+						fmt.Errorf("duplicate install names - try renaming from royal.yaml and installing from local")
+				}
 			}
 		}
 	}

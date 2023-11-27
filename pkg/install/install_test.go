@@ -4,40 +4,11 @@ import (
 	"context"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
-	"github.com/pygrum/monarch/pkg/consts"
 	"github.com/pygrum/monarch/pkg/db"
-	"os"
-	"path/filepath"
 	"testing"
 )
 
-var dir string
-
-func init() {
-	var err error
-	dir, err = os.MkdirTemp("", "tester-*")
-	if err != nil {
-		panic(err)
-	}
-	dockerDir := filepath.Join(dir, consts.DockerfilesPath)
-	builderDir := filepath.Join(dir, consts.DockerfilesPath, "builder")
-	err = os.MkdirAll(builderDir, 0777)
-	checkErr(err)
-
-	templateDir := filepath.Join("..", "..", "templates")
-	// Write build and translate Dockerfiles to respective files in simulated directory
-	buildBytes, err := os.ReadFile(filepath.Join(templateDir, consts.BuilderDockerfile))
-	checkErr(err)
-	err = os.WriteFile(filepath.Join(dockerDir, consts.BuilderDockerfile), buildBytes, 0666)
-	checkErr(err)
-
-	// Create config file in folder
-	royalBytes, err := os.ReadFile(filepath.Join("..", "..", "configs", configName))
-	checkErr(err)
-	err = os.WriteFile(filepath.Join(dir, configName), royalBytes, 0666)
-	checkErr(err)
-
-}
+var dir = "testdata"
 
 func checkErr(err error) {
 	if err != nil {
@@ -46,9 +17,7 @@ func checkErr(err error) {
 }
 
 func cleanup(agent *db.Builder) {
-	err := os.RemoveAll(dir)
 	ctx := context.Background()
-	checkErr(err)
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	checkErr(err)
 	if agent != nil {
