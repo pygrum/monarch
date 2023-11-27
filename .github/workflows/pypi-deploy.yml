@@ -15,7 +15,7 @@ jobs:
       - name: upgrade pip packages
         run: python3 -m pip install --user --upgrade setuptools wheel twine
       - name: setup distribution
-        run: python3 setup.py sdist bdist_wheel
+        run: python3 python/setup.py sdist bdist_wheel
         continue-on-error: false
 
       - name: Publish to test PyPi
