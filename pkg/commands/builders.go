@@ -24,7 +24,11 @@ func buildersCmd(args []string) {
 		}
 	} else {
 		if err := db.FindConditional("builder_id IN ?", args, &builders); err != nil {
-			if err = db.FindConditional("name IN ?", args, &builders); err != nil {
+			cLogger.Error("failed to retrieve the specified builders: %v", err)
+			return
+		}
+		if len(builders) == 0 {
+			if err := db.FindConditional("name IN ?", args, &builders); err != nil {
 				cLogger.Error("failed to retrieve the specified builders: %v", err)
 				return
 			}

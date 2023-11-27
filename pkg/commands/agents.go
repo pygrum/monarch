@@ -11,8 +11,14 @@ func agentsCmd(names []string) {
 	var agents []db.Agent
 	if len(names) > 0 {
 		if err := db.FindConditional("agent_id IN ?", names, &agents); err != nil {
-			cLogger.Error("failed to find agent(s): %v", err)
+			cLogger.Error("failed to retrieve the specified agents: %v", err)
 			return
+		}
+		if len(agents) == 0 {
+			if err := db.FindConditional("name IN ?", names, &agents); err != nil {
+				cLogger.Error("failed to retrieve the specified agents: %v", err)
+				return
+			}
 		}
 	} else {
 		if err := db.Find(&agents); err != nil {
