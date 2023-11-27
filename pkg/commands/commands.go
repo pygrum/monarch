@@ -137,8 +137,16 @@ func ConsoleCommands() *cobra.Command {
 			uninstallCmd(args)
 		},
 	}
+
+	cmdVersion := &cobra.Command{
+		Use:   "version",
+		Short: "view installed monarch version",
+		Run: func(cmd *cobra.Command, args []string) {
+			versionCmd()
+		},
+	}
 	root.AddCommand(cmdSessions, cmdUse, cmdHttp, cmdHttps, cmdAgents, cmdBuilders, cmdBuild, cmdInstall, cmdUninstall,
-		cmdExit)
+		cmdVersion, cmdExit)
 	root.CompletionOptions.HiddenDefaultCmd = true
 	return root
 }

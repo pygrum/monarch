@@ -1,6 +1,8 @@
 package console
 
 import (
+	"fmt"
+	"github.com/pygrum/monarch/pkg/consts"
 	"github.com/pygrum/monarch/pkg/db"
 	"github.com/reeflective/console"
 	"github.com/spf13/cobra"
@@ -31,6 +33,21 @@ func NamedMenu(name string, commands func() *cobra.Command) {
 func Run(rootCmd func() *cobra.Command) error {
 	srvMenu := server.App.ActiveMenu()
 	srvMenu.SetCommands(rootCmd)
+	server.App.SetPrintLogo(func(_ *console.Console) {
+		fmt.Print("\033[H\033[2J")
+		fmt.Printf(`                  o 
+               o^/|\^o
+            o_^|\/*\/|^_o
+           o\*¬'.\|/.'¬*/o
+            \\\\\\|//////
+             {><><@><><}
+             |"""""""""|
+               MONARCH
+  ADVERSARY EMULATION TOOLKIT v%s
+  ==================================
+
+		`, consts.Version)
+	})
 	return server.App.Start()
 }
 
