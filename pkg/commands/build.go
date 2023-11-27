@@ -26,7 +26,7 @@ import (
 var (
 	l             log.Logger
 	immutables    = []string{"id"}
-	validTypes    = []string{"bool", "int", "string"}
+	validTypes    = []string{"bool", "int", "string", "float"}
 	builderConfig BuilderConfig
 )
 
@@ -72,12 +72,14 @@ func defaultOptions() []*rpcpb.Option {
 		Name:        "id",
 		Description: "[immutable] the agent ID assigned to the build",
 		Default:     builderConfig.ID,
+		Type:        "string",
 		Required:    true,
 	}
 	name := &rpcpb.Option{
 		Name:        "name",
 		Description: "name of this particular agent instance",
 		Default:     builderConfig.ID,
+		Type:        "string",
 		Required:    false,
 	}
 	OS := &rpcpb.Option{
@@ -90,24 +92,28 @@ func defaultOptions() []*rpcpb.Option {
 		Name:        "arch",
 		Description: "the platform architecture that the build targets",
 		Default:     "amd64",
+		Type:        "string",
 		Required:    false,
 	}
 	host := &rpcpb.Option{
 		Name:        "host",
 		Description: "the host that the agent calls back to",
 		Default:     config.MainConfig.Interface,
+		Type:        "string",
 		Required:    false,
 	}
 	port := &rpcpb.Option{
 		Name:        "port",
 		Description: "the port on which to connect to the host on callback",
 		Default:     "",
+		Type:        "int",
 		Required:    false,
 	}
 	out := &rpcpb.Option{
 		Name:        "outfile",
 		Description: "the name of the resulting binary",
 		Default:     "",
+		Type:        "string",
 		Required:    false,
 	}
 	options = append(options, ID, name, OS, arch, host, port, out)
@@ -142,7 +148,7 @@ func loadBuildOptions(b *db.Builder) error {
 	builderConfig.options = append(builderConfig.options, defaultOptions()...)
 	for i, k := range builderConfig.options {
 		k.Type = strings.ToLower(k.Type)
-		if !slices.Contains(validTypes, k.Type) {
+		if !slices.Contains(validTypes, k.Type) && k.Type != "" {
 			return fmt.Errorf("%s has an invalid type '%s'. Please report this issue to the maintainer",
 				k.Name, k.Type)
 		}
@@ -191,15 +197,20 @@ func setCmd(name, value string) {
 			switch o.Type {
 			case "int":
 				if _, err := strconv.Atoi(value); err != nil {
-					l.Error("set failed: %v", err)
+					l.Error("%v is not a valid integer", value)
 					return
 				}
 			case "bool":
 				if _, err := strconv.ParseBool(value); err != nil {
-					l.Error("set failed: %v", err)
+					l.Error("%v is not a valid boolean", value)
 					return
 				}
-			// Accept anything if it is a string type
+			case "float":
+				if _, err := strconv.ParseFloat(value, 64); err != nil {
+					l.Error("%v is not a valid float", value)
+					return
+				}
+			// Accept anything if it is a string type, or no type set
 			default:
 				break
 			}
@@ -220,14 +231,15 @@ func unsetCmd(name string) {
 
 // optionsCmd - returns all build configuration options
 func optionsCmd() {
-	header := "NAME\tVALUE\tDESCRIPTION\tREQUIRED\tCHOICES\t"
+	header := "NAME\tVALUE\tDESCRIPTION\tTYPE\tREQUIRED\tCHOICES\t"
 	_, _ = fmt.Fprintln(w, header)
 	for _, option := range builderConfig.options {
-		tableLine := fmt.Sprintf("%s\t%s\t%s\t%v\t%v\t",
+		tableLine := fmt.Sprintf("%s\t%s\t%s\t%v\t%v\t%v\t",
 			option.Name,
 			// color set options green
 			builderConfig.request.Options[option.Name],
 			option.Description,
+			option.Type,
 			option.Required,
 			strings.Join(option.Choices, ", "))
 

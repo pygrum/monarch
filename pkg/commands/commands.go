@@ -153,7 +153,6 @@ func info(systemInfo transport.Registration) *cobra.Command {
 			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "GID:", systemInfo.GID))
 			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "PID:", systemInfo.PID))
 			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "Home Directory:", systemInfo.HomeDir))
-			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "IP:", systemInfo.IPAddress))
 			_ = w.Flush()
 			fmt.Println()
 		},

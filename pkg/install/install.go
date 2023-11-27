@@ -82,6 +82,7 @@ func setup(path string) (*db.Builder, error) {
 	if len(royal.Name) == 0 || len(royal.Version) == 0 {
 		return nil, fmt.Errorf("name and / or version missing (configuration file at %s)", path)
 	}
+	royal.Name = strings.ToLower(royal.Name)
 	reader, err := archive.Tar(path, archive.Gzip)
 	if err != nil {
 		return nil, err
@@ -95,7 +96,7 @@ func setup(path string) (*db.Builder, error) {
 		PullParent: false,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to build builder-builder image: %v", err)
+		return nil, fmt.Errorf("failed to build builder image: %v", err)
 	}
 	bytes, _ := io.ReadAll(resp.Body)
 

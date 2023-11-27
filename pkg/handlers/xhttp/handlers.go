@@ -15,7 +15,12 @@ import (
 	"time"
 )
 
-func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
+const (
+	cookieName = "token"
+)
+
+// http://host:port/login
+func (s *sessions) loginHandler(w http.ResponseWriter, r *http.Request) {
 	connectInfo := &transport.Registration{}
 	defer r.Body.Close()
 	connectInfoBytes, err := io.ReadAll(r.Body)
@@ -35,54 +40,59 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
+	token, expiresAt, _, err := s.newSession(agent, connectInfo)
+	if err != nil {
+		fl.Error("failed to create new session: %v", err)
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	c, err := r.Cookie(cookieName)
+	c = &http.Cookie{
+		Name:    cookieName,
+		Expires: expiresAt,
+		Value:   token,
+		Secure:  true,
+	}
+	// allows agent to use cookie from first request for subsequent ones
+	http.SetCookie(w, c)
+	w.WriteHeader(http.StatusOK)
+}
+
+// http://host:port/
+func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 	var sessionID int
-	c, err := r.Cookie("PHPSESSID")
+	c, err := r.Cookie(cookieName)
 	if err != nil || c == nil {
-		// create new session and set cookie.
-		// sessions can't be indexed by agent id otherwise there could be duplication
-		token, expiresAt, id, err := s.newSession(agent, connectInfo)
-		if err != nil {
-			fl.Error("failed to create new session: %v", err)
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		sessionID = id
-		c = &http.Cookie{
-			Name:    "PHPSESSID",
-			Expires: expiresAt,
-			Value:   token,
-			Secure:  true,
-		}
-		// allows agent to use cookie from first request for subsequent ones
-		http.SetCookie(w, c)
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	response := &transport.GenericHTTPResponse{}
+	if r.Body == http.NoBody {
 		w.WriteHeader(http.StatusOK)
 		return
-	} else {
-		claims, err := validateJwt(c) // is invalid after server restart
-		if err != nil {
-			fl.Error("jwt validation failed: %v", err)
-			// if there was a leftover response from an expired session, queue it anyway
-			// kinda dangerous if there was no initial request, so we should verify there's a request with a matching ID
-			if errors.Is(err, jwt.ErrTokenExpired) {
-				if connectInfo.Data != nil {
-					rid := connectInfo.Data.RequestID
-					sent := s.sessionMap[sessionID].SentRequests
-					// check if there's a corresponding request
-					_, ok := sent[rid]
-					if !ok {
-						w.WriteHeader(http.StatusUnauthorized)
-						return
-					}
-					// ingest response even if unauthenticated
-					_ = s.sessionMap[sessionID].ResponseQueue.Enqueue(connectInfo.Data)
-					delete(s.sortedSessions[sessionID].SentRequests, rid)
-				}
-			}
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		sessionID = claims.ID
 	}
+	if err := json.NewDecoder(r.Body).Decode(response); err != nil {
+		fl.Error("failed to parse response from %s: %v", r.RemoteAddr, err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	claims, err := validateJwt(c) // is invalid after server restart
+	if err != nil {
+		fl.Error("jwt validation failed: %v", err)
+		// if there was a leftover response from an expired session, queue it anyway
+		// kinda dangerous if there was no initial request, so we should verify there's a request with a matching ID
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			ss := s.sessionMap[claims.ID]
+			// ingest response despite expiry
+			if _, ok := ss.SentRequests[response.RequestID]; ok {
+				_ = ss.ResponseQueue.Enqueue(response)
+				delete(ss.SentRequests, response.RequestID)
+			}
+		}
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	sessionID = claims.ID
 	var resp *transport.GenericHTTPRequest
 	// should always return a session
 	session, ok := s.sessionMap[sessionID]
@@ -99,13 +109,6 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 		session.Status = "active"
 		session.LastActive = time.Now()
 	} else {
-		// must be a response to an issued request since the agent is already authenticated
-		response := &transport.GenericHTTPResponse{}
-		if err = json.Unmarshal(connectInfoBytes, response); err != nil {
-			fl.Error("failed to parse response from agent %s: %v", connectInfo.AgentID, err)
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
 		// Queue the message as a response since this is not the first authenticated message
 		_ = session.ResponseQueue.Enqueue(response)
 	}
@@ -132,14 +135,14 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 func HandleResponse(session *HTTPSession, resp *transport.GenericHTTPResponse) {
 	session.LastActive = time.Now()
 	for _, response := range resp.Responses {
-		handleResponseDetails(session, response, ShortID(resp.RequestID))
+		handleResponse(session, response, ShortID(resp.RequestID))
 	}
 	if session.Player.ConsolePlayer() {
 		fmt.Println()
 	}
 }
 
-func handleResponseDetails(session *HTTPSession, response transport.ResponseDetail, rid string) {
+func handleResponse(session *HTTPSession, response transport.ResponseDetail, rid string) {
 	if response.Status == rpcpb.Status_FailedWithMessage {
 		// Will definitely be a console player as we don't have multiplayer yet so no need to add the clause
 		if session.Player.ConsolePlayer() {
@@ -171,7 +174,8 @@ func handleResponseDetails(session *HTTPSession, response transport.ResponseDeta
 
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fl.Info("method=%s url=%s content-length=%d", r.Method, r.URL.String(), r.ContentLength)
+		fl.Info("remote=%s method=%s url=%s content-length=%d", r.RemoteAddr,
+			r.Method, r.URL.String(), r.ContentLength)
 		next.ServeHTTP(w, r)
 	})
 }

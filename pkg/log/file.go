@@ -9,7 +9,7 @@ func (f *fileLogger) Fatal(format string, v ...interface{}) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	// ignore returned error
-	f.lrus.Fatalf(format, v)
+	f.lrus.Fatalf(format, v...)
 	os.Exit(1)
 }
 
@@ -17,7 +17,7 @@ func (f *fileLogger) Error(format string, v ...interface{}) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.logLevel <= LevelError {
-		f.lrus.Errorf(format, v)
+		f.lrus.Errorf(format, v...)
 	}
 }
 
@@ -25,7 +25,7 @@ func (f *fileLogger) Warn(format string, v ...interface{}) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.logLevel <= LevelWarn {
-		f.lrus.Warnf(format, v)
+		f.lrus.Warnf(format, v...)
 	}
 }
 
@@ -33,7 +33,7 @@ func (f *fileLogger) Success(format string, v ...interface{}) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.logLevel <= LevelInfo {
-		f.lrus.Infof(format, v)
+		f.lrus.Infof(format, v...)
 	}
 }
 
@@ -41,7 +41,7 @@ func (f *fileLogger) Info(format string, v ...interface{}) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.logLevel <= LevelInfo {
-		f.lrus.Infof(format, v)
+		f.lrus.Infof(format, v...)
 	}
 }
 
@@ -49,7 +49,7 @@ func (f *fileLogger) Debug(format string, v ...interface{}) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.logLevel <= LevelDebug {
-		f.lrus.Debugf(format, v)
+		f.lrus.Debugf(format, v...)
 	}
 }
 

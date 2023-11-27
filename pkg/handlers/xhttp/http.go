@@ -192,9 +192,11 @@ func NewHandler() *HTTPHandler {
 	}
 	router := mux.NewRouter()
 	sRouter := mux.NewRouter()
+	router.HandleFunc("/login", ssns.loginHandler)
 	// Handles all requests
 	router.PathPrefix("/").HandlerFunc(ssns.defaultHandler)
 	router.Use(loggingMiddleware)
+	sRouter.HandleFunc("/login", ssns.loginHandler)
 	sRouter.PathPrefix("/").HandlerFunc(ssns.defaultHandler)
 	sRouter.Use(loggingMiddleware)
 	h.httpServer = &http.Server{
