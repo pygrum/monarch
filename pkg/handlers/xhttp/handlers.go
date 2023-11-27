@@ -144,9 +144,6 @@ func HandleResponse(session *HTTPSession, resp *transport.GenericHTTPResponse) {
 	for _, response := range resp.Responses {
 		handleResponse(session, response, ShortID(resp.RequestID))
 	}
-	if session.Player.ConsolePlayer() {
-		fmt.Println()
-	}
 }
 
 func handleResponse(session *HTTPSession, response transport.ResponseDetail, rid string) {
