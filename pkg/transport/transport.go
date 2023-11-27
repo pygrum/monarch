@@ -35,7 +35,6 @@ type Registration struct {
 	PID      string `json:"pid"`
 	HomeDir  string `json:"home_dir"`
 	// Leftover response in case agent is de-authed but has a response, so it's still processed
-	Data *GenericHTTPResponse `json:"data"`
 }
 
 // GenericHTTPResponse is the structure received from an agent after a task is performed
