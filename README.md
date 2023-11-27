@@ -29,6 +29,13 @@ For system requirements, see the requirements for Docker Desktop on Mac or Linux
 
 Done! Monarch will be saved at `$HOME/.local/bin` for you to add to your `PATH`.
 
+## Empress
+Empress is the very first integration developed alongside Monarch, and as of version 0.0.1, the most mature.
+The techniques used to develop the implant and build should be viewed as best practice.
+
+[Find Empress here.](https://github.com/pygrum/Empress)
+
+
 ## Issues
 If you encounter issues of any sort, please raise a new issue in the 
 [issues page](https://github.com/pygrum/monarch/issues), especially as this project is in its early stages of development.
