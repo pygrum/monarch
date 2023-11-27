@@ -67,21 +67,17 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response := &transport.GenericHTTPResponse{}
-	if r.Body == http.NoBody {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-	if err := json.NewDecoder(r.Body).Decode(response); err != nil {
-		fl.Error("failed to parse response from %s: %v", r.RemoteAddr, err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
 	claims, err := validateJwt(c) // is invalid after server restart
 	if err != nil {
 		fl.Error("jwt validation failed: %v", err)
 		// if there was a leftover response from an expired session, queue it anyway
 		// kinda dangerous if there was no initial request, so we should verify there's a request with a matching ID
 		if errors.Is(err, jwt.ErrTokenExpired) {
+			if err = json.NewDecoder(r.Body).Decode(response); err != nil {
+				fl.Error("failed to parse response from %s: %v", r.RemoteAddr, err)
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
 			ss := s.sessionMap[claims.ID]
 			// ingest response despite expiry
 			if _, ok := ss.SentRequests[response.RequestID]; ok {
@@ -109,6 +105,16 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 		session.Status = "active"
 		session.LastActive = time.Now()
 	} else {
+		if r.Body == http.NoBody {
+			fl.Error("received empty body during authenticated session")
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		if err = json.NewDecoder(r.Body).Decode(response); err != nil {
+			fl.Error("failed to parse response from %s: %v", r.RemoteAddr, err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 		// Queue the message as a response since this is not the first authenticated message
 		_ = session.ResponseQueue.Enqueue(response)
 	}
