@@ -1,7 +1,6 @@
 package xhttp
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
@@ -116,10 +115,10 @@ func NewResponseQueue() *ResponseQueue {
 }
 
 func (h *HTTPHandler) Stop() error {
-	if err := h.httpServer.Shutdown(context.Background()); err != nil {
+	if err := h.httpServer.Close(); err != nil {
 		return err
 	}
-	// create new server since shutdown destroys the old one
+	// create new server since old one is destroyed
 	h.httpServer = &http.Server{
 		Handler: h.httpServer.Handler,
 		Addr:    h.httpServer.Addr,
@@ -129,7 +128,7 @@ func (h *HTTPHandler) Stop() error {
 }
 
 func (h *HTTPHandler) StopTLS() error {
-	if err := h.httpsServer.Shutdown(context.Background()); err != nil {
+	if err := h.httpServer.Close(); err != nil {
 		return err
 	}
 	h.httpsServer = &http.Server{
@@ -211,9 +210,14 @@ func NewHandler() *HTTPHandler {
 }
 
 func (h *HTTPHandler) Serve() {
+	lh, err := net.Listen("tcp", h.httpServer.Addr)
+	if err != nil {
+		l.Error("failed to initialise listening socket: %v", err)
+		return
+	}
 	// ensures can only be started once the server is available
 	h.httpLock = true
-	if err := h.httpServer.ListenAndServe(); err != nil &&
+	if err = h.httpServer.Serve(lh); err != nil &&
 		!errors.Is(err, http.ErrServerClosed) {
 		l.Error("listener failed: %v", err)
 		return
@@ -221,9 +225,14 @@ func (h *HTTPHandler) Serve() {
 }
 
 func (h *HTTPHandler) ServeTLS() {
+	lh, err := net.Listen("tcp", h.httpsServer.Addr)
+	if err != nil {
+		l.Error("failed to initialise listening socket: %v", err)
+		return
+	}
 	// ensures can only be started once the server is available
 	h.httpsLock = true
-	if err := h.httpsServer.ListenAndServeTLS(h.CertFile, h.KeyFile); err != nil &&
+	if err = h.httpsServer.ServeTLS(lh, h.CertFile, h.KeyFile); err != nil &&
 		!errors.Is(err, http.ErrServerClosed) {
 		l.Error("listener failed: %v", err)
 	}
