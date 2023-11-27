@@ -27,7 +27,7 @@ func Initialize() {
 	if err != nil {
 		l.Fatal("failed to connect to database: %v. Monarch cannot continue to operate", err)
 	}
-	if err = db.AutoMigrate(&Builder{}, &Agent{}); err != nil {
+	if err = db.AutoMigrate(&Builder{}, &Agent{}, &Profile{}, &ProfileRecord{}); err != nil {
 		l.Fatal("failed to migrate schema: %v. Monarch cannot continue to operate", err)
 	}
 }
@@ -42,7 +42,7 @@ func Find(v interface{}) error {
 	return result.Error
 }
 
-// FindConditional retrieves rows based on a specific condition
+// FindConditional retrieves rows based on one specific condition
 func FindConditional(query, target, v interface{}) error {
 	result := db.Where(query, target).Find(v)
 	return result.Error
@@ -52,4 +52,18 @@ func FindConditional(query, target, v interface{}) error {
 func FindOneConditional(query, target, v interface{}) error {
 	result := db.Where(query, target).First(v)
 	return result.Error
+}
+
+func Delete(v interface{}) error {
+	result := db.Delete(v)
+	return result.Error
+}
+
+func DeleteOne(v interface{}) error {
+	result := db.Delete(v)
+	return result.Error
+}
+
+func Where(query interface{}, target ...interface{}) *gorm.DB {
+	return db.Where(query, target...)
 }

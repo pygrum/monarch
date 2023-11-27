@@ -1,6 +1,7 @@
 package db
 
 import (
+	"gorm.io/gorm"
 	"time"
 )
 
@@ -32,4 +33,19 @@ type Agent struct {
 	Builder   string // The builder used to build the agent
 	File      string // binary file associated with agent
 	CreatedAt time.Time
+}
+
+// Profile is used to save build configurations
+type Profile struct {
+	gorm.Model
+	Name      string
+	BuilderID string
+}
+
+// ProfileRecord is one build configuration, and is bound to a profile in the profiles table
+type ProfileRecord struct {
+	gorm.Model
+	Profile string
+	Name    string
+	Value   string
 }
