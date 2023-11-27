@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/pygrum/monarch/pkg/config"
 	"github.com/pygrum/monarch/pkg/console"
 	"github.com/pygrum/monarch/pkg/db"
@@ -105,7 +106,7 @@ func defaultOptions() []*rpcpb.Option {
 	port := &rpcpb.Option{
 		Name:        "port",
 		Description: "the port on which to connect to the host on callback",
-		Default:     "",
+		Default:     "8000",
 		Type:        "int",
 		Required:    false,
 	}
@@ -190,24 +191,24 @@ func setCmd(name, value string) {
 				}
 			}
 			if !found {
-				l.Error("'%s' is not a valid option. choose between one of the options below:")
+				l.Error("'%s' is not a valid option. choose between one of the options below:", name)
 				fmt.Println(strings.Join(o.Choices, ", "))
 				return
 			}
 			switch o.Type {
 			case "int":
 				if _, err := strconv.Atoi(value); err != nil {
-					l.Error("%v is not a valid integer", value)
+					l.Error("set %s: %v is not a valid integer", name, value)
 					return
 				}
 			case "bool":
 				if _, err := strconv.ParseBool(value); err != nil {
-					l.Error("%v is not a valid boolean", value)
+					l.Error("set %s: %v is not a valid boolean", name, value)
 					return
 				}
 			case "float":
 				if _, err := strconv.ParseFloat(value, 64); err != nil {
-					l.Error("%v is not a valid float", value)
+					l.Error("set %s: %v is not a valid float", name, value)
 					return
 				}
 			// Accept anything if it is a string type, or no type set
@@ -283,7 +284,7 @@ func build() {
 	}
 	outfile := filepath.Join(os.TempDir(), builderConfig.request.Options["outfile"])
 	var out *os.File
-	if len(outfile) == 0 {
+	if len(builderConfig.request.Options["outfile"]) == 0 {
 		out, err = os.CreateTemp(os.TempDir(), "*."+builderConfig.name)
 	} else {
 		out, err = os.Create(outfile)
@@ -311,6 +312,27 @@ func build() {
 		Builder:   builderConfig.builderID,
 		File:      out.Name(),
 		CreatedAt: time.Now(),
+	}
+	a := &db.Agent{}
+	if err := db.FindOneConditional("name = ?", agent.Name, a); err == nil {
+		// just to check that we actually returned sum
+		if a.Name == agent.Name {
+			y := false
+			prompt := &survey.Confirm{
+				Message: fmt.Sprintf("an agent named '%s' is has already been compiled. Do you wish to replace it?",
+					a.Name),
+			}
+			_ = survey.AskOne(prompt, &y)
+			if y {
+				if err = db.DeleteOne(a); err != nil {
+					l.Error("failed to delete existing agent: %v", err)
+					return
+				}
+			} else {
+				l.Error("duplicate agent names - choose a different name")
+				return
+			}
+		}
 	}
 	if err = db.Create(agent); err != nil {
 		l.Error("failed to save agent instance: %v", err)
@@ -358,7 +380,8 @@ func consoleCommands() *cobra.Command {
 			build()
 		},
 	}
-	rootCmd.AddCommand(cmdBuild, cmdOptions, cmdSet, cmdUnset, exit("exit the interactive builder"))
+	rootCmd.AddCommand(cmdBuild, cobraProfilesCmd(), cmdOptions, cmdSet, cmdUnset,
+		exit("exit the interactive builder"))
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
 	return rootCmd
 }
