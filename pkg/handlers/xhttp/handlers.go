@@ -100,6 +100,20 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	// Refresh token if there's less than 2.5 minutes until expiry
+	if claims.ExpiresAt.Sub(time.Now()) < (150 * time.Second) {
+		expiresAt := time.Now().Add(10 * time.Minute)
+		tok, err := newToken(claims.ID, expiresAt)
+		if err == nil {
+			c = &http.Cookie{
+				Name:    cookieName,
+				Expires: expiresAt,
+				Value:   tok,
+				Secure:  true,
+			}
+			http.SetCookie(w, c)
+		}
+	}
 	// session is authenticated if JWT has been validated
 	if !session.Authenticated {
 		session.Authenticated = true

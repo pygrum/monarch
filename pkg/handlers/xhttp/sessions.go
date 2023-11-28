@@ -70,7 +70,7 @@ func (s *sessions) newSession(agent *db.Agent, connectInfo *transport.Registrati
 		Status:        status,
 		SentRequests:  make(map[string]int),
 	}
-	expiresAt := time.Now().Add(5 * time.Minute)
+	expiresAt := time.Now().Add(10 * time.Minute)
 	tokenString, err := newToken(id, expiresAt)
 	if err != nil {
 		return "", time.Time{}, 0, err
@@ -102,10 +102,10 @@ func validateJwt(c *http.Cookie) (*Claims, error) {
 		return key, nil
 	})
 	if err != nil {
-		return nil, err
+		return claims, err
 	}
 	if !token.Valid {
-		return nil, fmt.Errorf("invalid token %s", tokenStr)
+		return claims, fmt.Errorf("invalid token %s", tokenStr)
 	}
 	return claims, nil
 }
