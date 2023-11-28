@@ -7,8 +7,13 @@ on:
     branches:
       - main
 jobs:
-  build-test:
+  build-test-monarch:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        install-script:
+          - "./scripts/install-monarch.sh"
+          - "./scripts/docker-install-monarch.sh"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
