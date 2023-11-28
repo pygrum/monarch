@@ -6,7 +6,7 @@ on:
       - monarch-sdk-deploy-pypi
       - monarch-deploy-docker
 jobs:
-  build-test:
+  deploy-test:
     runs-on: ubuntu-latest
     env:
       IMAGE_VERSION: latest # just for test
