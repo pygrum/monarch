@@ -66,3 +66,4 @@ mv ./monarch "${HOME}/.local/bin"
 
 echo "done. waiting for all services to start..."
 sleep 5
+echo "monarch saved to $HOME/.local/bin"
