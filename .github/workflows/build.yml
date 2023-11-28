@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        install-script:
+        install_script:
           - "./scripts/install-monarch.sh"
           - "./scripts/docker-install-monarch.sh"
     steps:
@@ -22,7 +22,7 @@ jobs:
 
       - name: Install Monarch
         continue-on-error: false
-        run: bash ./scripts/install-monarch.sh
+        run: bash ${{ matrix.install_script }}
 
       - name: Setup Monarch Container
         continue-on-error: false
