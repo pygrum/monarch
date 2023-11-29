@@ -12,22 +12,21 @@ then
   if [ "$yn" != "y" ] && [ "$yn" != "Y" ]; then
     exit 0
   fi
-  rm -rf "${MONARCH_PATH}" && mkdir "${MONARCH_PATH}"
-  ACTIVE_CONTAINERS=$(docker network inspect \
-    -f '{{ range $key, $value := .Containers }}{{ printf "%s\n" $key}}{{ end }}' \
-    ${MONARCH_NET})
+  if [ "$NET_EXISTS" ]
+  then
+    rm -rf "${MONARCH_PATH}" && mkdir "${MONARCH_PATH}"
+    ACTIVE_CONTAINERS=$(docker network inspect \
+      -f '{{ range $key, $value := .Containers }}{{ printf "%s\n" $key}}{{ end }}' \
+      ${MONARCH_NET})
 
-  if [ "$ACTIVE_CONTAINERS" ]; then
-    echo "stopping and removing active containers on existing network"
-    docker container stop "$ACTIVE_CONTAINERS"
-    docker container rm "$ACTIVE_CONTAINERS"
+    if [ "$ACTIVE_CONTAINERS" ]; then
+      echo "stopping and removing active containers on existing network"
+      docker container stop "$ACTIVE_CONTAINERS"
+      docker container rm "$ACTIVE_CONTAINERS"
+    fi
   fi
   if [ "$(docker ps -qa -f name=monarch-ctr)" ]; then
   	docker container rm monarch-ctr
-  fi
-  if [ "$NET_EXISTS" ]
-  then
-    docker network rm "${MONARCH_NET}"
   fi
 else
   mkdir "${MONARCH_PATH}"
