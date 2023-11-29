@@ -77,39 +77,39 @@ func (c *consoleLogger) Close() error {
 
 func (c *transientLogger) Fatal(format string, v ...interface{}) {
 	// ignore returned error
-	fmt.Println(colorFatal+consoleFatalPrefix, fmt.Sprintf(format, v...), colorReset)
+	fmt.Println(colorFatal + consoleFatalPrefix + " " + fmt.Sprintf(format, v...) + colorReset)
 	os.Exit(1)
 }
 
 func (c *transientLogger) Error(format string, v ...interface{}) {
 	if c.logLevel <= LevelError {
-		_, _ = Print(colorError+consoleErrorPrefix, fmt.Sprintf(format, v...),
+		_, _ = Print(colorError + consoleErrorPrefix + " " + fmt.Sprintf(format, v...) +
 			colorReset)
 	}
 }
 
 func (c *transientLogger) Warn(format string, v ...interface{}) {
 	if c.logLevel <= LevelWarn {
-		_, _ = Print(colorWarning+consoleWarningPrefix, fmt.Sprintf(format, v...),
+		_, _ = Print(colorWarning + consoleWarningPrefix + " " + fmt.Sprintf(format, v...) +
 			colorReset)
 	}
 }
 
 func (c *transientLogger) Success(format string, v ...interface{}) {
 	if c.logLevel <= LevelSuccess {
-		_, _ = Print(colorSuccess+consoleSuccessPrefix, fmt.Sprintf(format, v...), colorReset)
+		_, _ = Print(colorSuccess + consoleSuccessPrefix + " " + fmt.Sprintf(format, v...) + colorReset)
 	}
 }
 
 func (c *transientLogger) Info(format string, v ...interface{}) {
 	if c.logLevel <= LevelInfo {
-		_, _ = Print(colorInfo+consoleInfoPrefix, fmt.Sprintf(format, v...), colorReset)
+		_, _ = Print(colorInfo + consoleInfoPrefix + " " + fmt.Sprintf(format, v...) + colorReset)
 	}
 }
 
 func (c *transientLogger) Debug(format string, v ...interface{}) {
 	if c.logLevel <= LevelDebug {
-		_, _ = Print(colorDebug+consoleDebugPrefix, fmt.Sprintf(format, v...),
+		_, _ = Print(colorDebug + consoleDebugPrefix + " " + fmt.Sprintf(format, v...) +
 			colorReset)
 	}
 }

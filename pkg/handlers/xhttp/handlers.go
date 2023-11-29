@@ -56,6 +56,7 @@ func (s *sessions) loginHandler(w http.ResponseWriter, r *http.Request) {
 	// allows agent to use cookie from first request for subsequent ones
 	http.SetCookie(w, c)
 	w.WriteHeader(http.StatusOK)
+	l.Info("new session from %s - id: %s\n", r.RemoteAddr, agent.AgentID)
 }
 
 // http://host:port/
