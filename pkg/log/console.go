@@ -7,6 +7,7 @@ import (
 )
 
 var (
+	fprintln     func(msg string, args ...any) (n int, err error)
 	colorReset   = "\033[0m"
 	colorError   = "\033[31m" // Red
 	colorFatal   = "\033[37m" // Gray
@@ -25,39 +26,39 @@ var (
 
 func (c *consoleLogger) Fatal(format string, v ...interface{}) {
 	// ignore returned error
-	fmt.Println(colorFatal+consoleFatalPrefix, fmt.Sprintf(format, v...), colorReset)
+	fprintln(colorFatal+consoleFatalPrefix, fmt.Sprintf(format, v...), colorReset)
 	os.Exit(1)
 }
 
 func (c *consoleLogger) Error(format string, v ...interface{}) {
 	if c.logLevel <= LevelError {
-		fmt.Println(colorError+consoleErrorPrefix, fmt.Sprintf(format, v...),
+		fprintln(colorError+consoleErrorPrefix, fmt.Sprintf(format, v...),
 			colorReset)
 	}
 }
 
 func (c *consoleLogger) Warn(format string, v ...interface{}) {
 	if c.logLevel <= LevelWarn {
-		fmt.Println(colorWarning+consoleWarningPrefix, fmt.Sprintf(format, v...),
+		fprintln(colorWarning+consoleWarningPrefix, fmt.Sprintf(format, v...),
 			colorReset)
 	}
 }
 
 func (c *consoleLogger) Success(format string, v ...interface{}) {
 	if c.logLevel <= LevelSuccess {
-		fmt.Println(colorSuccess+consoleSuccessPrefix, fmt.Sprintf(format, v...), colorReset)
+		fprintln(colorSuccess+consoleSuccessPrefix, fmt.Sprintf(format, v...), colorReset)
 	}
 }
 
 func (c *consoleLogger) Info(format string, v ...interface{}) {
 	if c.logLevel <= LevelInfo {
-		fmt.Println(colorInfo+consoleInfoPrefix, fmt.Sprintf(format, v...), colorReset)
+		fprintln(colorInfo+consoleInfoPrefix, fmt.Sprintf(format, v...), colorReset)
 	}
 }
 
 func (c *consoleLogger) Debug(format string, v ...interface{}) {
 	if c.logLevel <= LevelDebug {
-		fmt.Println(colorDebug+consoleDebugPrefix, fmt.Sprintf(format, v...),
+		fprintln(colorDebug+consoleDebugPrefix, fmt.Sprintf(format, v...),
 			colorReset)
 	}
 }

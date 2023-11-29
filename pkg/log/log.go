@@ -78,8 +78,9 @@ type fileLogger struct {
 	mu      sync.Mutex
 }
 
-func init() {
+func Initialize(printFunc func(string, ...any) (int, error)) {
 	logLevel = config.MainConfig.LogLevel
+	fprintln = printFunc
 }
 
 // NewLogger creates either a file or console logger.

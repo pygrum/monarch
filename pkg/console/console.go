@@ -4,36 +4,37 @@ import (
 	"fmt"
 	"github.com/pygrum/monarch/pkg/consts"
 	"github.com/pygrum/monarch/pkg/db"
+	"github.com/pygrum/monarch/pkg/log"
 	"github.com/reeflective/console"
 	"github.com/spf13/cobra"
 )
 
-type monarchServer struct {
+type server struct {
 	App *console.Console
 }
 
-var server *monarchServer
+var monarchServer *server
 
 func init() {
-	server = &monarchServer{
+	monarchServer = &server{
 		App: console.New("monarch"),
 	}
 	db.Initialize()
-
+	log.Initialize(monarchServer.App.TransientPrintf)
 }
 
 // NamedMenu switches the console to a new menu with the provided name.
 func NamedMenu(name string, commands func() *cobra.Command) {
-	namedMenu := server.App.NewMenu(name)
+	namedMenu := monarchServer.App.NewMenu(name)
 	namedMenu.SetCommands(commands)
-	server.App.SwitchMenu(name)
+	monarchServer.App.SwitchMenu(name)
 }
 
 // Run entrypoint for the entire application
 func Run(rootCmd func() *cobra.Command) error {
-	srvMenu := server.App.ActiveMenu()
+	srvMenu := monarchServer.App.ActiveMenu()
 	srvMenu.SetCommands(rootCmd)
-	server.App.SetPrintLogo(func(_ *console.Console) {
+	monarchServer.App.SetPrintLogo(func(_ *console.Console) {
 		fmt.Print("\033[H\033[2J")
 		fmt.Printf(`                  o 
                o^/|\^o
@@ -48,10 +49,10 @@ func Run(rootCmd func() *cobra.Command) error {
 
 		`, consts.Version)
 	})
-	return server.App.Start()
+	return monarchServer.App.Start()
 }
 
 // MainMenu switches back to the main menu
 func MainMenu() {
-	server.App.SwitchMenu("")
+	monarchServer.App.SwitchMenu("")
 }
