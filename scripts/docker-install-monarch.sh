@@ -53,6 +53,11 @@ echo "stopping container"
 docker stop monarch-ctr
 echo "done"
 
+echo "installing linter for project configuration files"
+go build cmd/linter/royal/royal-lint.go
+mv royal-lint "$HOME/.local/bin/royal-lint"
+echo "royal-lint saved to $HOME/.local/bin/royal-lint"
+
 echo "creating run script..."
 mkdir -p "$HOME/.local/bin" 2>/dev/null
 cat <<EOF > "$HOME/.local/bin/monarch.sh"
@@ -63,4 +68,5 @@ EOF
 
 chmod +x "$HOME/.local/bin/monarch.sh"
 echo "done"
+
 echo "monarch saved to $HOME/.local/bin/monarch.sh"
