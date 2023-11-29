@@ -48,7 +48,11 @@ func useCmd(id int) {
 		// rootCmd must be defined in here to prevent help flag bug
 		rootCmd := &cobra.Command{}
 		for _, description := range descriptions.Descriptions {
-			args := cobra.NoArgs
+			if description.MinArgs < 0 {
+				// reset if invalid
+				description.MinArgs = 0
+			}
+			args := cobra.MinimumNArgs(int(description.MinArgs))
 			if description.MaxArgs > 0 {
 				args = cobra.RangeArgs(int(description.MinArgs), int(description.MaxArgs))
 			}

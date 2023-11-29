@@ -27,7 +27,7 @@ import (
 var (
 	l             log.Logger
 	immutables    = []string{"id"}
-	validTypes    = []string{"bool", "int", "string", "float"}
+	ValidTypes    = []string{"bool", "int", "string", "float"}
 	builderConfig BuilderConfig
 )
 
@@ -149,7 +149,7 @@ func loadBuildOptions(b *db.Builder) error {
 	builderConfig.options = append(builderConfig.options, defaultOptions()...)
 	for i, k := range builderConfig.options {
 		k.Type = strings.ToLower(k.Type)
-		if !slices.Contains(validTypes, k.Type) && k.Type != "" {
+		if !slices.Contains(ValidTypes, k.Type) && k.Type != "" {
 			return fmt.Errorf("%s has an invalid type '%s'. Please report this issue to the maintainer",
 				k.Name, k.Type)
 		}
@@ -195,25 +195,9 @@ func setCmd(name, value string) {
 				fmt.Println(strings.Join(o.Choices, ", "))
 				return
 			}
-			switch o.Type {
-			case "int":
-				if _, err := strconv.Atoi(value); err != nil {
-					l.Error("set %s: %v is not a valid integer", name, value)
-					return
-				}
-			case "bool":
-				if _, err := strconv.ParseBool(value); err != nil {
-					l.Error("set %s: %v is not a valid boolean", name, value)
-					return
-				}
-			case "float":
-				if _, err := strconv.ParseFloat(value, 64); err != nil {
-					l.Error("set %s: %v is not a valid float", name, value)
-					return
-				}
-			// Accept anything if it is a string type, or no type set
-			default:
-				break
+			if err := TypeVerify(o.Type, value); err != nil {
+				l.Error("error setting %s as '%s': %v", name, value, err)
+				return
 			}
 		}
 	}
@@ -222,6 +206,30 @@ func setCmd(name, value string) {
 		return
 	}
 	builderConfig.request.Options[name] = value
+}
+
+func TypeVerify(t, value string) error {
+	switch t {
+	case "int":
+		if _, err := strconv.Atoi(value); err != nil {
+			return fmt.Errorf("not a valid integer")
+		}
+
+	case "bool":
+		if _, err := strconv.ParseBool(value); err != nil {
+			return fmt.Errorf("not a valid boolean")
+		}
+
+	case "float":
+		if _, err := strconv.ParseFloat(value, 64); err != nil {
+			return fmt.Errorf("not a valid float")
+		}
+
+	// Accept anything if it is a string type, or no type set
+	default:
+		break
+	}
+	return nil
 }
 
 // unsetCmd - unsets variables in build config
