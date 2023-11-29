@@ -3,6 +3,30 @@
 # This file is used to setup monarch within a docker container.
 set -e
 
+MONARCH_NET=monarch-net
+MONARCH_PATH=${HOME}/.monarch
+
+if [ -d "${MONARCH_PATH}" ]
+then
+  read -p "monarch folder exists. do you wish to reinstall? (y/N) " yn
+  if [ "$yn" != "y" ] && [ "$yn" != "Y" ]; then
+    exit 0
+  fi
+  rm -rf "${MONARCH_PATH}" && mkdir "${MONARCH_PATH}"
+  ACTIVE_CONTAINERS=$(docker network inspect \
+    -f '{{ range $key, $value := .Containers }}{{ printf "%s\n" $key}}{{ end }}' \
+    ${MONARCH_NET})
+
+  if [ "$ACTIVE_CONTAINERS" ]; then
+    echo "stopping and removing active containers on existing network"
+    docker container stop "$ACTIVE_CONTAINERS"
+    docker container rm "$ACTIVE_CONTAINERS"
+  fi
+  docker network rm "${MONARCH_NET}"
+else
+  mkdir "${MONARCH_PATH}"
+fi
+
 if ! command -v docker &> /dev/null
 then
   echo "please install docker and start the daemon."
