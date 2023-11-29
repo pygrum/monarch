@@ -85,8 +85,8 @@ func useCmd(id int) {
 						return
 					}
 					l.Info("queued request %s for %s", xhttp.ShortID(req.RequestID), sessionInfo.Agent.Name)
-					resp := xhttp.Handler.AwaitResponse(sessionInfo.ID)
-					xhttp.HandleResponse(sessionInfo, resp)
+					//resp := xhttp.Handler.AwaitResponse(sessionInfo.ID)
+					//xhttp.HandleResponse(sessionInfo, resp)
 				},
 			}
 			rootCmd.AddCommand(cmd)

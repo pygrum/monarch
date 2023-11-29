@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	fprintln     func(msg string, args ...any) (n int, err error)
+	Print        func(string, ...any) (int, error)
 	colorReset   = "\033[0m"
 	colorError   = "\033[31m" // Red
 	colorFatal   = "\033[37m" // Gray
@@ -26,39 +26,39 @@ var (
 
 func (c *consoleLogger) Fatal(format string, v ...interface{}) {
 	// ignore returned error
-	fprintln(colorFatal+consoleFatalPrefix, fmt.Sprintf(format, v...), colorReset)
+	fmt.Println(colorFatal+consoleFatalPrefix, fmt.Sprintf(format, v...), colorReset)
 	os.Exit(1)
 }
 
 func (c *consoleLogger) Error(format string, v ...interface{}) {
 	if c.logLevel <= LevelError {
-		fprintln(colorError+consoleErrorPrefix, fmt.Sprintf(format, v...),
+		fmt.Println(colorError+consoleErrorPrefix, fmt.Sprintf(format, v...),
 			colorReset)
 	}
 }
 
 func (c *consoleLogger) Warn(format string, v ...interface{}) {
 	if c.logLevel <= LevelWarn {
-		fprintln(colorWarning+consoleWarningPrefix, fmt.Sprintf(format, v...),
+		fmt.Println(colorWarning+consoleWarningPrefix, fmt.Sprintf(format, v...),
 			colorReset)
 	}
 }
 
 func (c *consoleLogger) Success(format string, v ...interface{}) {
 	if c.logLevel <= LevelSuccess {
-		fprintln(colorSuccess+consoleSuccessPrefix, fmt.Sprintf(format, v...), colorReset)
+		fmt.Println(colorSuccess+consoleSuccessPrefix, fmt.Sprintf(format, v...), colorReset)
 	}
 }
 
 func (c *consoleLogger) Info(format string, v ...interface{}) {
 	if c.logLevel <= LevelInfo {
-		fprintln(colorInfo+consoleInfoPrefix, fmt.Sprintf(format, v...), colorReset)
+		fmt.Println(colorInfo+consoleInfoPrefix, fmt.Sprintf(format, v...), colorReset)
 	}
 }
 
 func (c *consoleLogger) Debug(format string, v ...interface{}) {
 	if c.logLevel <= LevelDebug {
-		fprintln(colorDebug+consoleDebugPrefix, fmt.Sprintf(format, v...),
+		fmt.Println(colorDebug+consoleDebugPrefix, fmt.Sprintf(format, v...),
 			colorReset)
 	}
 }
@@ -72,6 +72,57 @@ func (c *consoleLogger) SetLogLevel(logLevel uint16) error {
 }
 
 func (c *consoleLogger) Close() error {
+	return nil
+}
+
+func (c *transientLogger) Fatal(format string, v ...interface{}) {
+	// ignore returned error
+	fmt.Println(colorFatal+consoleFatalPrefix, fmt.Sprintf(format, v...), colorReset)
+	os.Exit(1)
+}
+
+func (c *transientLogger) Error(format string, v ...interface{}) {
+	if c.logLevel <= LevelError {
+		_, _ = Print(colorError+consoleErrorPrefix, fmt.Sprintf(format, v...),
+			colorReset)
+	}
+}
+
+func (c *transientLogger) Warn(format string, v ...interface{}) {
+	if c.logLevel <= LevelWarn {
+		_, _ = Print(colorWarning+consoleWarningPrefix, fmt.Sprintf(format, v...),
+			colorReset)
+	}
+}
+
+func (c *transientLogger) Success(format string, v ...interface{}) {
+	if c.logLevel <= LevelSuccess {
+		_, _ = Print(colorSuccess+consoleSuccessPrefix, fmt.Sprintf(format, v...), colorReset)
+	}
+}
+
+func (c *transientLogger) Info(format string, v ...interface{}) {
+	if c.logLevel <= LevelInfo {
+		_, _ = Print(colorInfo+consoleInfoPrefix, fmt.Sprintf(format, v...), colorReset)
+	}
+}
+
+func (c *transientLogger) Debug(format string, v ...interface{}) {
+	if c.logLevel <= LevelDebug {
+		_, _ = Print(colorDebug+consoleDebugPrefix, fmt.Sprintf(format, v...),
+			colorReset)
+	}
+}
+
+func (c *transientLogger) SetLogLevel(logLevel uint16) error {
+	if logLevel < LevelDebug || logLevel > LevelFatal {
+		return errors.New("invalid log level provided")
+	}
+	c.logLevel = logLevel
+	return nil
+}
+
+func (c *transientLogger) Close() error {
 	return nil
 }
 

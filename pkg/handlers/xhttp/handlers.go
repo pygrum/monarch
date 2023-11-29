@@ -3,9 +3,9 @@ package xhttp
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/pygrum/monarch/pkg/db"
+	"github.com/pygrum/monarch/pkg/log"
 	"github.com/pygrum/monarch/pkg/rpcpb"
 	"github.com/pygrum/monarch/pkg/transport"
 	"io"
@@ -131,7 +131,8 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// Queue the message as a response since this is not the first authenticated message
-		_ = session.ResponseQueue.Enqueue(response)
+		_ = s.sessionMap[sessionID].ResponseQueue.Enqueue(response)
+		HandleResponse(session, response)
 	}
 	for {
 		// Keep checking for new request (blocking)
@@ -174,7 +175,7 @@ func handleResponse(session *HTTPSession, response transport.ResponseDetail, rid
 	}
 	if response.Dest == transport.DestStdout {
 		if session.Player.ConsolePlayer() {
-			fmt.Println(string(response.Data))
+			log.Print(string(response.Data))
 		}
 	} else if response.Dest == transport.DestFile {
 		file := filepath.Join(os.TempDir(), response.Name)

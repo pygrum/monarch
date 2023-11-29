@@ -28,6 +28,8 @@ const (
 	ConsoleLogger
 	// FileLogger creates a new file logger when used in NewLogger().
 	FileLogger
+	// TransientLogger like consoleLogger
+	TransientLogger
 )
 
 var logLevel uint16
@@ -71,6 +73,10 @@ type consoleLogger struct {
 	settings
 }
 
+type transientLogger struct {
+	settings
+}
+
 type fileLogger struct {
 	settings
 	logFile *os.File
@@ -80,7 +86,7 @@ type fileLogger struct {
 
 func Initialize(printFunc func(string, ...any) (int, error)) {
 	logLevel = config.MainConfig.LogLevel
-	fprintln = printFunc
+	Print = printFunc
 }
 
 // NewLogger creates either a file or console logger.
@@ -93,6 +99,12 @@ func NewLogger(loggerType uint16, name string) (Logger, error) {
 	switch loggerType {
 	case ConsoleLogger:
 		logger = &consoleLogger{
+			settings: settings{
+				logLevel: logLevel,
+			},
+		}
+	case TransientLogger:
+		logger = &transientLogger{
 			settings: settings{
 				logLevel: logLevel,
 			},

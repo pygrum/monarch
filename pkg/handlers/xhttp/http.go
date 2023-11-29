@@ -55,7 +55,7 @@ type ResponseQueue struct {
 
 func init() {
 	Handler = NewHandler()
-	l, _ = log.NewLogger(log.ConsoleLogger, "")
+	l, _ = log.NewLogger(log.TransientLogger, "")
 
 	var err error
 	fl, err = log.NewLogger(log.FileLogger, "handler")
