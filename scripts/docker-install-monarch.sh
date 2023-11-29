@@ -5,10 +5,10 @@ set -e
 
 MONARCH_NET=monarch-net
 MONARCH_PATH=${HOME}/.monarch
-
-if [ -d "${MONARCH_PATH}" ]
+NET_EXISTS=$(docker network ls --filter name=^${MONARCH_NET}$ --format="{{ .Name }}")
+if [ -d "${MONARCH_PATH}" ] || [ "$NET_EXISTS" ]
 then
-  read -p "monarch folder exists. do you wish to reinstall? (y/N) " yn
+  read -p "monarch data exists. do you wish to reinstall? (y/N) " yn
   if [ "$yn" != "y" ] && [ "$yn" != "Y" ]; then
     exit 0
   fi
@@ -22,7 +22,13 @@ then
     docker container stop "$ACTIVE_CONTAINERS"
     docker container rm "$ACTIVE_CONTAINERS"
   fi
-  docker network rm "${MONARCH_NET}"
+  if [ "$(docker ps -qa -f name=monarch-ctr)" ]; then
+  	docker container rm monarch-ctr
+  fi
+  if [ "$NET_EXISTS" ]
+  then
+    docker network rm "${MONARCH_NET}"
+  fi
 else
   mkdir "${MONARCH_PATH}"
 fi
