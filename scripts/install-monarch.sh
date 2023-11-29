@@ -67,14 +67,14 @@ openssl req -newkey rsa:4096 \
 
 echo "done"
 
+mkdir -p "$HOME/.local/bin" 2>/dev/null
+
 echo "installing linter for project configuration files"
 go build ../cmd/linter/royal/royal-lint.go
 mv royal-lint "$HOME/.local/bin/royal-lint"
 echo "royal-lint saved to $HOME/.local/bin/royal-lint"
 
 echo "building monarch.."
-mkdir -p "${HOME}/.local/bin" 2>/dev/null
-
 go build ../cmd/monarch/monarch.go
 mv ./monarch "${HOME}/.local/bin"
 
