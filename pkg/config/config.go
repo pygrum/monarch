@@ -57,8 +57,8 @@ type ProjectConfig struct {
 type ProjectConfigCmd struct {
 	Name    string
 	Usage   string
-	MinArgs uint32 `yaml:"min_args"`
-	MaxArgs uint32 `yaml:"max_args"` // Whether NArgs represents the minimum arg count or the exact
+	MinArgs int32 `yaml:"min_args"`
+	MaxArgs int32 `yaml:"max_args"` // Whether NArgs represents the minimum arg count or the exact
 	// Specifies whether this command requires admin privileges or not
 	Admin bool
 	// If opcode is specified, the provided integer opcode is used in place of the command name,
