@@ -6,7 +6,7 @@ import (
 	"github.com/pygrum/monarch/pkg/console"
 	"github.com/pygrum/monarch/pkg/db"
 	"github.com/pygrum/monarch/pkg/docker"
-	"github.com/pygrum/monarch/pkg/handlers/xhttp"
+	"github.com/pygrum/monarch/pkg/handler/http"
 	"github.com/pygrum/monarch/pkg/rpcpb"
 	"github.com/pygrum/monarch/pkg/transport"
 	"github.com/spf13/cobra"
@@ -17,7 +17,7 @@ import (
 
 func useCmd(id int) {
 	ctx := context.Background()
-	sessionInfo := xhttp.Handler.SessionByID(id)
+	sessionInfo := http.MainHandler.SessionByID(id)
 	if sessionInfo == nil {
 		cLogger.Error("session '%d' not found", id)
 		return
@@ -83,14 +83,14 @@ func useCmd(id int) {
 						Opcode:    description.Opcode,
 						Args:      byteArgs,
 					}
-					if err = xhttp.Handler.QueueRequest(sessionInfo.ID, req); err != nil {
+					if err = http.MainHandler.QueueRequest(sessionInfo.ID, req); err != nil {
 						cLogger.Error("%v", err)
 						console.MainMenu()
 						return
 					}
-					l.Info("queued request %s for %s", xhttp.ShortID(req.RequestID), sessionInfo.Agent.Name)
-					//resp := xhttp.Handler.AwaitResponse(sessionInfo.ID)
-					//xhttp.HandleResponse(sessionInfo, resp)
+					l.Info("queued request %s for %s", http.ShortID(req.RequestID), sessionInfo.Agent.Name)
+					//resp := http.MainHandler.AwaitResponse(sessionInfo.ID)
+					//http.HandleResponse(sessionInfo, resp)
 				},
 			}
 			rootCmd.AddCommand(cmd)

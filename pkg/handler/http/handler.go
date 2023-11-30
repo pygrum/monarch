@@ -1,4 +1,4 @@
-package xhttp
+package http
 
 import (
 	"errors"
@@ -18,12 +18,12 @@ const (
 )
 
 var (
-	Handler *HTTPHandler
-	l       log.Logger
-	fl      log.Logger
+	MainHandler *Handler
+	l           log.Logger
+	fl          log.Logger
 )
 
-type HTTPHandler struct {
+type Handler struct {
 	CertFile    string
 	KeyFile     string
 	httpServer  *http.Server
@@ -54,7 +54,7 @@ type ResponseQueue struct {
 }
 
 func init() {
-	Handler = NewHandler()
+	MainHandler = NewHandler()
 	l, _ = log.NewLogger(log.TransientLogger, "")
 
 	var err error
@@ -114,7 +114,7 @@ func NewResponseQueue() *ResponseQueue {
 	return &ResponseQueue{channel: make(chan *transport.GenericHTTPResponse, queueCapacity)}
 }
 
-func (h *HTTPHandler) Stop() error {
+func (h *Handler) Stop() error {
 	if err := h.httpServer.Close(); err != nil {
 		return err
 	}
@@ -127,7 +127,7 @@ func (h *HTTPHandler) Stop() error {
 	return nil
 }
 
-func (h *HTTPHandler) StopTLS() error {
+func (h *Handler) StopTLS() error {
 	if err := h.httpServer.Close(); err != nil {
 		return err
 	}
@@ -139,15 +139,15 @@ func (h *HTTPHandler) StopTLS() error {
 	return nil
 }
 
-func (h *HTTPHandler) IsActive() bool {
+func (h *Handler) IsActive() bool {
 	return h.httpLock
 }
 
-func (h *HTTPHandler) IsActiveTLS() bool {
+func (h *Handler) IsActiveTLS() bool {
 	return h.httpsLock
 }
 
-func (h *HTTPHandler) QueueRequest(sessionID int, req *transport.GenericHTTPRequest) error {
+func (h *Handler) QueueRequest(sessionID int, req *transport.GenericHTTPRequest) error {
 	ss := h.sessions.sessionMap[sessionID]
 	if ss == nil {
 		return fmt.Errorf("session '%d' no longer exists - it may have expired due to a new connection",
@@ -156,12 +156,12 @@ func (h *HTTPHandler) QueueRequest(sessionID int, req *transport.GenericHTTPRequ
 	return ss.RequestQueue.Enqueue(req) // returns error if queue is full
 }
 
-func (h *HTTPHandler) AwaitResponse(sessionID int) *transport.GenericHTTPResponse {
+func (h *Handler) AwaitResponse(sessionID int) *transport.GenericHTTPResponse {
 	// returns error if queue is full
 	return h.sessions.sessionMap[sessionID].ResponseQueue.Dequeue().(*transport.GenericHTTPResponse)
 }
 
-func (h *HTTPHandler) Sessions(sessIDs []int) []*HTTPSession {
+func (h *Handler) Sessions(sessIDs []int) []*HTTPSession {
 	h.sessions.lock.Lock()
 	defer h.sessions.lock.Unlock()
 	var ss []*HTTPSession
@@ -179,12 +179,12 @@ func (h *HTTPHandler) Sessions(sessIDs []int) []*HTTPSession {
 	return ss
 }
 
-func NewHandler() *HTTPHandler {
+func NewHandler() *Handler {
 	ssns := &sessions{
 		lock:       sync.Mutex{},
 		sessionMap: make(map[int]*HTTPSession),
 	}
-	h := &HTTPHandler{
+	h := &Handler{
 		CertFile: config.MainConfig.CertFile,
 		KeyFile:  config.MainConfig.KeyFile,
 		sessions: ssns,
@@ -209,7 +209,7 @@ func NewHandler() *HTTPHandler {
 	return h
 }
 
-func (h *HTTPHandler) Serve() {
+func (h *Handler) Serve() {
 	lh, err := net.Listen("tcp", h.httpServer.Addr)
 	if err != nil {
 		l.Error("failed to initialise listening socket: %v", err)
@@ -224,7 +224,7 @@ func (h *HTTPHandler) Serve() {
 	}
 }
 
-func (h *HTTPHandler) ServeTLS() {
+func (h *Handler) ServeTLS() {
 	lh, err := net.Listen("tcp", h.httpsServer.Addr)
 	if err != nil {
 		l.Error("failed to initialise listening socket: %v", err)

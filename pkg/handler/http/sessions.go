@@ -1,4 +1,4 @@
-package xhttp
+package http
 
 import (
 	"fmt"
@@ -111,6 +111,6 @@ func validateJwt(c *http.Cookie) (*Claims, error) {
 }
 
 // SessionByID retrieves an active HTTP connection with an agent, if said agent has ever had an active session
-func (h *HTTPHandler) SessionByID(sessID int) *HTTPSession {
+func (h *Handler) SessionByID(sessID int) *HTTPSession {
 	return h.sessions.sessionMap[sessID]
 }
