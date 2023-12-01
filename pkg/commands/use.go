@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"encoding/binary"
 	"github.com/google/uuid"
 	"github.com/pygrum/monarch/pkg/console"
 	"github.com/pygrum/monarch/pkg/db"
@@ -13,6 +14,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"os"
+	"path/filepath"
 )
 
 func useCmd(id int) {
@@ -65,15 +67,18 @@ func useCmd(id int) {
 					byteArgs := make([][]byte, len(args))
 					for i, arg := range args {
 						data := []byte(arg)
-						// Refers to a file if prefixed and suffixed with @
-						if arg[0] == '@' && arg[len(arg)-1] == '@' {
-							filename := arg[1 : len(arg)-1]
+						// Refers to a file if prefixed with @
+						if arg[0] == '@' {
+							filename := arg[1:]
 							bytes, err := os.ReadFile(filename)
 							if err != nil {
 								cLogger.Error("failed to read file %s", filename)
 								return
 							}
-							data = bytes
+							sizeBytes := make([]byte, 8)
+							binary.BigEndian.PutUint64(sizeBytes, uint64(len(bytes))) // enforce network byte order
+							// packet looks like: [filesize][......file-data.......][filename]
+							data = append(sizeBytes, append(bytes, []byte(filepath.Base(filename))...)...)
 						}
 						byteArgs[i] = data
 					}
