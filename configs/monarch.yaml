@@ -4,10 +4,13 @@ loglevel: 2
 certfile: monarch.crt # cert file relative to monarch home dir
 keyfile: monarch.key
 interface: 0.0.0.0
+
 httpport: 8000
 httpsport: 4433
 loginendpoint: /login
 mainendpoint: /
+session_timeout_minutes: 60
+
 installdir: agents
 # gitusername:
 # gitpat:

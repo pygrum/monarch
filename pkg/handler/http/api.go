@@ -83,7 +83,7 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 			ss := s.sessionMap[claims.ID]
 			// ingest response despite expiry
 			if _, ok := ss.SentRequests[response.RequestID]; ok {
-				_ = ss.ResponseQueue.Enqueue(response)
+				HandleResponse(ss, response)
 				delete(ss.SentRequests, response.RequestID)
 			}
 		}
@@ -101,6 +101,7 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	session.Status = "active"
 	// Refresh token if there's less than 2.5 minutes until expiry
 	if claims.ExpiresAt.Sub(time.Now()) < (150 * time.Second) {
 		expiresAt := time.Now().Add(10 * time.Minute)
@@ -150,7 +151,8 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 			w.Write(b)
 			// add to sent requests, the number doesn't matter
 			session.SentRequests[resp.RequestID] = 0
-			return // exit so we can get a response
+			session.Status = "inactive" // will be active again after callback
+			return                      // exit so we can get a response
 		}
 	}
 }

@@ -33,7 +33,8 @@ type MonarchConfig struct {
 	// The endpoint where agents login / register themselves
 	LoginEndpoint string
 	// The folder where agent and c2 repositories are installed to.
-	InstallDir string
+	SessionTimeout int `yaml:"session_timeout_minutes"`
+	InstallDir     string
 	// Credentials used by git for installing private packages
 	GitUsername string
 	GitPAT      string

@@ -193,13 +193,16 @@ func NewHandler() *Handler {
 	sRouter := mux.NewRouter()
 	m_ep := config.MainConfig.MainEndpoint
 	l_ep := config.MainConfig.LoginEndpoint
+
 	router.HandleFunc(l_ep, ssns.loginHandler)
 	// Handles all requests
 	router.PathPrefix(m_ep).HandlerFunc(ssns.defaultHandler)
 	router.Use(loggingMiddleware)
+
 	sRouter.HandleFunc(l_ep, ssns.loginHandler)
 	sRouter.PathPrefix(m_ep).HandlerFunc(ssns.defaultHandler)
 	sRouter.Use(loggingMiddleware)
+
 	h.httpServer = &http.Server{
 		Handler: router,
 		Addr:    net.JoinHostPort(config.MainConfig.Interface, strconv.Itoa(config.MainConfig.HttpPort)),

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
+	"github.com/pygrum/monarch/pkg/config"
 	"github.com/pygrum/monarch/pkg/coop"
 	"github.com/pygrum/monarch/pkg/db"
 	"github.com/pygrum/monarch/pkg/transport"
@@ -70,7 +71,7 @@ func (s *sessions) newSession(agent *db.Agent, connectInfo *transport.Registrati
 		Status:        status,
 		SentRequests:  make(map[string]int),
 	}
-	expiresAt := time.Now().Add(10 * time.Minute)
+	expiresAt := time.Now().Add(time.Duration(config.MainConfig.SessionTimeout) * time.Minute)
 	tokenString, err := newToken(id, expiresAt)
 	if err != nil {
 		return "", time.Time{}, 0, err
