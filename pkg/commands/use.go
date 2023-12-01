@@ -10,6 +10,7 @@ import (
 	"github.com/pygrum/monarch/pkg/handler/http"
 	"github.com/pygrum/monarch/pkg/rpcpb"
 	"github.com/pygrum/monarch/pkg/transport"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -65,6 +66,7 @@ func useCmd(id int) {
 					args = cobra.NoArgs
 				}
 			}
+			op := description.Opcode // must copy out to use in cobra Command otherwise it will be the last
 			cmd := &cobra.Command{
 				Use:   description.Usage,
 				Short: description.DescriptionShort,
@@ -92,9 +94,10 @@ func useCmd(id int) {
 					req := &transport.GenericHTTPRequest{
 						AgentID:   sessionInfo.Agent.AgentID,
 						RequestID: uuid.New().String(),
-						Opcode:    description.Opcode,
+						Opcode:    op,
 						Args:      byteArgs,
 					}
+					logrus.Infof("cmd=%s op=%d", cmd.Use, req.Opcode)
 					if err = http.MainHandler.QueueRequest(sessionInfo.ID, req); err != nil {
 						cLogger.Error("%v", err)
 						console.MainMenu()
