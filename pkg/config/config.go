@@ -32,6 +32,8 @@ type MonarchConfig struct {
 	MainEndpoint string
 	// The endpoint where agents login / register themselves
 	LoginEndpoint string
+	// Endpoint where payloads are staged
+	StageEndpoint string
 	// The folder where agent and c2 repositories are installed to.
 	SessionTimeout int `yaml:"session_timeout_minutes"`
 	InstallDir     string

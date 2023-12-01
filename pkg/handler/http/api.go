@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/gorilla/mux"
 	"github.com/pygrum/monarch/pkg/db"
 	"github.com/pygrum/monarch/pkg/log"
 	"github.com/pygrum/monarch/pkg/rpcpb"
@@ -18,6 +19,21 @@ import (
 const (
 	cookieName = "token"
 )
+
+// http://host:port/index/{file}
+func stageHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	params := mux.Vars(r)
+	file, ok := params["file"]
+	if ok {
+		data, err := Stage.get(file)
+		if err != nil {
+			fl.Error(err.Error())
+			return
+		}
+		w.Write(data)
+	}
+}
 
 // http://host:port/login
 func (s *sessions) loginHandler(w http.ResponseWriter, r *http.Request) {

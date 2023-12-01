@@ -193,13 +193,15 @@ func NewHandler() *Handler {
 	sRouter := mux.NewRouter()
 	m_ep := config.MainConfig.MainEndpoint
 	l_ep := config.MainConfig.LoginEndpoint
-
+	s_ep := config.MainConfig.StageEndpoint
 	router.HandleFunc(l_ep, ssns.loginHandler)
+	router.HandleFunc(s_ep, stageHandler)
 	// Handles all requests
 	router.PathPrefix(m_ep).HandlerFunc(ssns.defaultHandler)
 	router.Use(loggingMiddleware)
 
 	sRouter.HandleFunc(l_ep, ssns.loginHandler)
+	sRouter.HandleFunc(s_ep, stageHandler)
 	sRouter.PathPrefix(m_ep).HandlerFunc(ssns.defaultHandler)
 	sRouter.Use(loggingMiddleware)
 

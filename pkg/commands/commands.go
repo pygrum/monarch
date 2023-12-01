@@ -150,8 +150,31 @@ func ConsoleCommands() *cobra.Command {
 			versionCmd()
 		},
 	}
+	var stageAs string
+	var format string
+	cmdStage := &cobra.Command{
+		Use:   "stage [agent]",
+		Short: "stage an agent on the configured staging endpoint, or view currently staged agents",
+		Args:  cobra.RangeArgs(0, 1),
+		Run: func(cmd *cobra.Command, args []string) {
+			stageCmd(args, format, stageAs)
+		},
+	}
+	cmdStage.Flags().StringVar(&stageAs, "as", "", "the file to stage your agent as (e.g. index.php)")
+	cmdStage.Flags().StringVarP(&format, "format", "f", "",
+		"the format of the staged file - shellcode")
+
+	cmdUnstage := &cobra.Command{
+		Use:   "unstage [agent-alias]",
+		Short: "unstage a staged agent, by specifying its stage alias (e.g. index.php)",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			unstageCmd(args[0])
+		},
+	}
+
 	root.AddCommand(cmdSessions, cmdUse, cmdHttp, cmdHttps, cmdAgents, cmdBuilders, cmdBuild, cmdInstall, cmdUninstall,
-		cmdVersion, cmdExit)
+		cmdStage, cmdUnstage, cmdVersion, cmdExit)
 	root.CompletionOptions.HiddenDefaultCmd = true
 	return root
 }
