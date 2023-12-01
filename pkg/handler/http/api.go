@@ -176,6 +176,10 @@ func handleResponse(session *HTTPSession, response transport.ResponseDetail, rid
 	}
 	if response.Dest == transport.DestStdout {
 		if session.Player.ConsolePlayer() {
+			if len(response.Data) == 0 {
+				l.Success("success")
+				return
+			}
 			log.Print(string(response.Data))
 		}
 	} else if response.Dest == transport.DestFile {
