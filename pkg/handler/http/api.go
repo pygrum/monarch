@@ -179,7 +179,11 @@ func handleResponse(session *HTTPSession, response transport.ResponseDetail, rid
 			log.Print(string(response.Data))
 		}
 	} else if response.Dest == transport.DestFile {
-		file := filepath.Join(os.TempDir(), response.Name)
+		wd, err := os.Getwd()
+		if err != nil {
+			wd = os.TempDir()
+		}
+		file := filepath.Join(wd, response.Name)
 		if err := os.WriteFile(file, response.Data, 0666); err != nil {
 			if session.Player.ConsolePlayer() {
 				l.Error("failed writing response to %s to file: %v", rid, err)
