@@ -78,7 +78,7 @@ func sourceUrl(u string) (string, error) {
 
 func cmdSchema(cmd *config.ProjectConfigCmd) (string, error) {
 	if slices.Contains(allOpcodes, int(cmd.Opcode)) {
-		return "cmd_schema." + cmd.Name + ".opcode", errors.New("duplicate opcode found")
+		logrus.Warnf("cmd_schema." + cmd.Name + ".opcode: duplicate opcode found. may be intentional")
 	}
 	allOpcodes = append(allOpcodes, int(cmd.Opcode))
 	if cmd.MinArgs < 0 {
