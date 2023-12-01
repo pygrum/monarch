@@ -103,7 +103,6 @@ func useCmd(id int) {
 						console.MainMenu()
 						return
 					}
-					l.Info("queued request %s for %s", http.ShortID(req.RequestID), sessionInfo.Agent.Name)
 					//resp := http.MainHandler.AwaitResponse(sessionInfo.ID)
 					//http.HandleResponse(sessionInfo, resp)
 				},
