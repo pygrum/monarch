@@ -14,6 +14,7 @@ import (
 
 var (
 	err               error
+	allOpcodes        []int
 	alphaNumericRegex = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 	semVerRegex       = regexp.MustCompile(`^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$`)
 )
@@ -76,6 +77,10 @@ func sourceUrl(u string) (string, error) {
 }
 
 func cmdSchema(cmd *config.ProjectConfigCmd) (string, error) {
+	if slices.Contains(allOpcodes, int(cmd.Opcode)) {
+		return "cmd_schema." + cmd.Name + ".opcode", errors.New("duplicate opcode found")
+	}
+	allOpcodes = append(allOpcodes, int(cmd.Opcode))
 	if cmd.MinArgs < 0 {
 		return "cmd_schema." + cmd.Name + ".min_args", errors.New("cannot be below 0")
 	}
