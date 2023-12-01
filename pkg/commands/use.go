@@ -10,7 +10,6 @@ import (
 	"github.com/pygrum/monarch/pkg/handler/http"
 	"github.com/pygrum/monarch/pkg/rpcpb"
 	"github.com/pygrum/monarch/pkg/transport"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -79,13 +78,18 @@ func useCmd(id int) {
 						// Refers to a file if prefixed with @
 						if arg[0] == '@' {
 							filename := arg[1:]
+							info, err := os.Stat(filename)
+							if err != nil {
+								cLogger.Error("%v", err)
+								return
+							}
 							bytes, err := os.ReadFile(filename)
 							if err != nil {
 								cLogger.Error("failed to read file %s", filename)
 								return
 							}
 							sizeBytes := make([]byte, 8)
-							binary.BigEndian.PutUint64(sizeBytes, uint64(len(bytes))) // enforce network byte order
+							binary.BigEndian.PutUint64(sizeBytes, uint64(info.Size())) // enforce network byte order
 							// packet looks like: [filesize][......file-data.......][filename]
 							data = append(sizeBytes, append(bytes, []byte(filepath.Base(filename))...)...)
 						}
@@ -97,7 +101,6 @@ func useCmd(id int) {
 						Opcode:    op,
 						Args:      byteArgs,
 					}
-					logrus.Infof("cmd=%s op=%d", cmd.Use, req.Opcode)
 					if err = http.MainHandler.QueueRequest(sessionInfo.ID, req); err != nil {
 						cLogger.Error("%v", err)
 						console.MainMenu()
@@ -116,5 +119,4 @@ func useCmd(id int) {
 	})
 }
 
-// TODO: SPECIFY A FLAG TO NOT WAIT FOR A RESPONSE (AwaitResponse) and handle resp in separate goroutine instead
 // TODO: multiplayer?
