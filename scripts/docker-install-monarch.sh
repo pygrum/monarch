@@ -21,8 +21,8 @@ then
 
     if [ "$ACTIVE_CONTAINERS" ]; then
       echo "stopping and removing active containers on existing network"
-      docker container stop "$ACTIVE_CONTAINERS"
-      docker container rm "$ACTIVE_CONTAINERS"
+      docker container stop $ACTIVE_CONTAINERS
+      docker container rm $ACTIVE_CONTAINERS
     fi
   fi
   if [ "$(docker ps -qa -f name=monarch-ctr)" ]; then
