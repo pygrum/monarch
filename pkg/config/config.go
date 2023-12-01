@@ -28,6 +28,10 @@ type MonarchConfig struct {
 	HttpPort int
 	// The port to use for the Monarch HTTPS listener.
 	HttpsPort int
+	// The endpoint where agents receive and respond to commands
+	MainEndpoint string
+	// The endpoint where agents login / register themselves
+	LoginEndpoint string
 	// The folder where agent and c2 repositories are installed to.
 	InstallDir string
 	// Credentials used by git for installing private packages

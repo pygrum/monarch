@@ -6,6 +6,8 @@ keyfile: monarch.key
 interface: 0.0.0.0
 httpport: 8000
 httpsport: 4433
+loginendpoint: /login
+mainendpoint: /
 installdir: agents
 # gitusername:
 # gitpat:
