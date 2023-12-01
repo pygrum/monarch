@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func uninstallCmd(args []string) {
+func uninstallCmd(args []string, deleteSource bool) {
 	var builders []db.Builder
 	if err := db.FindConditional("builder_id IN ?", args, &builders); err != nil {
 		cLogger.Error("failed to retrieve the specified builders: %v", err)
@@ -25,9 +25,11 @@ func uninstallCmd(args []string) {
 	}
 	for _, b := range builders {
 		cLogger.Info("deleting %s...", b.Name)
-		if err := os.RemoveAll(b.InstalledAt); err != nil {
-			cLogger.Error("failed to remove install folder: %v", err)
-			return
+		if deleteSource {
+			if err := os.RemoveAll(b.InstalledAt); err != nil {
+				cLogger.Error("failed to remove install folder: %v", err)
+				return
+			}
 		}
 		if err := utils.Cleanup(&b); err != nil {
 			cLogger.Error("%v", err)

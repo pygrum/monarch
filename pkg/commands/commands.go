@@ -132,15 +132,17 @@ func ConsoleCommands() *cobra.Command {
 	// it's a subcommand of the 'install' command
 	cmdInstall.AddCommand(cmdLocal)
 
+	var purge bool
 	cmdUninstall := &cobra.Command{
 		Use:   "uninstall [flags] BUILDERS...",
 		Short: "uninstall builder(s) by name or ID",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			uninstallCmd(args)
+			uninstallCmd(args, purge)
 		},
 	}
-
+	cmdUninstall.Flags().BoolVarP(&purge, "delete-data", "p", false, "delete the source"+
+		" folder that was saved to disk when installed")
 	cmdVersion := &cobra.Command{
 		Use:   "version",
 		Short: "view installed monarch version",
