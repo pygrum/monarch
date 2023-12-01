@@ -59,7 +59,11 @@ func useCmd(id int) {
 				args = cobra.RangeArgs(int(description.MinArgs), int(description.MaxArgs))
 			}
 			if description.MinArgs == description.MaxArgs {
-				args = cobra.ExactArgs(int(description.MinArgs))
+				if description.MinArgs > 0 {
+					args = cobra.ExactArgs(int(description.MinArgs))
+				} else {
+					args = cobra.NoArgs
+				}
 			}
 			cmd := &cobra.Command{
 				Use:   description.Usage,
