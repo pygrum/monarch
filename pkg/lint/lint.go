@@ -84,9 +84,6 @@ func cmdSchema(cmd *config.ProjectConfigCmd) (string, error) {
 	if cmd.MinArgs < 0 {
 		return "cmd_schema." + cmd.Name + ".min_args", errors.New("cannot be below 0")
 	}
-	if cmd.MinArgs > cmd.MaxArgs && cmd.MaxArgs >= 0 {
-		return "cmd_schema." + cmd.Name + ".min_args", errors.New("cannot be greater than max_args")
-	}
 	return "", nil
 }
 
