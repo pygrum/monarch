@@ -10,6 +10,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/google/uuid"
 	"github.com/pygrum/monarch/pkg/config"
@@ -37,10 +38,14 @@ func init() {
 }
 
 // NewRepo and use GitHub credentials if repository is private
-func NewRepo(url string, private bool) error {
+func NewRepo(url, branch string, private bool) error {
 	c := config.MainConfig
 	o := &git.CloneOptions{
 		URL: url,
+	}
+	if len(branch) != 0 {
+		o.SingleBranch = true
+		o.ReferenceName = plumbing.ReferenceName(branch)
 	}
 	if len(c.GitUsername) == 0 || len(c.GitPAT) == 0 {
 		if private {

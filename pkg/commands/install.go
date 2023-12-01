@@ -8,8 +8,8 @@ import (
 	"strings"
 )
 
-func installCmd(repoUrl string, useCreds bool) {
-	if err := install.NewRepo(repoUrl, useCreds); err != nil {
+func installCmd(repoUrl, branch string, useCreds bool) {
+	if err := install.NewRepo(repoUrl, branch, useCreds); err != nil {
 		cLogger.Error("failed to install %s: %v", repoUrl, err)
 		clonePath := filepath.Join(config.MainConfig.InstallDir, strings.TrimSuffix(filepath.Base(repoUrl),
 			filepath.Ext(filepath.Base(repoUrl))))
