@@ -12,7 +12,7 @@ WORKDIR /go/delivery
 
 COPY . .
 
-RUN go build -o app cmd/builder/main.go
+RUN go build -o app cmd/builder/builder.go
 
 # accepts 3 args - see usage in builder.go
 ENTRYPOINT [ "/go/delivery/app" ]
