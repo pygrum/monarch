@@ -1,0 +1,120 @@
+syntax = "proto3";
+package clientpb;
+
+import "builderpb/builder.proto";
+option go_package = "github.com/pygrum/monarch/pkg/protobuf/clientpb";
+
+message BuilderRequest {
+  repeated string builder_id = 1;
+  repeated string name = 2;
+}
+message Builders {
+  message Builder {
+    string builder_id = 1;
+    string created_at = 2;
+    string updated_at = 3;
+    string name = 4;
+    string version = 5;
+    string author = 6;
+    string url = 7;
+    string supported_OS = 8;
+    string installed_at = 9;
+    string image_id = 10;
+    string container_id = 11;
+  }
+  repeated Builder builders = 1;
+}
+
+message AgentRequest {
+  repeated string agent_id = 1;
+  repeated string name = 2;
+}
+
+message Agents {
+  message Agent {
+    string agent_id = 1;
+    string name = 2;
+    string version = 3;
+    string OS = 4;
+    string arch = 5;
+    string host = 6;
+    string port = 7;
+    string builder = 8;
+    string file = 9;
+    string created_at = 10;
+  }
+  repeated Agent agents = 1;
+}
+
+message ProfileRequest {
+  repeated string name = 1;
+  repeated string builder_id = 2;
+}
+
+message InstallRequest {
+  enum Source {
+    Git = 0;
+    Local = 1;
+  }
+  string path = 1;
+  Source source = 2;
+  string branch = 3;
+}
+
+message Profiles {
+  message Profile {
+    int32 id = 1;
+    string created_at = 2;
+    string name = 3;
+    string builder_id = 4;
+  }
+  message ProfileRecord {
+    string profile = 1;
+    string name = 2;
+    string value = 3;
+  }
+  repeated Profile profiles = 1;
+  repeated ProfileRecord records = 2;
+}
+
+message SessionsRequest {
+  repeated int32 IDs = 1;
+}
+
+message Sessions {
+  message Session {
+    int32 id = 1;
+    string agent_id = 2;
+    string agent_name = 3;
+    int32 queue_size = 4;
+    string last_active = 5;
+    string status = 6;
+  }
+  repeated Session sessions = 1;
+}
+
+message HTTPRequest {
+  string agent_id = 1;
+  string request_id = 2;
+  int32 opcode = 3;
+  repeated bytes args = 4;
+}
+
+message HTTPResponse {
+  message ResponseDetail {
+    enum Dest {
+      File = 0;
+      Stdout = 1;
+      None = -1;
+    }
+    builderpb.Status status = 1;
+    Dest dest = 2;
+    string name = 3;
+    bytes data = 4;
+  }
+  string agent_id = 1;
+  string request_id = 2;
+  repeated ResponseDetail responses = 3;
+}
+
+message Empty {}

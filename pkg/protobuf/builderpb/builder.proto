@@ -1,12 +1,7 @@
 syntax = "proto3";
-package rpcpb;
-option go_package = "github.com/pygrum/monarch/pkg/rpcpb";
+package builderpb;
 
-service Builder {
-  rpc GetCommands (DescriptionsRequest) returns (DescriptionsReply) {}
-  rpc GetOptions (OptionsRequest) returns (OptionsReply) {}
-  rpc BuildAgent (BuildRequest) returns (BuildReply) {}
-}
+option go_package = "github.com/pygrum/monarch/pkg/protobuf/builderpb";
 
 enum Status {
   Success = 0;
@@ -49,4 +44,3 @@ message BuildReply {
   string error = 2;
   bytes build = 3;
 }
-

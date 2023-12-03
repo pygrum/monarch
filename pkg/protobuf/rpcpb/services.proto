@@ -1,0 +1,55 @@
+syntax = "proto3";
+package rpcpb;
+
+import "builderpb/builder.proto";
+import "clientpb/client.proto";
+option go_package = "github.com/pygrum/monarch/pkg/protobuf/rpcpb";
+
+enum LogLevel {
+    null = 0;
+    LevelDebug = 1;
+    LevelInfo = 2;
+    LevelSuccess = 3;
+    LevelWarn = 4;
+    LevelError = 5;
+    LevelFatal = 6;
+}
+
+message Notification {
+  LogLevel log_level = 1;
+  string msg = 2;
+}
+
+service Builder {
+  rpc GetCommands (builderpb.DescriptionsRequest) returns (builderpb.DescriptionsReply) {}
+  rpc GetOptions (builderpb.OptionsRequest) returns (builderpb.OptionsReply) {}
+  rpc BuildAgent (builderpb.BuildRequest) returns (builderpb.BuildReply) {}
+}
+
+service Client {
+  rpc Agents(clientpb.AgentRequest) returns (clientpb.Agents) {}
+  rpc RmAgents(clientpb.AgentRequest) returns (Notification) {}
+
+  rpc Builders(clientpb.BuilderRequest) returns (clientpb.Builders) {}
+  rpc Profiles(clientpb.ProfileRequest) returns (clientpb.Profiles) {}
+
+  rpc Commands(clientpb.Empty) returns (builderpb.DescriptionsReply) {}
+  rpc Options(clientpb.Empty) returns (builderpb.OptionsReply) {}
+  rpc Build(builderpb.BuildRequest) returns (builderpb.BuildReply) {}
+
+
+  rpc Install(clientpb.InstallRequest) returns (stream Notification) {}
+  rpc Uninstall(clientpb.BuilderRequest) returns (Notification) {}
+
+  rpc HttpOpen(clientpb.Empty) returns (Notification) {}
+  rpc HttpClose(clientpb.Empty) returns (Notification) {}
+
+  rpc HttpsOpen(clientpb.Empty) returns (Notification) {}
+  rpc HttpsClose(clientpb.Empty) returns (Notification) {}
+
+  rpc Sessions(clientpb.SessionsRequest) returns (clientpb.Sessions) {}
+
+  // Notify used for general notifications - likely run from a goroutine
+  rpc Notify(clientpb.Empty) returns (stream Notification) {}
+  rpc Send(clientpb.HTTPRequest) returns (clientpb.HTTPResponse) {}
+}
