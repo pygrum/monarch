@@ -2,10 +2,10 @@ package commands
 
 import (
 	"fmt"
-	"github.com/pygrum/monarch/pkg/db"
+	"github.com/pygrum/monarch/pkg/console"
+	"github.com/pygrum/monarch/pkg/protobuf/clientpb"
 	"os"
 	"text/tabwriter"
-	"time"
 )
 
 var w *tabwriter.Writer
@@ -16,34 +16,20 @@ func init() {
 
 // buildersCmd lists installed builders
 func buildersCmd(args []string) {
-	var builders []db.Builder
-	if len(args) == 0 {
-		if err := db.Find(&builders); err != nil {
-			cLogger.Error("failed to retrieve installed builders: %v", err)
-			return
-		}
-	} else {
-		if err := db.FindConditional("builder_id IN ?", args, &builders); err != nil {
-			cLogger.Error("failed to retrieve the specified builders: %v", err)
-			return
-		}
-		if len(builders) == 0 {
-			if err := db.FindConditional("name IN ?", args, &builders); err != nil {
-				cLogger.Error("failed to retrieve the specified builders: %v", err)
-				return
-			}
-		}
+	builders, err := console.Rpc.Builders(ctx, &clientpb.BuilderRequest{BuilderId: args})
+	if err != nil {
+		cLogger.Error("failed to retrieve builders: %v", err)
 	}
 	header := "AGENT NAME\tVERSION\tAUTHOR\tINSTALLATION DATE\tID\tRUNS ON\t"
 	_, _ = fmt.Fprintln(w, header)
-	for _, builder := range builders {
+	for _, builder := range builders.Builders {
 		line := fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t",
 			builder.Name,
 			builder.Version,
 			builder.Author,
-			builder.CreatedAt.Format(time.DateTime),
-			builder.BuilderID,
-			builder.SupportedOS,
+			builder.CreatedAt,
+			builder.BuilderId,
+			builder.Supported_OS,
 		)
 		_, _ = fmt.Fprintln(w, line)
 	}

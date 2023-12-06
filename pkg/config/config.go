@@ -28,6 +28,8 @@ type MonarchConfig struct {
 	HttpPort int
 	// The port to use for the Monarch HTTPS listener.
 	HttpsPort int
+	// RPC port for multiplayer
+	MultiplayerPort int
 	// The endpoint where agents receive and respond to commands
 	MainEndpoint string
 	// The endpoint where agents login / register themselves

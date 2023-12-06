@@ -2,31 +2,35 @@ package commands
 
 import (
 	"fmt"
-	"github.com/pygrum/monarch/pkg/handler/http"
+	"github.com/pygrum/monarch/pkg/console"
+	"github.com/pygrum/monarch/pkg/protobuf/clientpb"
 	"strconv"
-	"time"
 )
 
 func sessionsCmd(sessionIDs []string) {
-	var sessIDs = make([]int, len(sessionIDs))
+	var sessIDs = make([]int32, len(sessionIDs))
 	for i, id := range sessionIDs {
 		intID, err := strconv.Atoi(id)
 		if err != nil {
 			cLogger.Error("'%v' is not a valid session ID", id)
 			return
 		}
-		sessIDs[i] = intID
+		sessIDs[i] = int32(intID)
 	}
-	sessions := http.MainHandler.Sessions(sessIDs)
+	sessions, err := console.Rpc.Sessions(ctx, &clientpb.SessionsRequest{IDs: sessIDs})
+	if err != nil {
+		cLogger.Error("%v", err)
+		return
+	}
 	header := "ID\tAGENT ID\tAGENT NAME\tQUEUE SIZE\tLAST ACTIVE\tSTATUS\t"
 	_, _ = fmt.Fprintln(w, header)
-	for _, session := range sessions {
+	for _, session := range sessions.Sessions {
 		line := fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t",
-			session.ID,
-			session.Agent.AgentID,
-			session.Agent.Name,
-			session.RequestQueue.Size(),
-			session.LastActive.Format(time.DateTime),
+			session.Id,
+			session.AgentId,
+			session.AgentName,
+			session.QueueSize,
+			session.LastActive,
 			session.Status,
 		)
 		_, _ = fmt.Fprintln(w, line)

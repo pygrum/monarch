@@ -94,7 +94,6 @@ func Initialize(printFunc func(string, ...any) (int, error)) {
 // a unique logfile - for readability, as well as thread safety. Preventing deadlocks is
 // up to the log user, as they are responsible for creating unique names.
 func NewLogger(loggerType uint16, name string) (Logger, error) {
-
 	var logger Logger
 	switch loggerType {
 	case ConsoleLogger:
@@ -129,4 +128,21 @@ func NewLogger(loggerType uint16, name string) (Logger, error) {
 		return nil, errors.New("invalid logger type specified")
 	}
 	return logger, nil
+}
+
+func NumericalLevel(logger Logger, logLevel uint16, format string, args ...interface{}) {
+	switch logLevel {
+	case LevelDebug:
+		logger.Debug(format, args...)
+	case LevelSuccess:
+		logger.Success(format, args...)
+	case LevelWarn:
+		logger.Warn(format, args...)
+	case LevelError:
+		logger.Error(format, args...)
+	case LevelFatal:
+		logger.Fatal(format, args...)
+	default:
+		logger.Info(format, args...)
+	}
 }

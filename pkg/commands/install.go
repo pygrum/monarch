@@ -1,22 +1,30 @@
 package commands
 
 import (
-	"github.com/pygrum/monarch/pkg/config"
-	"github.com/pygrum/monarch/pkg/install"
-	"os"
-	"path/filepath"
-	"strings"
+	"github.com/pygrum/monarch/pkg/console"
+	"github.com/pygrum/monarch/pkg/log"
+	"github.com/pygrum/monarch/pkg/protobuf/clientpb"
+	"io"
 )
 
 func installCmd(repoUrl, branch string, useCreds bool) {
-	if err := install.NewRepo(repoUrl, branch, useCreds); err != nil {
-		cLogger.Error("failed to install %s: %v", repoUrl, err)
-		clonePath := filepath.Join(config.MainConfig.InstallDir, strings.TrimSuffix(filepath.Base(repoUrl),
-			filepath.Ext(filepath.Base(repoUrl))))
-		if err = os.RemoveAll(clonePath); err != nil {
-			cLogger.Error("failed to remove %s: %v. must be manually removed", clonePath, err)
-		}
+	stream, err := console.Rpc.Install(ctx, &clientpb.InstallRequest{
+		Path:   repoUrl,
+		Source: clientpb.InstallRequest_Git,
+		Branch: branch,
+	})
+	if err != nil {
+		cLogger.Error("%v", err)
 		return
 	}
-	cLogger.Success("installation successful")
+	for {
+		notif, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			cLogger.Error("failed to receive notification: %v", err)
+		}
+		log.NumericalLevel(cLogger, uint16(notif.LogLevel), notif.Msg)
+	}
 }

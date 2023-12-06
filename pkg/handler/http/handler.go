@@ -19,28 +19,25 @@ const (
 
 var (
 	MainHandler *Handler
-	l           log.Logger
+	TranLogger  log.Logger
 	fl          log.Logger
 )
 
 type Handler struct {
-	CertFile    string
-	KeyFile     string
-	httpServer  *http.Server
-	httpsServer *http.Server
-	httpsLock   bool
-	httpLock    bool
-	sessions    *sessions
+	CertFile             string
+	KeyFile              string
+	httpServer           *http.Server
+	httpsServer          *http.Server
+	httpsLock            bool
+	httpLock             bool
+	SessionNotifications Queue
+	sessions             *sessions
 }
 
 type Queue interface {
 	Enqueue(interface{}) error
 	Dequeue() interface{}
 	Size() int
-}
-
-type rMap struct {
-	requests map[string]*transport.GenericHTTPRequest
 }
 
 // RequestQueue holds up to queueCapacity responses for a callback.
@@ -53,14 +50,18 @@ type ResponseQueue struct {
 	channel chan *transport.GenericHTTPResponse
 }
 
+type SessInfoQueue struct {
+	Channel chan transport.Registration
+}
+
 func init() {
 	MainHandler = NewHandler()
-	l, _ = log.NewLogger(log.TransientLogger, "")
+	TranLogger, _ = log.NewLogger(log.TransientLogger, "")
 
 	var err error
 	fl, err = log.NewLogger(log.FileLogger, "handler")
 	if err != nil {
-		l.Warn("could not create file logger: %v", err)
+		TranLogger.Warn("could not create file logger: %v", err)
 	}
 }
 
@@ -83,6 +84,27 @@ func (r *RequestQueue) Dequeue() interface{} {
 
 func (r *RequestQueue) Size() int {
 	return len(r.channel)
+}
+
+func (r *SessInfoQueue) Enqueue(req interface{}) error {
+	select {
+	case r.Channel <- req.(transport.Registration):
+		return nil
+	default:
+		return fmt.Errorf("queue is full - max capacity of %d\n", queueCapacity)
+	}
+}
+
+func (r *SessInfoQueue) Dequeue() interface{} {
+	// Must block, as we wait for a request to queue
+	select {
+	case req := <-r.Channel:
+		return req
+	}
+}
+
+func (r *SessInfoQueue) Size() int {
+	return len(r.Channel)
 }
 
 func (r *ResponseQueue) Enqueue(req interface{}) error {
@@ -114,11 +136,15 @@ func NewResponseQueue() *ResponseQueue {
 	return &ResponseQueue{channel: make(chan *transport.GenericHTTPResponse, queueCapacity)}
 }
 
+func NewSessInfoQueue() *SessInfoQueue {
+	return &SessInfoQueue{Channel: make(chan transport.Registration, queueCapacity)}
+}
+
 func (h *Handler) Stop() error {
 	if err := h.httpServer.Close(); err != nil {
 		return err
 	}
-	// create new server since old one is destroyed
+	// create new team-server since old one is destroyed
 	h.httpServer = &http.Server{
 		Handler: h.httpServer.Handler,
 		Addr:    h.httpServer.Addr,
@@ -185,24 +211,25 @@ func NewHandler() *Handler {
 		sessionMap: make(map[int]*HTTPSession),
 	}
 	h := &Handler{
-		CertFile: config.MainConfig.CertFile,
-		KeyFile:  config.MainConfig.KeyFile,
-		sessions: ssns,
+		CertFile:             config.MainConfig.CertFile,
+		KeyFile:              config.MainConfig.KeyFile,
+		SessionNotifications: NewSessInfoQueue(),
+		sessions:             ssns,
 	}
 	router := mux.NewRouter()
 	sRouter := mux.NewRouter()
-	m_ep := config.MainConfig.MainEndpoint
-	l_ep := config.MainConfig.LoginEndpoint
-	s_ep := config.MainConfig.StageEndpoint
-	router.HandleFunc(l_ep, ssns.loginHandler)
-	router.HandleFunc(s_ep, stageHandler)
+	mEp := config.MainConfig.MainEndpoint
+	lEp := config.MainConfig.LoginEndpoint
+	sEp := config.MainConfig.StageEndpoint
+	router.HandleFunc(lEp, ssns.loginHandler)
+	router.HandleFunc(sEp, stageHandler)
 	// Handles all requests
-	router.PathPrefix(m_ep).HandlerFunc(ssns.defaultHandler)
+	router.PathPrefix(mEp).HandlerFunc(ssns.defaultHandler)
 	router.Use(loggingMiddleware)
 
-	sRouter.HandleFunc(l_ep, ssns.loginHandler)
-	sRouter.HandleFunc(s_ep, stageHandler)
-	sRouter.PathPrefix(m_ep).HandlerFunc(ssns.defaultHandler)
+	sRouter.HandleFunc(lEp, ssns.loginHandler)
+	sRouter.HandleFunc(sEp, stageHandler)
+	sRouter.PathPrefix(mEp).HandlerFunc(ssns.defaultHandler)
 	sRouter.Use(loggingMiddleware)
 
 	h.httpServer = &http.Server{
@@ -219,14 +246,14 @@ func NewHandler() *Handler {
 func (h *Handler) Serve() {
 	lh, err := net.Listen("tcp", h.httpServer.Addr)
 	if err != nil {
-		l.Error("failed to initialise listening socket: %v", err)
+		TranLogger.Error("failed to initialise listening socket: %v", err)
 		return
 	}
-	// ensures can only be started once the server is available
+	// ensures can only be started once the teamserver is available
 	h.httpLock = true
 	if err = h.httpServer.Serve(lh); err != nil &&
 		!errors.Is(err, http.ErrServerClosed) {
-		l.Error("listener failed: %v", err)
+		TranLogger.Error("listener failed: %v", err)
 		return
 	}
 }
@@ -234,13 +261,13 @@ func (h *Handler) Serve() {
 func (h *Handler) ServeTLS() {
 	lh, err := net.Listen("tcp", h.httpsServer.Addr)
 	if err != nil {
-		l.Error("failed to initialise listening socket: %v", err)
+		TranLogger.Error("failed to initialise listening socket: %v", err)
 		return
 	}
-	// ensures can only be started once the server is available
+	// ensures can only be started once the teamserver is available
 	h.httpsLock = true
 	if err = h.httpsServer.ServeTLS(lh, h.CertFile, h.KeyFile); err != nil &&
 		!errors.Is(err, http.ErrServerClosed) {
-		l.Error("listener failed: %v", err)
+		TranLogger.Error("listener failed: %v", err)
 	}
 }

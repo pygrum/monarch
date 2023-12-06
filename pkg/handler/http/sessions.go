@@ -76,6 +76,8 @@ func (s *sessions) newSession(agent *db.Agent, connectInfo *transport.Registrati
 	if err != nil {
 		return "", time.Time{}, 0, err
 	}
+
+	_ = MainHandler.SessionNotifications.Enqueue(connectInfo)
 	s.sessionMap[id] = newSession
 	s.sortedSessions = append(s.sortedSessions, newSession)
 	s.count += 1 // increment session count

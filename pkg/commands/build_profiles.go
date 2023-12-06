@@ -2,101 +2,58 @@ package commands
 
 import (
 	"fmt"
-	"github.com/pygrum/monarch/pkg/db"
+	"github.com/pygrum/monarch/pkg/console"
+	"github.com/pygrum/monarch/pkg/protobuf/clientpb"
 	"github.com/spf13/cobra"
-	"slices"
 	"strings"
-	"time"
 )
 
 func profilesCmd(names []string) {
-	var profiles []db.Profile
-	if len(names) > 0 {
-		if err := db.FindConditional("name IN ?", names, &profiles); err != nil {
-			cLogger.Error("failed to find profiles(s): %v", err)
-			return
-		}
-	} else {
-		if err := db.Find(&profiles); err != nil {
-			cLogger.Error("failed to find profiles(s): %v", err)
-			return
-		}
+	profiles, err := console.Rpc.Profiles(ctx, &clientpb.ProfileRequest{Name: names, BuilderId: builderConfig.builderID})
+	if err != nil {
+		cLogger.Error("%v", err.Error())
+		return
 	}
 	headers := "NAME\tCREATION TIME\t"
 	_, _ = fmt.Fprintln(w, headers)
-	for _, p := range profiles {
-		line := fmt.Sprintf("%s\t%s\t", p.Name, p.CreatedAt.Format(time.DateTime))
+	for _, p := range profiles.Profiles {
+		line := fmt.Sprintf("%s\t%s\t", p.Name, p.CreatedAt)
 		_, _ = fmt.Fprintln(w, line)
 	}
 	_ = w.Flush()
 }
 
 func profilesSaveCmd(name string) {
-	profile := &db.Profile{}
-	if db.Where("name = ? AND builder_id = ?", name, builderConfig.builderID).Find(&profile); len(profile.Name) != 0 {
-		cLogger.Error("a profile for this build named '%s' already exists", name)
-		return
-	}
-	profile = &db.Profile{
+	if _, err := console.Rpc.SaveProfile(ctx, &clientpb.SaveProfileRequest{
 		Name:      name,
-		BuilderID: builderConfig.builderID,
-	}
-	var records []db.ProfileRecord
-	for k, v := range builderConfig.request.Options {
-		record := db.ProfileRecord{
-			Profile: name,
-			Name:    k,
-			Value:   v,
-		}
-		records = append(records, record)
-	}
-	if err := db.Create(profile); err != nil {
-		cLogger.Error("failed to create new profile: %v", err)
-		return
-	}
-	if err := db.Create(records); err != nil {
-		cLogger.Error("failed to save profile values: %v", err)
+		BuilderId: builderConfig.builderID,
+		Options:   builderConfig.request.Options,
+	}); err != nil {
+		cLogger.Error("%v", err)
 		return
 	}
 	cLogger.Success("profile saved as '%s'", name)
 }
 
 func profilesLoadCmd(name string) {
-	profile := &db.Profile{}
-	if err := db.Where("name = ? AND builder_id = ?", name, builderConfig.builderID).Find(profile).Error; err != nil {
-		cLogger.Error("failed to find %s: %v", name, err)
+	profile, err := console.Rpc.LoadProfile(ctx, &clientpb.SaveProfileRequest{
+		Name:       name,
+		BuilderId:  builderConfig.builderID,
+		Immutables: immutables,
+	})
+	if err != nil {
+		cLogger.Error("%v", err)
 		return
 	}
-	var records []db.ProfileRecord
-	if err := db.FindConditional("profile = ?", name, &records); err != nil {
-		cLogger.Error("failed to get profile values: %v", err)
-		return
-	}
-	for _, r := range records {
-		if slices.Contains(immutables, r.Name) {
-			continue
-		}
+	for _, r := range profile.Records {
 		setCmd(r.Name, r.Value)
 	}
-	l.Success("profile %s loaded", profile.Name)
+	l.Success("profile %s loaded", profile.Profile.Name)
 }
 
 func profilesRmCmd(names []string) {
-	var profiles []db.Profile
-	if err := db.Where("name IN ? AND builder_id = ?", names, builderConfig.builderID).Find(&profiles).Error; err != nil {
-		cLogger.Error("failed to find profiles(s): %v", err)
-		return
-	}
-	var records []db.ProfileRecord
-	if err := db.FindConditional("profile IN ?", names, &records); err != nil {
-		cLogger.Error("failed to find profile values: %v", err)
-		return
-	}
-	if err := db.Delete(records); err != nil {
-		cLogger.Error("failed to delete profile values: %v", err)
-	}
-	if err := db.Delete(profiles); err != nil {
-		cLogger.Error("failed to delete profiles: %v", err)
+	if _, err := console.Rpc.RmProfiles(ctx, &clientpb.ProfileRequest{Name: names, BuilderId: builderConfig.builderID}); err != nil {
+		cLogger.Error("%v", err)
 		return
 	}
 	cLogger.Success("successfully deleted %s", strings.Join(names, ", "))

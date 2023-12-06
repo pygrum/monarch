@@ -2,18 +2,27 @@ package console
 
 import (
 	"fmt"
+	"github.com/pygrum/monarch/pkg/config"
 	"github.com/pygrum/monarch/pkg/consts"
 	"github.com/pygrum/monarch/pkg/db"
 	"github.com/pygrum/monarch/pkg/log"
+	"github.com/pygrum/monarch/pkg/protobuf/rpcpb"
+	"github.com/pygrum/monarch/pkg/teamserver"
 	"github.com/reeflective/console"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"google.golang.org/grpc"
+	"net"
 )
 
 type server struct {
 	App *console.Console
 }
 
-var monarchServer *server
+var (
+	Rpc           rpcpb.MonarchClient
+	monarchServer *server
+)
 
 func init() {
 	monarchServer = &server{
@@ -32,6 +41,26 @@ func NamedMenu(name string, commands func() *cobra.Command) {
 
 // Run entrypoint for the entire application
 func Run(rootCmd func() *cobra.Command) error {
+	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", config.MainConfig.MultiplayerPort))
+	if err != nil {
+		return err
+	}
+	grpcServer, err := newMonarchServer()
+	if err != nil {
+		return err
+	}
+	go func() {
+		if err = grpcServer.Serve(lis); err != nil {
+			logrus.Fatal(err)
+		}
+	}()
+
+	// new internal grpc client
+	conn, err := grpc.Dial(fmt.Sprintf("localhost:%d", config.MainConfig.MultiplayerPort))
+	if err != nil {
+		return err
+	}
+	Rpc = rpcpb.NewMonarchClient(conn)
 	srvMenu := monarchServer.App.ActiveMenu()
 	srvMenu.SetCommands(rootCmd)
 	monarchServer.App.SetPrintLogo(func(_ *console.Console) {
@@ -50,6 +79,19 @@ func Run(rootCmd func() *cobra.Command) error {
 		`, consts.Version)
 	})
 	return monarchServer.App.Start()
+}
+
+func newMonarchServer() (*grpc.Server, error) {
+	teamserver.NotifQueue = &teamserver.NotificationQueue{Channel: make(chan *rpcpb.PlayerNotification, 10)}
+	var opts []grpc.ServerOption
+	// TODO: fetch key pair and create credentials with credentials.NewTLS
+	grpcServer := grpc.NewServer(opts...)
+	srv, err := teamserver.New()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create new teamserver: %v", err)
+	}
+	rpcpb.RegisterMonarchServer(grpcServer, srv)
+	return grpcServer, nil
 }
 
 // MainMenu switches back to the main menu

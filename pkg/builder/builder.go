@@ -6,7 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/pygrum/monarch/pkg/config"
-	"github.com/pygrum/monarch/pkg/rpcpb"
+	"github.com/pygrum/monarch/pkg/protobuf/builderpb"
+	"github.com/pygrum/monarch/pkg/protobuf/rpcpb"
 	"google.golang.org/grpc"
 	"io"
 	"log"
@@ -38,8 +39,8 @@ func newServer(conf string) (*builderServer, error) {
 	return &builderServer{config: &royalConfig, serviceClient: c}, nil
 }
 
-func (s *builderServer) BuildAgent(_ context.Context, r *rpcpb.BuildRequest) (*rpcpb.BuildReply, error) {
-	buildReply := &rpcpb.BuildReply{}
+func (s *builderServer) BuildAgent(_ context.Context, r *builderpb.BuildRequest) (*builderpb.BuildReply, error) {
+	buildReply := &builderpb.BuildReply{}
 	r.Options["src_directory"] = s.config.Builder.SourceDir
 	b, err := json.Marshal(r.GetOptions())
 	if err != nil {
@@ -66,12 +67,12 @@ func (s *builderServer) sendServiceRequest(method, endpoint string, body []byte,
 	return json.Unmarshal(b, receiver)
 }
 
-func (s *builderServer) GetOptions(context.Context, *rpcpb.OptionsRequest) (*rpcpb.OptionsReply, error) {
-	reply := &rpcpb.OptionsReply{
-		Options: make([]*rpcpb.Option, len(s.config.Builder.BuildArgs)),
+func (s *builderServer) GetOptions(context.Context, *builderpb.OptionsRequest) (*builderpb.OptionsReply, error) {
+	reply := &builderpb.OptionsReply{
+		Options: make([]*builderpb.Option, len(s.config.Builder.BuildArgs)),
 	}
 	for i, a := range s.config.Builder.BuildArgs {
-		reply.Options[i] = &rpcpb.Option{
+		reply.Options[i] = &builderpb.Option{
 			Name:        a.Name,
 			Description: a.Description,
 			Required:    a.Required,
@@ -83,12 +84,12 @@ func (s *builderServer) GetOptions(context.Context, *rpcpb.OptionsRequest) (*rpc
 	return reply, nil
 }
 
-func (s *builderServer) GetCommands(context.Context, *rpcpb.DescriptionsRequest) (*rpcpb.DescriptionsReply, error) {
-	reply := &rpcpb.DescriptionsReply{
-		Descriptions: make([]*rpcpb.Description, len(s.config.CmdSchema)),
+func (s *builderServer) GetCommands(context.Context, *builderpb.DescriptionsRequest) (*builderpb.DescriptionsReply, error) {
+	reply := &builderpb.DescriptionsReply{
+		Descriptions: make([]*builderpb.Description, len(s.config.CmdSchema)),
 	}
 	for i, sch := range s.config.CmdSchema {
-		reply.Descriptions[i] = &rpcpb.Description{
+		reply.Descriptions[i] = &builderpb.Description{
 			Name:             sch.Name,
 			Opcode:           sch.Opcode,
 			Usage:            sch.Usage,

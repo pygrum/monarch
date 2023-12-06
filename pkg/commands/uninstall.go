@@ -1,40 +1,29 @@
 package commands
 
 import (
-	"github.com/pygrum/monarch/pkg/db"
-	"github.com/pygrum/monarch/pkg/utils"
-	"os"
-	"strings"
+	"github.com/pygrum/monarch/pkg/console"
+	"github.com/pygrum/monarch/pkg/log"
+	"github.com/pygrum/monarch/pkg/protobuf/clientpb"
+	"io"
 )
 
 func uninstallCmd(args []string, deleteSource bool) {
-	var builders []db.Builder
-	if err := db.FindConditional("builder_id IN ?", args, &builders); err != nil {
-		cLogger.Error("failed to retrieve the specified builders: %v", err)
+	stream, err := console.Rpc.Uninstall(ctx, &clientpb.UninstallRequest{
+		Builders:     &clientpb.BuilderRequest{BuilderId: args},
+		RemoveSource: deleteSource,
+	})
+	if err != nil {
+		cLogger.Error("%v", err)
 		return
 	}
-	if len(builders) == 0 {
-		if err := db.FindConditional("name IN ?", args, &builders); err != nil {
-			cLogger.Error("failed to retrieve the specified builders: %v", err)
-			return
+	for {
+		notif, err := stream.Recv()
+		if err == io.EOF {
+			break
 		}
-		if len(builders) == 0 {
-			cLogger.Error("no builders named %s", strings.Join(args, ", "))
-			return
+		if err != nil {
+			cLogger.Error("failed to receive notification: %v", err)
 		}
-	}
-	for _, b := range builders {
-		cLogger.Info("deleting %s...", b.Name)
-		if deleteSource {
-			if err := os.RemoveAll(b.InstalledAt); err != nil {
-				cLogger.Error("failed to remove install folder: %v", err)
-				return
-			}
-		}
-		if err := utils.Cleanup(&b); err != nil {
-			cLogger.Error("%v", err)
-			return
-		}
-		cLogger.Success("%s v%s deleted", b.Name, b.Version)
+		log.NumericalLevel(cLogger, uint16(notif.LogLevel), notif.Msg)
 	}
 }

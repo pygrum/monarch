@@ -20,36 +20,47 @@ message Notification {
   string msg = 2;
 }
 
+message PlayerNotification {
+  string player_id = 1;
+  Notification notification = 2;
+}
+
 service Builder {
   rpc GetCommands (builderpb.DescriptionsRequest) returns (builderpb.DescriptionsReply) {}
   rpc GetOptions (builderpb.OptionsRequest) returns (builderpb.OptionsReply) {}
   rpc BuildAgent (builderpb.BuildRequest) returns (builderpb.BuildReply) {}
 }
 
-service Client {
+service Monarch {
   rpc Agents(clientpb.AgentRequest) returns (clientpb.Agents) {}
-  rpc RmAgents(clientpb.AgentRequest) returns (Notification) {}
+  rpc NewAgent(clientpb.Agent) returns (clientpb.Empty) {}
+  rpc RmAgents(clientpb.AgentRequest) returns (clientpb.Empty) {}
 
   rpc Builders(clientpb.BuilderRequest) returns (clientpb.Builders) {}
   rpc Profiles(clientpb.ProfileRequest) returns (clientpb.Profiles) {}
+  rpc SaveProfile(clientpb.SaveProfileRequest) returns (clientpb.Empty) {}
+  rpc LoadProfile(clientpb.SaveProfileRequest) returns (clientpb.ProfileData) {}
+  rpc RmProfiles(clientpb.ProfileRequest) returns (clientpb.Empty) {}
 
-  rpc Commands(clientpb.Empty) returns (builderpb.DescriptionsReply) {}
-  rpc Options(clientpb.Empty) returns (builderpb.OptionsReply) {}
+  rpc Options(builderpb.OptionsRequest) returns (builderpb.OptionsReply) {}
   rpc Build(builderpb.BuildRequest) returns (builderpb.BuildReply) {}
-
+  rpc EndBuild(clientpb.BuilderRequest) returns (clientpb.Empty) {} // kills build
 
   rpc Install(clientpb.InstallRequest) returns (stream Notification) {}
-  rpc Uninstall(clientpb.BuilderRequest) returns (Notification) {}
+  rpc Uninstall(clientpb.UninstallRequest) returns (stream Notification) {}
 
   rpc HttpOpen(clientpb.Empty) returns (Notification) {}
-  rpc HttpClose(clientpb.Empty) returns (Notification) {}
+  rpc HttpClose(clientpb.Empty) returns (clientpb.Empty) {}
 
   rpc HttpsOpen(clientpb.Empty) returns (Notification) {}
-  rpc HttpsClose(clientpb.Empty) returns (Notification) {}
+  rpc HttpsClose(clientpb.Empty) returns (clientpb.Empty) {}
 
   rpc Sessions(clientpb.SessionsRequest) returns (clientpb.Sessions) {}
+  rpc Commands(builderpb.DescriptionsRequest) returns (builderpb.DescriptionsReply) {}
+  rpc Send(clientpb.HTTPRequest) returns (clientpb.HTTPResponse) {}
+
+  rpc CallbackInfo(clientpb.Empty) returns (stream clientpb.Registration) {}
 
   // Notify used for general notifications - likely run from a goroutine
-  rpc Notify(clientpb.Empty) returns (stream Notification) {}
-  rpc Send(clientpb.HTTPRequest) returns (clientpb.HTTPResponse) {}
+  rpc Notify(clientpb.Empty) returns (stream PlayerNotification) {}
 }

@@ -7,7 +7,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pygrum/monarch/pkg/db"
 	"github.com/pygrum/monarch/pkg/log"
-	"github.com/pygrum/monarch/pkg/rpcpb"
+	"github.com/pygrum/monarch/pkg/protobuf/builderpb"
+	"github.com/pygrum/monarch/pkg/protobuf/clientpb"
 	"github.com/pygrum/monarch/pkg/transport"
 	"io"
 	"net/http"
@@ -72,7 +73,7 @@ func (s *sessions) loginHandler(w http.ResponseWriter, r *http.Request) {
 	// allows agent to use cookie from first request for subsequent ones
 	http.SetCookie(w, c)
 	w.WriteHeader(http.StatusOK)
-	l.Info("new session from %s - id: %s\n", r.RemoteAddr, agent.AgentID)
+	TranLogger.Info("new session from %s - id: %s\n", r.RemoteAddr, agent.AgentID)
 }
 
 // http://host:port/
@@ -85,7 +86,7 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response := &transport.GenericHTTPResponse{}
-	claims, err := validateJwt(c) // is invalid after server restart
+	claims, err := validateJwt(c) // is invalid after team-server restart
 	if err != nil {
 		fl.Error("jwt validation failed: %v", err)
 		// if there was a leftover response from an expired session, queue it anyway
@@ -99,7 +100,7 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 			ss := s.sessionMap[claims.ID]
 			// ingest response despite expiry
 			if _, ok := ss.SentRequests[response.RequestID]; ok {
-				HandleResponse(ss, response)
+				_ = ss.ResponseQueue.Enqueue(response)
 				delete(ss.SentRequests, response.RequestID)
 			}
 		}
@@ -110,10 +111,10 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 	var resp *transport.GenericHTTPRequest
 	// should always return a session
 	session, ok := s.sessionMap[sessionID]
-	// potentially won't let someone re-auth if server goes down despite having valid cookie
+	// potentially won't let someone re-auth if teamserver goes down despite having valid cookie
 	if !ok {
 		fl.Error("session '%d' not found", sessionID)
-		// use status bad request to tell client to ditch the cookie, since the server restarted
+		// use status bad request to tell client to ditch the cookie, since the teamserver restarted
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -150,7 +151,6 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		// Queue the message as a response since this is not the first authenticated message
 		_ = s.sessionMap[sessionID].ResponseQueue.Enqueue(response)
-		HandleResponse(session, response)
 	}
 	for {
 		// Keep checking for new request (blocking)
@@ -173,29 +173,24 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func HandleResponse(session *HTTPSession, resp *transport.GenericHTTPResponse) {
-	session.LastActive = time.Now()
+func HandleResponse(session *clientpb.Session, resp *transport.GenericHTTPResponse) {
+	session.LastActive = time.Now().Format(time.RFC850)
 	for _, response := range resp.Responses {
 		handleResponse(session, response, ShortID(resp.RequestID))
 	}
 }
 
-func handleResponse(session *HTTPSession, response transport.ResponseDetail, rid string) {
-	if response.Status == rpcpb.Status_FailedWithMessage {
-		// Will definitely be a console player as we don't have multiplayer yet so no need to add the clause
-		if session.Player.ConsolePlayer() {
-			if len(response.Data) == 0 {
-				l.Error("request %s failed but no message was returned", rid)
-				return
-			}
-			l.Error("%s failed: %s", rid, string(response.Data))
+func handleResponse(session *clientpb.Session, response transport.ResponseDetail, rid string) {
+	if response.Status == builderpb.Status_FailedWithMessage {
+		if len(response.Data) == 0 {
+			TranLogger.Error("request %s failed but no message was returned", rid)
 			return
 		}
+		TranLogger.Error("%s failed: %s", rid, string(response.Data))
+		return
 	}
 	if response.Dest == transport.DestStdout {
-		if session.Player.ConsolePlayer() {
-			log.Print(string(response.Data))
-		}
+		log.Print(string(response.Data))
 	} else if response.Dest == transport.DestFile {
 		wd, err := os.Getwd()
 		if err != nil {
@@ -203,14 +198,10 @@ func handleResponse(session *HTTPSession, response transport.ResponseDetail, rid
 		}
 		file := filepath.Join(wd, response.Name)
 		if err := os.WriteFile(file, response.Data, 0666); err != nil {
-			if session.Player.ConsolePlayer() {
-				l.Error("failed writing response to %s to file: %v", rid, err)
-			}
+			TranLogger.Error("failed writing response to %s to file: %v", rid, err)
 			return
 		}
-		if session.Player.ConsolePlayer() {
-			l.Info("%s: file saved to %s", rid, file)
-		}
+		TranLogger.Info("%s: file saved to %s", rid, file)
 	}
 }
 

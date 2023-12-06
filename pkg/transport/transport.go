@@ -1,6 +1,8 @@
 package transport
 
-import "github.com/pygrum/monarch/pkg/rpcpb"
+import (
+	"github.com/pygrum/monarch/pkg/protobuf/builderpb"
+)
 
 const (
 	DestFile int32 = iota
@@ -16,10 +18,10 @@ type GenericHTTPRequest struct {
 }
 
 type ResponseDetail struct {
-	Status rpcpb.Status `json:"status"`
-	Dest   int32        `json:"dest"` // Where to send response to (file, stdout)
-	Name   string       `json:"name"` // Name of file to save, if applicable
-	Data   []byte       `json:"data"` // file or output data
+	Status builderpb.Status `json:"status"`
+	Dest   int32            `json:"dest"` // Where to send response to (file, stdout)
+	Name   string           `json:"name"` // Name of file to save, if applicable
+	Data   []byte           `json:"data"` // file or output data
 }
 
 // Registration is the initial data that is received from a first-time authenticating agent
@@ -34,7 +36,6 @@ type Registration struct {
 	GID      string `json:"gid"`
 	PID      string `json:"pid"`
 	HomeDir  string `json:"home_dir"`
-	// Leftover response in case agent is de-authed but has a response, so it's still processed
 }
 
 // GenericHTTPResponse is the structure received from an agent after a task is performed

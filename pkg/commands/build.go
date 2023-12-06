@@ -5,16 +5,12 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/pygrum/monarch/pkg/config"
 	"github.com/pygrum/monarch/pkg/console"
-	"github.com/pygrum/monarch/pkg/db"
-	"github.com/pygrum/monarch/pkg/docker"
 	"github.com/pygrum/monarch/pkg/log"
-	"github.com/pygrum/monarch/pkg/rpcpb"
+	"github.com/pygrum/monarch/pkg/protobuf/builderpb"
+	"github.com/pygrum/monarch/pkg/protobuf/clientpb"
 	"github.com/spf13/cobra"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -36,9 +32,8 @@ type BuilderConfig struct {
 	name      string
 	version   string
 	ID        string // ID of resulting agent
-	client    rpcpb.BuilderClient
-	request   *rpcpb.BuildRequest
-	options   []*rpcpb.Option
+	request   *builderpb.BuildRequest
+	options   []*builderpb.Option
 }
 
 func init() {
@@ -47,18 +42,16 @@ func init() {
 
 // buildCmd to start the interactive agent builder
 func buildCmd(builderName string) {
-	builder := &db.Builder{}
-	if err := db.FindOneConditional("name = ?", builderName, &builder); err != nil {
-		// Search using builderName as either name or ID
-		if err = db.FindOneConditional("builder_id = ?", builderName, &builder); err != nil {
-			l.Error("could not find builder for '%s': %v", builderName, err)
-			return
-		}
+	builders, err := console.Rpc.Builders(ctx, &clientpb.BuilderRequest{BuilderId: []string{builderName}})
+	if err != nil {
+		cLogger.Error("%v", err)
+		return
 	}
-	if len(builder.BuilderID) == 0 {
+	if len(builders.Builders) == 0 {
 		l.Error("could not find a builder with the specified name or ID (%s)", builderName)
 		return
 	}
+	builder := builders.Builders[0]
 	if err := loadBuildOptions(builder); err != nil {
 		l.Error("failed to load build options for %s: %v", builderName, err)
 		return
@@ -67,50 +60,50 @@ func buildCmd(builderName string) {
 }
 
 // Returns default builder options
-func defaultOptions() []*rpcpb.Option {
-	var options []*rpcpb.Option
-	ID := &rpcpb.Option{
+func defaultOptions() []*builderpb.Option {
+	var options []*builderpb.Option
+	ID := &builderpb.Option{
 		Name:        "id",
 		Description: "[immutable] the agent ID assigned to the build",
 		Default:     builderConfig.ID,
 		Type:        "string",
 		Required:    true,
 	}
-	name := &rpcpb.Option{
+	name := &builderpb.Option{
 		Name:        "name",
 		Description: "name of this particular agent instance",
 		Default:     builderConfig.ID,
 		Type:        "string",
 		Required:    false,
 	}
-	OS := &rpcpb.Option{
+	OS := &builderpb.Option{
 		Name:        "os",
 		Description: "the OS that the build targets",
 		Default:     runtime.GOOS,
 		Required:    false,
 	}
-	arch := &rpcpb.Option{
+	arch := &builderpb.Option{
 		Name:        "arch",
 		Description: "the platform architecture that the build targets",
 		Default:     "amd64",
 		Type:        "string",
 		Required:    false,
 	}
-	host := &rpcpb.Option{
+	host := &builderpb.Option{
 		Name:        "host",
 		Description: "the host that the agent calls back to",
 		Default:     config.MainConfig.Interface,
 		Type:        "string",
 		Required:    false,
 	}
-	port := &rpcpb.Option{
+	port := &builderpb.Option{
 		Name:        "port",
 		Description: "the port on which to connect to the host on callback",
 		Default:     "8000",
 		Type:        "int",
 		Required:    false,
 	}
-	out := &rpcpb.Option{
+	out := &builderpb.Option{
 		Name:        "outfile",
 		Description: "the name of the resulting binary",
 		Default:     "",
@@ -122,25 +115,16 @@ func defaultOptions() []*rpcpb.Option {
 }
 
 // loadBuildOptions loads the build options into the BuildRequest in the builderConfig variable
-func loadBuildOptions(b *db.Builder) error {
+func loadBuildOptions(b *clientpb.Builder) error {
 	// initialize pointer
 	builderConfig = BuilderConfig{
 		ID: agentID(),
-		request: &rpcpb.BuildRequest{
+		request: &builderpb.BuildRequest{
 			Options: make(map[string]string),
 		},
 	}
-	ctx := context.Background()
-	builderRPC, err := docker.RPCAddress(docker.Cli, ctx, b.BuilderID)
-	if err != nil {
-		return err
-	}
-	conn, err := grpc.Dial(builderRPC, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return err
-	}
-	client := rpcpb.NewBuilderClient(conn)
-	optionsReply, err := client.GetOptions(ctx, &rpcpb.OptionsRequest{})
+	optionsReply, err := console.Rpc.Options(context.WithValue(ctx, "builder_id", builderConfig.builderID),
+		&builderpb.OptionsRequest{})
 	if err != nil {
 		return err
 	}
@@ -162,10 +146,9 @@ func loadBuildOptions(b *db.Builder) error {
 		}
 		builderConfig.request.Options[k.Name] = k.Default
 	}
-	builderConfig.builderID = b.BuilderID
+	builderConfig.builderID = b.BuilderId
 	builderConfig.name = b.Name
 	builderConfig.version = b.Version
-	builderConfig.client = client
 	return nil
 }
 
@@ -279,21 +262,22 @@ func build() {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
+	// uses both agent id and builder id for unique identifier for each build session
+	ctx = context.WithValue(ctx, "builder_id", builderConfig.ID+builderConfig.builderID)
 	// receive large bins
-	maxSizeOption := grpc.MaxCallRecvMsgSize(32 * 10e6)
-	resp, err := builderConfig.client.BuildAgent(ctx, builderConfig.request, maxSizeOption)
+	resp, err := console.Rpc.Build(ctx, builderConfig.request)
 	if err != nil {
 		l.Error("[RPC] failed to build agent: %v", err)
 		return
 	}
-	if resp.Status == rpcpb.Status_FailedWithMessage {
+	if resp.Status == builderpb.Status_FailedWithMessage {
 		l.Error("build failed: %s", resp.Error)
 		return
 	}
 	outfile := filepath.Join(os.TempDir(), builderConfig.request.Options["outfile"])
 	var out *os.File
 	if len(builderConfig.request.Options["outfile"]) == 0 {
-		out, err = os.CreateTemp(os.TempDir(), "*."+builderConfig.name)
+		out, err = os.CreateTemp("", "*."+builderConfig.name)
 	} else {
 		out, err = os.Create(outfile)
 	}
@@ -309,8 +293,8 @@ func build() {
 	}
 	l.Success("build complete. saved to %s", out.Name())
 	// save to agents table
-	agent := &db.Agent{
-		AgentID:   builderConfig.ID,
+	agent := &clientpb.Agent{
+		AgentId:   builderConfig.ID,
 		Name:      builderConfig.request.Options["name"],
 		Version:   builderConfig.version,
 		OS:        builderConfig.request.Options["os"],
@@ -319,31 +303,11 @@ func build() {
 		Port:      builderConfig.request.Options["port"],
 		Builder:   builderConfig.builderID,
 		File:      out.Name(),
-		CreatedAt: time.Now(),
+		CreatedAt: time.Now().Format(time.RFC850),
 	}
-	a := &db.Agent{}
-	if err := db.FindOneConditional("name = ?", agent.Name, a); err == nil {
-		// just to check that we actually returned sum
-		if a.Name == agent.Name {
-			y := false
-			prompt := &survey.Confirm{
-				Message: fmt.Sprintf("an agent named '%s' is has already been compiled. Do you wish to replace it?",
-					a.Name),
-			}
-			_ = survey.AskOne(prompt, &y)
-			if y {
-				if err = db.DeleteOne(a); err != nil {
-					l.Error("failed to delete existing agent: %v", err)
-					return
-				}
-			} else {
-				l.Error("duplicate agent names - choose a different name")
-				return
-			}
-		}
-	}
-	if err = db.Create(agent); err != nil {
-		l.Error("failed to save agent instance: %v", err)
+	if _, err = console.Rpc.NewAgent(ctx, agent); err != nil {
+		l.Error("%v", err)
+		return
 	}
 }
 
@@ -389,7 +353,7 @@ func consoleCommands() *cobra.Command {
 		},
 	}
 	rootCmd.AddCommand(cmdBuild, cobraProfilesCmd(), cmdOptions, cmdSet, cmdUnset,
-		exit("exit the interactive builder"))
+		exit("exit the interactive builder", "build"))
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
 	return rootCmd
 }

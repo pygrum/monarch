@@ -178,106 +178,148 @@ var Builder_ServiceDesc = grpc.ServiceDesc{
 	Metadata: "rpcpb/services.proto",
 }
 
-// ClientClient is the client API for Client service.
+// MonarchClient is the client API for Monarch service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type ClientClient interface {
+type MonarchClient interface {
 	Agents(ctx context.Context, in *clientpb.AgentRequest, opts ...grpc.CallOption) (*clientpb.Agents, error)
-	RmAgents(ctx context.Context, in *clientpb.AgentRequest, opts ...grpc.CallOption) (*Notification, error)
+	NewAgent(ctx context.Context, in *clientpb.Agent, opts ...grpc.CallOption) (*clientpb.Empty, error)
+	RmAgents(ctx context.Context, in *clientpb.AgentRequest, opts ...grpc.CallOption) (*clientpb.Empty, error)
 	Builders(ctx context.Context, in *clientpb.BuilderRequest, opts ...grpc.CallOption) (*clientpb.Builders, error)
 	Profiles(ctx context.Context, in *clientpb.ProfileRequest, opts ...grpc.CallOption) (*clientpb.Profiles, error)
-	Commands(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*builderpb.DescriptionsReply, error)
-	Options(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*builderpb.OptionsReply, error)
+	SaveProfile(ctx context.Context, in *clientpb.SaveProfileRequest, opts ...grpc.CallOption) (*clientpb.Empty, error)
+	LoadProfile(ctx context.Context, in *clientpb.SaveProfileRequest, opts ...grpc.CallOption) (*clientpb.ProfileData, error)
+	RmProfiles(ctx context.Context, in *clientpb.ProfileRequest, opts ...grpc.CallOption) (*clientpb.Empty, error)
+	Options(ctx context.Context, in *builderpb.OptionsRequest, opts ...grpc.CallOption) (*builderpb.OptionsReply, error)
 	Build(ctx context.Context, in *builderpb.BuildRequest, opts ...grpc.CallOption) (*builderpb.BuildReply, error)
-	Install(ctx context.Context, in *clientpb.InstallRequest, opts ...grpc.CallOption) (Client_InstallClient, error)
-	Uninstall(ctx context.Context, in *clientpb.BuilderRequest, opts ...grpc.CallOption) (*Notification, error)
+	EndBuild(ctx context.Context, in *clientpb.BuilderRequest, opts ...grpc.CallOption) (*clientpb.Empty, error)
+	Install(ctx context.Context, in *clientpb.InstallRequest, opts ...grpc.CallOption) (Monarch_InstallClient, error)
+	Uninstall(ctx context.Context, in *clientpb.UninstallRequest, opts ...grpc.CallOption) (Monarch_UninstallClient, error)
 	HttpOpen(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*Notification, error)
-	HttpClose(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*Notification, error)
+	HttpClose(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*clientpb.Empty, error)
 	HttpsOpen(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*Notification, error)
-	HttpsClose(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*Notification, error)
+	HttpsClose(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*clientpb.Empty, error)
 	Sessions(ctx context.Context, in *clientpb.SessionsRequest, opts ...grpc.CallOption) (*clientpb.Sessions, error)
-	// Notify used for general notifications - likely run from a goroutine
-	Notify(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (Client_NotifyClient, error)
+	Commands(ctx context.Context, in *builderpb.DescriptionsRequest, opts ...grpc.CallOption) (*builderpb.DescriptionsReply, error)
 	Send(ctx context.Context, in *clientpb.HTTPRequest, opts ...grpc.CallOption) (*clientpb.HTTPResponse, error)
+	CallbackInfo(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (Monarch_CallbackInfoClient, error)
+	// Notify used for general notifications - likely run from a goroutine
+	Notify(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (Monarch_NotifyClient, error)
 }
 
-type clientClient struct {
+type monarchClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewClientClient(cc grpc.ClientConnInterface) ClientClient {
-	return &clientClient{cc}
+func NewMonarchClient(cc grpc.ClientConnInterface) MonarchClient {
+	return &monarchClient{cc}
 }
 
-func (c *clientClient) Agents(ctx context.Context, in *clientpb.AgentRequest, opts ...grpc.CallOption) (*clientpb.Agents, error) {
+func (c *monarchClient) Agents(ctx context.Context, in *clientpb.AgentRequest, opts ...grpc.CallOption) (*clientpb.Agents, error) {
 	out := new(clientpb.Agents)
-	err := c.cc.Invoke(ctx, "/rpcpb.Client/Agents", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/Agents", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *clientClient) RmAgents(ctx context.Context, in *clientpb.AgentRequest, opts ...grpc.CallOption) (*Notification, error) {
-	out := new(Notification)
-	err := c.cc.Invoke(ctx, "/rpcpb.Client/RmAgents", in, out, opts...)
+func (c *monarchClient) NewAgent(ctx context.Context, in *clientpb.Agent, opts ...grpc.CallOption) (*clientpb.Empty, error) {
+	out := new(clientpb.Empty)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/NewAgent", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *clientClient) Builders(ctx context.Context, in *clientpb.BuilderRequest, opts ...grpc.CallOption) (*clientpb.Builders, error) {
+func (c *monarchClient) RmAgents(ctx context.Context, in *clientpb.AgentRequest, opts ...grpc.CallOption) (*clientpb.Empty, error) {
+	out := new(clientpb.Empty)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/RmAgents", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *monarchClient) Builders(ctx context.Context, in *clientpb.BuilderRequest, opts ...grpc.CallOption) (*clientpb.Builders, error) {
 	out := new(clientpb.Builders)
-	err := c.cc.Invoke(ctx, "/rpcpb.Client/Builders", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/Builders", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *clientClient) Profiles(ctx context.Context, in *clientpb.ProfileRequest, opts ...grpc.CallOption) (*clientpb.Profiles, error) {
+func (c *monarchClient) Profiles(ctx context.Context, in *clientpb.ProfileRequest, opts ...grpc.CallOption) (*clientpb.Profiles, error) {
 	out := new(clientpb.Profiles)
-	err := c.cc.Invoke(ctx, "/rpcpb.Client/Profiles", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/Profiles", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *clientClient) Commands(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*builderpb.DescriptionsReply, error) {
-	out := new(builderpb.DescriptionsReply)
-	err := c.cc.Invoke(ctx, "/rpcpb.Client/Commands", in, out, opts...)
+func (c *monarchClient) SaveProfile(ctx context.Context, in *clientpb.SaveProfileRequest, opts ...grpc.CallOption) (*clientpb.Empty, error) {
+	out := new(clientpb.Empty)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/SaveProfile", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *clientClient) Options(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*builderpb.OptionsReply, error) {
+func (c *monarchClient) LoadProfile(ctx context.Context, in *clientpb.SaveProfileRequest, opts ...grpc.CallOption) (*clientpb.ProfileData, error) {
+	out := new(clientpb.ProfileData)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/LoadProfile", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *monarchClient) RmProfiles(ctx context.Context, in *clientpb.ProfileRequest, opts ...grpc.CallOption) (*clientpb.Empty, error) {
+	out := new(clientpb.Empty)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/RmProfiles", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *monarchClient) Options(ctx context.Context, in *builderpb.OptionsRequest, opts ...grpc.CallOption) (*builderpb.OptionsReply, error) {
 	out := new(builderpb.OptionsReply)
-	err := c.cc.Invoke(ctx, "/rpcpb.Client/Options", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/Options", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *clientClient) Build(ctx context.Context, in *builderpb.BuildRequest, opts ...grpc.CallOption) (*builderpb.BuildReply, error) {
+func (c *monarchClient) Build(ctx context.Context, in *builderpb.BuildRequest, opts ...grpc.CallOption) (*builderpb.BuildReply, error) {
 	out := new(builderpb.BuildReply)
-	err := c.cc.Invoke(ctx, "/rpcpb.Client/Build", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/Build", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *clientClient) Install(ctx context.Context, in *clientpb.InstallRequest, opts ...grpc.CallOption) (Client_InstallClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Client_ServiceDesc.Streams[0], "/rpcpb.Client/Install", opts...)
+func (c *monarchClient) EndBuild(ctx context.Context, in *clientpb.BuilderRequest, opts ...grpc.CallOption) (*clientpb.Empty, error) {
+	out := new(clientpb.Empty)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/EndBuild", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &clientInstallClient{stream}
+	return out, nil
+}
+
+func (c *monarchClient) Install(ctx context.Context, in *clientpb.InstallRequest, opts ...grpc.CallOption) (Monarch_InstallClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Monarch_ServiceDesc.Streams[0], "/rpcpb.Monarch/Install", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &monarchInstallClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -287,16 +329,16 @@ func (c *clientClient) Install(ctx context.Context, in *clientpb.InstallRequest,
 	return x, nil
 }
 
-type Client_InstallClient interface {
+type Monarch_InstallClient interface {
 	Recv() (*Notification, error)
 	grpc.ClientStream
 }
 
-type clientInstallClient struct {
+type monarchInstallClient struct {
 	grpc.ClientStream
 }
 
-func (x *clientInstallClient) Recv() (*Notification, error) {
+func (x *monarchInstallClient) Recv() (*Notification, error) {
 	m := new(Notification)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -304,66 +346,107 @@ func (x *clientInstallClient) Recv() (*Notification, error) {
 	return m, nil
 }
 
-func (c *clientClient) Uninstall(ctx context.Context, in *clientpb.BuilderRequest, opts ...grpc.CallOption) (*Notification, error) {
+func (c *monarchClient) Uninstall(ctx context.Context, in *clientpb.UninstallRequest, opts ...grpc.CallOption) (Monarch_UninstallClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Monarch_ServiceDesc.Streams[1], "/rpcpb.Monarch/Uninstall", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &monarchUninstallClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Monarch_UninstallClient interface {
+	Recv() (*Notification, error)
+	grpc.ClientStream
+}
+
+type monarchUninstallClient struct {
+	grpc.ClientStream
+}
+
+func (x *monarchUninstallClient) Recv() (*Notification, error) {
+	m := new(Notification)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *monarchClient) HttpOpen(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*Notification, error) {
 	out := new(Notification)
-	err := c.cc.Invoke(ctx, "/rpcpb.Client/Uninstall", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/HttpOpen", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *clientClient) HttpOpen(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*Notification, error) {
-	out := new(Notification)
-	err := c.cc.Invoke(ctx, "/rpcpb.Client/HttpOpen", in, out, opts...)
+func (c *monarchClient) HttpClose(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*clientpb.Empty, error) {
+	out := new(clientpb.Empty)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/HttpClose", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *clientClient) HttpClose(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*Notification, error) {
+func (c *monarchClient) HttpsOpen(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*Notification, error) {
 	out := new(Notification)
-	err := c.cc.Invoke(ctx, "/rpcpb.Client/HttpClose", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/HttpsOpen", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *clientClient) HttpsOpen(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*Notification, error) {
-	out := new(Notification)
-	err := c.cc.Invoke(ctx, "/rpcpb.Client/HttpsOpen", in, out, opts...)
+func (c *monarchClient) HttpsClose(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*clientpb.Empty, error) {
+	out := new(clientpb.Empty)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/HttpsClose", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *clientClient) HttpsClose(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*Notification, error) {
-	out := new(Notification)
-	err := c.cc.Invoke(ctx, "/rpcpb.Client/HttpsClose", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *clientClient) Sessions(ctx context.Context, in *clientpb.SessionsRequest, opts ...grpc.CallOption) (*clientpb.Sessions, error) {
+func (c *monarchClient) Sessions(ctx context.Context, in *clientpb.SessionsRequest, opts ...grpc.CallOption) (*clientpb.Sessions, error) {
 	out := new(clientpb.Sessions)
-	err := c.cc.Invoke(ctx, "/rpcpb.Client/Sessions", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/Sessions", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *clientClient) Notify(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (Client_NotifyClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Client_ServiceDesc.Streams[1], "/rpcpb.Client/Notify", opts...)
+func (c *monarchClient) Commands(ctx context.Context, in *builderpb.DescriptionsRequest, opts ...grpc.CallOption) (*builderpb.DescriptionsReply, error) {
+	out := new(builderpb.DescriptionsReply)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/Commands", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &clientNotifyClient{stream}
+	return out, nil
+}
+
+func (c *monarchClient) Send(ctx context.Context, in *clientpb.HTTPRequest, opts ...grpc.CallOption) (*clientpb.HTTPResponse, error) {
+	out := new(clientpb.HTTPResponse)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/Send", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *monarchClient) CallbackInfo(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (Monarch_CallbackInfoClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Monarch_ServiceDesc.Streams[2], "/rpcpb.Monarch/CallbackInfo", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &monarchCallbackInfoClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -373,488 +456,675 @@ func (c *clientClient) Notify(ctx context.Context, in *clientpb.Empty, opts ...g
 	return x, nil
 }
 
-type Client_NotifyClient interface {
-	Recv() (*Notification, error)
+type Monarch_CallbackInfoClient interface {
+	Recv() (*clientpb.Registration, error)
 	grpc.ClientStream
 }
 
-type clientNotifyClient struct {
+type monarchCallbackInfoClient struct {
 	grpc.ClientStream
 }
 
-func (x *clientNotifyClient) Recv() (*Notification, error) {
-	m := new(Notification)
+func (x *monarchCallbackInfoClient) Recv() (*clientpb.Registration, error) {
+	m := new(clientpb.Registration)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
 }
 
-func (c *clientClient) Send(ctx context.Context, in *clientpb.HTTPRequest, opts ...grpc.CallOption) (*clientpb.HTTPResponse, error) {
-	out := new(clientpb.HTTPResponse)
-	err := c.cc.Invoke(ctx, "/rpcpb.Client/Send", in, out, opts...)
+func (c *monarchClient) Notify(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (Monarch_NotifyClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Monarch_ServiceDesc.Streams[3], "/rpcpb.Monarch/Notify", opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &monarchNotifyClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
 }
 
-// ClientServer is the server API for Client service.
-// All implementations must embed UnimplementedClientServer
+type Monarch_NotifyClient interface {
+	Recv() (*PlayerNotification, error)
+	grpc.ClientStream
+}
+
+type monarchNotifyClient struct {
+	grpc.ClientStream
+}
+
+func (x *monarchNotifyClient) Recv() (*PlayerNotification, error) {
+	m := new(PlayerNotification)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// MonarchServer is the server API for Monarch service.
+// All implementations must embed UnimplementedMonarchServer
 // for forward compatibility
-type ClientServer interface {
+type MonarchServer interface {
 	Agents(context.Context, *clientpb.AgentRequest) (*clientpb.Agents, error)
-	RmAgents(context.Context, *clientpb.AgentRequest) (*Notification, error)
+	NewAgent(context.Context, *clientpb.Agent) (*clientpb.Empty, error)
+	RmAgents(context.Context, *clientpb.AgentRequest) (*clientpb.Empty, error)
 	Builders(context.Context, *clientpb.BuilderRequest) (*clientpb.Builders, error)
 	Profiles(context.Context, *clientpb.ProfileRequest) (*clientpb.Profiles, error)
-	Commands(context.Context, *clientpb.Empty) (*builderpb.DescriptionsReply, error)
-	Options(context.Context, *clientpb.Empty) (*builderpb.OptionsReply, error)
+	SaveProfile(context.Context, *clientpb.SaveProfileRequest) (*clientpb.Empty, error)
+	LoadProfile(context.Context, *clientpb.SaveProfileRequest) (*clientpb.ProfileData, error)
+	RmProfiles(context.Context, *clientpb.ProfileRequest) (*clientpb.Empty, error)
+	Options(context.Context, *builderpb.OptionsRequest) (*builderpb.OptionsReply, error)
 	Build(context.Context, *builderpb.BuildRequest) (*builderpb.BuildReply, error)
-	Install(*clientpb.InstallRequest, Client_InstallServer) error
-	Uninstall(context.Context, *clientpb.BuilderRequest) (*Notification, error)
+	EndBuild(context.Context, *clientpb.BuilderRequest) (*clientpb.Empty, error)
+	Install(*clientpb.InstallRequest, Monarch_InstallServer) error
+	Uninstall(*clientpb.UninstallRequest, Monarch_UninstallServer) error
 	HttpOpen(context.Context, *clientpb.Empty) (*Notification, error)
-	HttpClose(context.Context, *clientpb.Empty) (*Notification, error)
+	HttpClose(context.Context, *clientpb.Empty) (*clientpb.Empty, error)
 	HttpsOpen(context.Context, *clientpb.Empty) (*Notification, error)
-	HttpsClose(context.Context, *clientpb.Empty) (*Notification, error)
+	HttpsClose(context.Context, *clientpb.Empty) (*clientpb.Empty, error)
 	Sessions(context.Context, *clientpb.SessionsRequest) (*clientpb.Sessions, error)
-	// Notify used for general notifications - likely run from a goroutine
-	Notify(*clientpb.Empty, Client_NotifyServer) error
+	Commands(context.Context, *builderpb.DescriptionsRequest) (*builderpb.DescriptionsReply, error)
 	Send(context.Context, *clientpb.HTTPRequest) (*clientpb.HTTPResponse, error)
-	mustEmbedUnimplementedClientServer()
+	CallbackInfo(*clientpb.Empty, Monarch_CallbackInfoServer) error
+	// Notify used for general notifications - likely run from a goroutine
+	Notify(*clientpb.Empty, Monarch_NotifyServer) error
+	mustEmbedUnimplementedMonarchServer()
 }
 
-// UnimplementedClientServer must be embedded to have forward compatible implementations.
-type UnimplementedClientServer struct {
+// UnimplementedMonarchServer must be embedded to have forward compatible implementations.
+type UnimplementedMonarchServer struct {
 }
 
-func (UnimplementedClientServer) Agents(context.Context, *clientpb.AgentRequest) (*clientpb.Agents, error) {
+func (UnimplementedMonarchServer) Agents(context.Context, *clientpb.AgentRequest) (*clientpb.Agents, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Agents not implemented")
 }
-func (UnimplementedClientServer) RmAgents(context.Context, *clientpb.AgentRequest) (*Notification, error) {
+func (UnimplementedMonarchServer) NewAgent(context.Context, *clientpb.Agent) (*clientpb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method NewAgent not implemented")
+}
+func (UnimplementedMonarchServer) RmAgents(context.Context, *clientpb.AgentRequest) (*clientpb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RmAgents not implemented")
 }
-func (UnimplementedClientServer) Builders(context.Context, *clientpb.BuilderRequest) (*clientpb.Builders, error) {
+func (UnimplementedMonarchServer) Builders(context.Context, *clientpb.BuilderRequest) (*clientpb.Builders, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Builders not implemented")
 }
-func (UnimplementedClientServer) Profiles(context.Context, *clientpb.ProfileRequest) (*clientpb.Profiles, error) {
+func (UnimplementedMonarchServer) Profiles(context.Context, *clientpb.ProfileRequest) (*clientpb.Profiles, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Profiles not implemented")
 }
-func (UnimplementedClientServer) Commands(context.Context, *clientpb.Empty) (*builderpb.DescriptionsReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Commands not implemented")
+func (UnimplementedMonarchServer) SaveProfile(context.Context, *clientpb.SaveProfileRequest) (*clientpb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SaveProfile not implemented")
 }
-func (UnimplementedClientServer) Options(context.Context, *clientpb.Empty) (*builderpb.OptionsReply, error) {
+func (UnimplementedMonarchServer) LoadProfile(context.Context, *clientpb.SaveProfileRequest) (*clientpb.ProfileData, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LoadProfile not implemented")
+}
+func (UnimplementedMonarchServer) RmProfiles(context.Context, *clientpb.ProfileRequest) (*clientpb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RmProfiles not implemented")
+}
+func (UnimplementedMonarchServer) Options(context.Context, *builderpb.OptionsRequest) (*builderpb.OptionsReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Options not implemented")
 }
-func (UnimplementedClientServer) Build(context.Context, *builderpb.BuildRequest) (*builderpb.BuildReply, error) {
+func (UnimplementedMonarchServer) Build(context.Context, *builderpb.BuildRequest) (*builderpb.BuildReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Build not implemented")
 }
-func (UnimplementedClientServer) Install(*clientpb.InstallRequest, Client_InstallServer) error {
+func (UnimplementedMonarchServer) EndBuild(context.Context, *clientpb.BuilderRequest) (*clientpb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method EndBuild not implemented")
+}
+func (UnimplementedMonarchServer) Install(*clientpb.InstallRequest, Monarch_InstallServer) error {
 	return status.Errorf(codes.Unimplemented, "method Install not implemented")
 }
-func (UnimplementedClientServer) Uninstall(context.Context, *clientpb.BuilderRequest) (*Notification, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Uninstall not implemented")
+func (UnimplementedMonarchServer) Uninstall(*clientpb.UninstallRequest, Monarch_UninstallServer) error {
+	return status.Errorf(codes.Unimplemented, "method Uninstall not implemented")
 }
-func (UnimplementedClientServer) HttpOpen(context.Context, *clientpb.Empty) (*Notification, error) {
+func (UnimplementedMonarchServer) HttpOpen(context.Context, *clientpb.Empty) (*Notification, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method HttpOpen not implemented")
 }
-func (UnimplementedClientServer) HttpClose(context.Context, *clientpb.Empty) (*Notification, error) {
+func (UnimplementedMonarchServer) HttpClose(context.Context, *clientpb.Empty) (*clientpb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method HttpClose not implemented")
 }
-func (UnimplementedClientServer) HttpsOpen(context.Context, *clientpb.Empty) (*Notification, error) {
+func (UnimplementedMonarchServer) HttpsOpen(context.Context, *clientpb.Empty) (*Notification, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method HttpsOpen not implemented")
 }
-func (UnimplementedClientServer) HttpsClose(context.Context, *clientpb.Empty) (*Notification, error) {
+func (UnimplementedMonarchServer) HttpsClose(context.Context, *clientpb.Empty) (*clientpb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method HttpsClose not implemented")
 }
-func (UnimplementedClientServer) Sessions(context.Context, *clientpb.SessionsRequest) (*clientpb.Sessions, error) {
+func (UnimplementedMonarchServer) Sessions(context.Context, *clientpb.SessionsRequest) (*clientpb.Sessions, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Sessions not implemented")
 }
-func (UnimplementedClientServer) Notify(*clientpb.Empty, Client_NotifyServer) error {
-	return status.Errorf(codes.Unimplemented, "method Notify not implemented")
+func (UnimplementedMonarchServer) Commands(context.Context, *builderpb.DescriptionsRequest) (*builderpb.DescriptionsReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Commands not implemented")
 }
-func (UnimplementedClientServer) Send(context.Context, *clientpb.HTTPRequest) (*clientpb.HTTPResponse, error) {
+func (UnimplementedMonarchServer) Send(context.Context, *clientpb.HTTPRequest) (*clientpb.HTTPResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Send not implemented")
 }
-func (UnimplementedClientServer) mustEmbedUnimplementedClientServer() {}
+func (UnimplementedMonarchServer) CallbackInfo(*clientpb.Empty, Monarch_CallbackInfoServer) error {
+	return status.Errorf(codes.Unimplemented, "method CallbackInfo not implemented")
+}
+func (UnimplementedMonarchServer) Notify(*clientpb.Empty, Monarch_NotifyServer) error {
+	return status.Errorf(codes.Unimplemented, "method Notify not implemented")
+}
+func (UnimplementedMonarchServer) mustEmbedUnimplementedMonarchServer() {}
 
-// UnsafeClientServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to ClientServer will
+// UnsafeMonarchServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to MonarchServer will
 // result in compilation errors.
-type UnsafeClientServer interface {
-	mustEmbedUnimplementedClientServer()
+type UnsafeMonarchServer interface {
+	mustEmbedUnimplementedMonarchServer()
 }
 
-func RegisterClientServer(s grpc.ServiceRegistrar, srv ClientServer) {
-	s.RegisterService(&Client_ServiceDesc, srv)
+func RegisterMonarchServer(s grpc.ServiceRegistrar, srv MonarchServer) {
+	s.RegisterService(&Monarch_ServiceDesc, srv)
 }
 
-func _Client_Agents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Monarch_Agents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(clientpb.AgentRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ClientServer).Agents(ctx, in)
+		return srv.(MonarchServer).Agents(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/rpcpb.Client/Agents",
+		FullMethod: "/rpcpb.Monarch/Agents",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientServer).Agents(ctx, req.(*clientpb.AgentRequest))
+		return srv.(MonarchServer).Agents(ctx, req.(*clientpb.AgentRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Client_RmAgents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Monarch_NewAgent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(clientpb.Agent)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MonarchServer).NewAgent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpcpb.Monarch/NewAgent",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MonarchServer).NewAgent(ctx, req.(*clientpb.Agent))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Monarch_RmAgents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(clientpb.AgentRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ClientServer).RmAgents(ctx, in)
+		return srv.(MonarchServer).RmAgents(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/rpcpb.Client/RmAgents",
+		FullMethod: "/rpcpb.Monarch/RmAgents",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientServer).RmAgents(ctx, req.(*clientpb.AgentRequest))
+		return srv.(MonarchServer).RmAgents(ctx, req.(*clientpb.AgentRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Client_Builders_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Monarch_Builders_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(clientpb.BuilderRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ClientServer).Builders(ctx, in)
+		return srv.(MonarchServer).Builders(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/rpcpb.Client/Builders",
+		FullMethod: "/rpcpb.Monarch/Builders",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientServer).Builders(ctx, req.(*clientpb.BuilderRequest))
+		return srv.(MonarchServer).Builders(ctx, req.(*clientpb.BuilderRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Client_Profiles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Monarch_Profiles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(clientpb.ProfileRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ClientServer).Profiles(ctx, in)
+		return srv.(MonarchServer).Profiles(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/rpcpb.Client/Profiles",
+		FullMethod: "/rpcpb.Monarch/Profiles",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientServer).Profiles(ctx, req.(*clientpb.ProfileRequest))
+		return srv.(MonarchServer).Profiles(ctx, req.(*clientpb.ProfileRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Client_Commands_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(clientpb.Empty)
+func _Monarch_SaveProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(clientpb.SaveProfileRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ClientServer).Commands(ctx, in)
+		return srv.(MonarchServer).SaveProfile(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/rpcpb.Client/Commands",
+		FullMethod: "/rpcpb.Monarch/SaveProfile",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientServer).Commands(ctx, req.(*clientpb.Empty))
+		return srv.(MonarchServer).SaveProfile(ctx, req.(*clientpb.SaveProfileRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Client_Options_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(clientpb.Empty)
+func _Monarch_LoadProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(clientpb.SaveProfileRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ClientServer).Options(ctx, in)
+		return srv.(MonarchServer).LoadProfile(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/rpcpb.Client/Options",
+		FullMethod: "/rpcpb.Monarch/LoadProfile",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientServer).Options(ctx, req.(*clientpb.Empty))
+		return srv.(MonarchServer).LoadProfile(ctx, req.(*clientpb.SaveProfileRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Client_Build_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Monarch_RmProfiles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(clientpb.ProfileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MonarchServer).RmProfiles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpcpb.Monarch/RmProfiles",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MonarchServer).RmProfiles(ctx, req.(*clientpb.ProfileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Monarch_Options_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(builderpb.OptionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MonarchServer).Options(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpcpb.Monarch/Options",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MonarchServer).Options(ctx, req.(*builderpb.OptionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Monarch_Build_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(builderpb.BuildRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ClientServer).Build(ctx, in)
+		return srv.(MonarchServer).Build(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/rpcpb.Client/Build",
+		FullMethod: "/rpcpb.Monarch/Build",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientServer).Build(ctx, req.(*builderpb.BuildRequest))
+		return srv.(MonarchServer).Build(ctx, req.(*builderpb.BuildRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Client_Install_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(clientpb.InstallRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(ClientServer).Install(m, &clientInstallServer{stream})
-}
-
-type Client_InstallServer interface {
-	Send(*Notification) error
-	grpc.ServerStream
-}
-
-type clientInstallServer struct {
-	grpc.ServerStream
-}
-
-func (x *clientInstallServer) Send(m *Notification) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func _Client_Uninstall_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Monarch_EndBuild_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(clientpb.BuilderRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ClientServer).Uninstall(ctx, in)
+		return srv.(MonarchServer).EndBuild(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/rpcpb.Client/Uninstall",
+		FullMethod: "/rpcpb.Monarch/EndBuild",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientServer).Uninstall(ctx, req.(*clientpb.BuilderRequest))
+		return srv.(MonarchServer).EndBuild(ctx, req.(*clientpb.BuilderRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Client_HttpOpen_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Monarch_Install_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(clientpb.InstallRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(MonarchServer).Install(m, &monarchInstallServer{stream})
+}
+
+type Monarch_InstallServer interface {
+	Send(*Notification) error
+	grpc.ServerStream
+}
+
+type monarchInstallServer struct {
+	grpc.ServerStream
+}
+
+func (x *monarchInstallServer) Send(m *Notification) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _Monarch_Uninstall_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(clientpb.UninstallRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(MonarchServer).Uninstall(m, &monarchUninstallServer{stream})
+}
+
+type Monarch_UninstallServer interface {
+	Send(*Notification) error
+	grpc.ServerStream
+}
+
+type monarchUninstallServer struct {
+	grpc.ServerStream
+}
+
+func (x *monarchUninstallServer) Send(m *Notification) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _Monarch_HttpOpen_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(clientpb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ClientServer).HttpOpen(ctx, in)
+		return srv.(MonarchServer).HttpOpen(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/rpcpb.Client/HttpOpen",
+		FullMethod: "/rpcpb.Monarch/HttpOpen",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientServer).HttpOpen(ctx, req.(*clientpb.Empty))
+		return srv.(MonarchServer).HttpOpen(ctx, req.(*clientpb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Client_HttpClose_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Monarch_HttpClose_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(clientpb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ClientServer).HttpClose(ctx, in)
+		return srv.(MonarchServer).HttpClose(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/rpcpb.Client/HttpClose",
+		FullMethod: "/rpcpb.Monarch/HttpClose",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientServer).HttpClose(ctx, req.(*clientpb.Empty))
+		return srv.(MonarchServer).HttpClose(ctx, req.(*clientpb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Client_HttpsOpen_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Monarch_HttpsOpen_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(clientpb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ClientServer).HttpsOpen(ctx, in)
+		return srv.(MonarchServer).HttpsOpen(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/rpcpb.Client/HttpsOpen",
+		FullMethod: "/rpcpb.Monarch/HttpsOpen",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientServer).HttpsOpen(ctx, req.(*clientpb.Empty))
+		return srv.(MonarchServer).HttpsOpen(ctx, req.(*clientpb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Client_HttpsClose_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Monarch_HttpsClose_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(clientpb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ClientServer).HttpsClose(ctx, in)
+		return srv.(MonarchServer).HttpsClose(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/rpcpb.Client/HttpsClose",
+		FullMethod: "/rpcpb.Monarch/HttpsClose",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientServer).HttpsClose(ctx, req.(*clientpb.Empty))
+		return srv.(MonarchServer).HttpsClose(ctx, req.(*clientpb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Client_Sessions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Monarch_Sessions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(clientpb.SessionsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ClientServer).Sessions(ctx, in)
+		return srv.(MonarchServer).Sessions(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/rpcpb.Client/Sessions",
+		FullMethod: "/rpcpb.Monarch/Sessions",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientServer).Sessions(ctx, req.(*clientpb.SessionsRequest))
+		return srv.(MonarchServer).Sessions(ctx, req.(*clientpb.SessionsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Client_Notify_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(clientpb.Empty)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
+func _Monarch_Commands_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(builderpb.DescriptionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
 	}
-	return srv.(ClientServer).Notify(m, &clientNotifyServer{stream})
+	if interceptor == nil {
+		return srv.(MonarchServer).Commands(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpcpb.Monarch/Commands",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MonarchServer).Commands(ctx, req.(*builderpb.DescriptionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
-type Client_NotifyServer interface {
-	Send(*Notification) error
-	grpc.ServerStream
-}
-
-type clientNotifyServer struct {
-	grpc.ServerStream
-}
-
-func (x *clientNotifyServer) Send(m *Notification) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func _Client_Send_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Monarch_Send_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(clientpb.HTTPRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ClientServer).Send(ctx, in)
+		return srv.(MonarchServer).Send(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/rpcpb.Client/Send",
+		FullMethod: "/rpcpb.Monarch/Send",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientServer).Send(ctx, req.(*clientpb.HTTPRequest))
+		return srv.(MonarchServer).Send(ctx, req.(*clientpb.HTTPRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// Client_ServiceDesc is the grpc.ServiceDesc for Client service.
+func _Monarch_CallbackInfo_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(clientpb.Empty)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(MonarchServer).CallbackInfo(m, &monarchCallbackInfoServer{stream})
+}
+
+type Monarch_CallbackInfoServer interface {
+	Send(*clientpb.Registration) error
+	grpc.ServerStream
+}
+
+type monarchCallbackInfoServer struct {
+	grpc.ServerStream
+}
+
+func (x *monarchCallbackInfoServer) Send(m *clientpb.Registration) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _Monarch_Notify_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(clientpb.Empty)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(MonarchServer).Notify(m, &monarchNotifyServer{stream})
+}
+
+type Monarch_NotifyServer interface {
+	Send(*PlayerNotification) error
+	grpc.ServerStream
+}
+
+type monarchNotifyServer struct {
+	grpc.ServerStream
+}
+
+func (x *monarchNotifyServer) Send(m *PlayerNotification) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+// Monarch_ServiceDesc is the grpc.ServiceDesc for Monarch service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var Client_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "rpcpb.Client",
-	HandlerType: (*ClientServer)(nil),
+var Monarch_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "rpcpb.Monarch",
+	HandlerType: (*MonarchServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "Agents",
-			Handler:    _Client_Agents_Handler,
+			Handler:    _Monarch_Agents_Handler,
+		},
+		{
+			MethodName: "NewAgent",
+			Handler:    _Monarch_NewAgent_Handler,
 		},
 		{
 			MethodName: "RmAgents",
-			Handler:    _Client_RmAgents_Handler,
+			Handler:    _Monarch_RmAgents_Handler,
 		},
 		{
 			MethodName: "Builders",
-			Handler:    _Client_Builders_Handler,
+			Handler:    _Monarch_Builders_Handler,
 		},
 		{
 			MethodName: "Profiles",
-			Handler:    _Client_Profiles_Handler,
+			Handler:    _Monarch_Profiles_Handler,
 		},
 		{
-			MethodName: "Commands",
-			Handler:    _Client_Commands_Handler,
+			MethodName: "SaveProfile",
+			Handler:    _Monarch_SaveProfile_Handler,
+		},
+		{
+			MethodName: "LoadProfile",
+			Handler:    _Monarch_LoadProfile_Handler,
+		},
+		{
+			MethodName: "RmProfiles",
+			Handler:    _Monarch_RmProfiles_Handler,
 		},
 		{
 			MethodName: "Options",
-			Handler:    _Client_Options_Handler,
+			Handler:    _Monarch_Options_Handler,
 		},
 		{
 			MethodName: "Build",
-			Handler:    _Client_Build_Handler,
+			Handler:    _Monarch_Build_Handler,
 		},
 		{
-			MethodName: "Uninstall",
-			Handler:    _Client_Uninstall_Handler,
+			MethodName: "EndBuild",
+			Handler:    _Monarch_EndBuild_Handler,
 		},
 		{
 			MethodName: "HttpOpen",
-			Handler:    _Client_HttpOpen_Handler,
+			Handler:    _Monarch_HttpOpen_Handler,
 		},
 		{
 			MethodName: "HttpClose",
-			Handler:    _Client_HttpClose_Handler,
+			Handler:    _Monarch_HttpClose_Handler,
 		},
 		{
 			MethodName: "HttpsOpen",
-			Handler:    _Client_HttpsOpen_Handler,
+			Handler:    _Monarch_HttpsOpen_Handler,
 		},
 		{
 			MethodName: "HttpsClose",
-			Handler:    _Client_HttpsClose_Handler,
+			Handler:    _Monarch_HttpsClose_Handler,
 		},
 		{
 			MethodName: "Sessions",
-			Handler:    _Client_Sessions_Handler,
+			Handler:    _Monarch_Sessions_Handler,
+		},
+		{
+			MethodName: "Commands",
+			Handler:    _Monarch_Commands_Handler,
 		},
 		{
 			MethodName: "Send",
-			Handler:    _Client_Send_Handler,
+			Handler:    _Monarch_Send_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "Install",
-			Handler:       _Client_Install_Handler,
+			Handler:       _Monarch_Install_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "Uninstall",
+			Handler:       _Monarch_Uninstall_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "CallbackInfo",
+			Handler:       _Monarch_CallbackInfo_Handler,
 			ServerStreams: true,
 		},
 		{
 			StreamName:    "Notify",
-			Handler:       _Client_Notify_Handler,
+			Handler:       _Monarch_Notify_Handler,
 			ServerStreams: true,
 		},
 	},

@@ -1,15 +1,19 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"github.com/pygrum/monarch/pkg/console"
 	"github.com/pygrum/monarch/pkg/log"
-	"github.com/pygrum/monarch/pkg/transport"
+	"github.com/pygrum/monarch/pkg/protobuf/clientpb"
 	"github.com/spf13/cobra"
 	"strconv"
 )
 
-var cLogger log.Logger
+var (
+	ctx     = context.Background()
+	cLogger log.Logger
+)
 
 func init() {
 	cLogger, _ = log.NewLogger(log.ConsoleLogger, "")
@@ -22,7 +26,7 @@ func ConsoleCommands() *cobra.Command {
 	var yesExit bool
 	cmdExit := &cobra.Command{
 		Use:   "exit",
-		Short: "shutdown the monarch server",
+		Short: "shutdown the monarch teamserver",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			exitCmd(yesExit)
@@ -180,26 +184,35 @@ func ConsoleCommands() *cobra.Command {
 }
 
 // exits any named menus spawned by any commands
-func exit(short string) *cobra.Command {
+func exit(short string, menuType string) *cobra.Command {
 	if len(short) == 0 {
 		short = "exit the interactive menu"
 	}
+	mt := menuType
 	cmd := &cobra.Command{
 		Use:   "exit",
 		Short: short,
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
+			switch mt {
+			case "build":
+				ctx := context.WithValue(ctx, "builder_id", builderConfig.ID+builderConfig.builderID)
+				if _, err := console.Rpc.EndBuild(ctx, nil); err != nil {
+					cLogger.Error("failed to delete builder client for %s: %v", builderConfig.builderID, err)
+					return
+				}
+			}
 			console.MainMenu()
 		},
 	}
 	return cmd
 }
 
-func info(systemInfo transport.Registration) *cobra.Command {
+func info(systemInfo *clientpb.Registration) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "info",
 		Short: "view information about the agent's host",
-		Long: "Information is typically compiled and sent by an agent when it first connects to the server. " +
+		Long: "Information is typically compiled and sent by an agent when it first connects to the teamserver. " +
 			"This information includes details such as the user running the process, the process ID, UID, GID, " +
 			"IP address, and more; however if an agent doesn't transmit this information, you'd have to find out " +
 			"yourself.",
@@ -208,8 +221,8 @@ func info(systemInfo transport.Registration) *cobra.Command {
 			fmt.Println()
 			fmt.Println("System Information")
 			fmt.Println("==================")
-			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "Agent ID:", systemInfo.AgentID))
-			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "Host OS:", systemInfo.OS))
+			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "Agent ID:", systemInfo.AgentId))
+			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "Host OS:", systemInfo.Os))
 			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "Architecture:", systemInfo.Arch))
 			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "Username:", systemInfo.Username))
 			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "Hostname:", systemInfo.Hostname))

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/go-git/go-git/v5"
@@ -18,6 +17,7 @@ import (
 	"github.com/pygrum/monarch/pkg/db"
 	"github.com/pygrum/monarch/pkg/docker"
 	"github.com/pygrum/monarch/pkg/log"
+	"github.com/pygrum/monarch/pkg/protobuf/rpcpb"
 	"github.com/pygrum/monarch/pkg/utils"
 	"io"
 	"path/filepath"
@@ -38,7 +38,7 @@ func init() {
 }
 
 // NewRepo and use GitHub credentials if repository is private
-func NewRepo(url, branch string, private bool) error {
+func NewRepo(url, branch string, private bool, stream rpcpb.Monarch_InstallServer) error {
 	c := config.MainConfig
 	o := &git.CloneOptions{
 		URL: url,
@@ -52,7 +52,10 @@ func NewRepo(url, branch string, private bool) error {
 			return errors.New("github credentials not configured")
 		}
 		if !c.IgnoreConsoleWarnings {
-			l.Warn("Your GitHub credentials have not been configured")
+			_ = stream.Send(&rpcpb.Notification{
+				LogLevel: rpcpb.LogLevel_LevelWarn,
+				Msg:      "Your GitHub credentials have not been configured",
+			})
 		}
 	}
 	if private {
@@ -71,21 +74,24 @@ func NewRepo(url, branch string, private bool) error {
 		return err
 	}
 	// Build arguments passed with environment variables.
-	a, err := Setup(clonePath)
+	a, err := Setup(clonePath, stream)
 	if err != nil {
 		return err
 	}
 	return db.Create(a)
 }
 
-func Setup(path string) (*db.Builder, error) {
+func Setup(path string, stream rpcpb.Monarch_InstallServer) (*db.Builder, error) {
 	ctx := context.Background()
 	configPath := filepath.Join(path, configName)
 	royal := config.ProjectConfig{}
 	if err := config.YamlConfig(configPath, &royal); err != nil {
 		return nil, err
 	}
-	l.Success("success! installing: %s v%s", royal.Name, royal.Version)
+	_ = stream.Send(&rpcpb.Notification{
+		LogLevel: rpcpb.LogLevel_LevelSuccess,
+		Msg:      fmt.Sprintf("success! installing: %s v%s", royal.Name, royal.Version),
+	})
 	if len(royal.Name) == 0 || len(royal.Version) == 0 {
 		return nil, fmt.Errorf("name and / or version missing (configuration file at %s)", path)
 	}
@@ -95,19 +101,8 @@ func Setup(path string) (*db.Builder, error) {
 		if err := db.FindOneConditional("name = ?", royal.Name, b); err == nil {
 			// just to check that we actually returned sum
 			if b.Name == royal.Name {
-				y := false
-				prompt := &survey.Confirm{
-					Message: fmt.Sprintf("a builder named '%s' is already installed. Do you wish to replace it?",
-						b.Name),
-				}
-				_ = survey.AskOne(prompt, &y)
-				if y {
-					if err = utils.Cleanup(b); err != nil {
-						return nil, fmt.Errorf("failed to delete existing builder: %v", err)
-					}
-				} else {
-					return nil,
-						fmt.Errorf("duplicate install names - try renaming from royal.yaml and installing from local")
+				if err = utils.Cleanup(b); err != nil {
+					return nil, fmt.Errorf("failed to delete existing builder: %v", err)
 				}
 			}
 		}
@@ -140,8 +135,10 @@ func Setup(path string) (*db.Builder, error) {
 	}
 	builderImageID = ID
 	builderImageTag = royal.Name + ":" + royal.Version
-	l.Success("successfully created builder image: %s", builderImageID)
-
+	_ = stream.Send(&rpcpb.Notification{
+		LogLevel: rpcpb.LogLevel_LevelSuccess,
+		Msg:      fmt.Sprintf("successfully created builder image: %s", builderImageID),
+	})
 	buildContainerID, err := docker.StartContainer(docker.Cli, ctx, builderImageTag)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start builder services: %v", err)
