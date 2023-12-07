@@ -59,8 +59,6 @@ service Monarch {
   rpc Commands(builderpb.DescriptionsRequest) returns (builderpb.DescriptionsReply) {}
   rpc Send(clientpb.HTTPRequest) returns (clientpb.HTTPResponse) {}
 
-  rpc CallbackInfo(clientpb.Empty) returns (stream clientpb.Registration) {}
-
   // Notify used for general notifications - likely run from a goroutine
-  rpc Notify(clientpb.Empty) returns (stream PlayerNotification) {}
+  rpc Notify(clientpb.NotifyRequest) returns (stream PlayerNotification) {}
 }

@@ -202,9 +202,8 @@ type MonarchClient interface {
 	Sessions(ctx context.Context, in *clientpb.SessionsRequest, opts ...grpc.CallOption) (*clientpb.Sessions, error)
 	Commands(ctx context.Context, in *builderpb.DescriptionsRequest, opts ...grpc.CallOption) (*builderpb.DescriptionsReply, error)
 	Send(ctx context.Context, in *clientpb.HTTPRequest, opts ...grpc.CallOption) (*clientpb.HTTPResponse, error)
-	CallbackInfo(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (Monarch_CallbackInfoClient, error)
 	// Notify used for general notifications - likely run from a goroutine
-	Notify(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (Monarch_NotifyClient, error)
+	Notify(ctx context.Context, in *clientpb.NotifyRequest, opts ...grpc.CallOption) (Monarch_NotifyClient, error)
 }
 
 type monarchClient struct {
@@ -441,40 +440,8 @@ func (c *monarchClient) Send(ctx context.Context, in *clientpb.HTTPRequest, opts
 	return out, nil
 }
 
-func (c *monarchClient) CallbackInfo(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (Monarch_CallbackInfoClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Monarch_ServiceDesc.Streams[2], "/rpcpb.Monarch/CallbackInfo", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &monarchCallbackInfoClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-type Monarch_CallbackInfoClient interface {
-	Recv() (*clientpb.Registration, error)
-	grpc.ClientStream
-}
-
-type monarchCallbackInfoClient struct {
-	grpc.ClientStream
-}
-
-func (x *monarchCallbackInfoClient) Recv() (*clientpb.Registration, error) {
-	m := new(clientpb.Registration)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (c *monarchClient) Notify(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (Monarch_NotifyClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Monarch_ServiceDesc.Streams[3], "/rpcpb.Monarch/Notify", opts...)
+func (c *monarchClient) Notify(ctx context.Context, in *clientpb.NotifyRequest, opts ...grpc.CallOption) (Monarch_NotifyClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Monarch_ServiceDesc.Streams[2], "/rpcpb.Monarch/Notify", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -529,9 +496,8 @@ type MonarchServer interface {
 	Sessions(context.Context, *clientpb.SessionsRequest) (*clientpb.Sessions, error)
 	Commands(context.Context, *builderpb.DescriptionsRequest) (*builderpb.DescriptionsReply, error)
 	Send(context.Context, *clientpb.HTTPRequest) (*clientpb.HTTPResponse, error)
-	CallbackInfo(*clientpb.Empty, Monarch_CallbackInfoServer) error
 	// Notify used for general notifications - likely run from a goroutine
-	Notify(*clientpb.Empty, Monarch_NotifyServer) error
+	Notify(*clientpb.NotifyRequest, Monarch_NotifyServer) error
 	mustEmbedUnimplementedMonarchServer()
 }
 
@@ -599,10 +565,7 @@ func (UnimplementedMonarchServer) Commands(context.Context, *builderpb.Descripti
 func (UnimplementedMonarchServer) Send(context.Context, *clientpb.HTTPRequest) (*clientpb.HTTPResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Send not implemented")
 }
-func (UnimplementedMonarchServer) CallbackInfo(*clientpb.Empty, Monarch_CallbackInfoServer) error {
-	return status.Errorf(codes.Unimplemented, "method CallbackInfo not implemented")
-}
-func (UnimplementedMonarchServer) Notify(*clientpb.Empty, Monarch_NotifyServer) error {
+func (UnimplementedMonarchServer) Notify(*clientpb.NotifyRequest, Monarch_NotifyServer) error {
 	return status.Errorf(codes.Unimplemented, "method Notify not implemented")
 }
 func (UnimplementedMonarchServer) mustEmbedUnimplementedMonarchServer() {}
@@ -984,29 +947,8 @@ func _Monarch_Send_Handler(srv interface{}, ctx context.Context, dec func(interf
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Monarch_CallbackInfo_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(clientpb.Empty)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(MonarchServer).CallbackInfo(m, &monarchCallbackInfoServer{stream})
-}
-
-type Monarch_CallbackInfoServer interface {
-	Send(*clientpb.Registration) error
-	grpc.ServerStream
-}
-
-type monarchCallbackInfoServer struct {
-	grpc.ServerStream
-}
-
-func (x *monarchCallbackInfoServer) Send(m *clientpb.Registration) error {
-	return x.ServerStream.SendMsg(m)
-}
-
 func _Monarch_Notify_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(clientpb.Empty)
+	m := new(clientpb.NotifyRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
@@ -1115,11 +1057,6 @@ var Monarch_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "Uninstall",
 			Handler:       _Monarch_Uninstall_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "CallbackInfo",
-			Handler:       _Monarch_CallbackInfo_Handler,
 			ServerStreams: true,
 		},
 		{
