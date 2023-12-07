@@ -57,6 +57,7 @@ func (s *sessions) loginHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
+	connectInfo.IPAddress = r.RemoteAddr
 	token, expiresAt, _, err := s.newSession(agent, connectInfo)
 	if err != nil {
 		fl.Error("failed to create new session: %v", err)

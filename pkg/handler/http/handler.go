@@ -24,14 +24,13 @@ var (
 )
 
 type Handler struct {
-	CertFile             string
-	KeyFile              string
-	httpServer           *http.Server
-	httpsServer          *http.Server
-	httpsLock            bool
-	httpLock             bool
-	SessionNotifications Queue
-	sessions             *sessions
+	CertFile    string
+	KeyFile     string
+	httpServer  *http.Server
+	httpsServer *http.Server
+	httpsLock   bool
+	httpLock    bool
+	sessions    *sessions
 }
 
 type Queue interface {
@@ -50,11 +49,7 @@ type ResponseQueue struct {
 	channel chan *transport.GenericHTTPResponse
 }
 
-type SessInfoQueue struct {
-	Channel chan transport.Registration
-}
-
-func init() {
+func Initialize() {
 	MainHandler = NewHandler()
 	TranLogger, _ = log.NewLogger(log.TransientLogger, "")
 
@@ -86,27 +81,6 @@ func (r *RequestQueue) Size() int {
 	return len(r.channel)
 }
 
-func (r *SessInfoQueue) Enqueue(req interface{}) error {
-	select {
-	case r.Channel <- req.(transport.Registration):
-		return nil
-	default:
-		return fmt.Errorf("queue is full - max capacity of %d\n", queueCapacity)
-	}
-}
-
-func (r *SessInfoQueue) Dequeue() interface{} {
-	// Must block, as we wait for a request to queue
-	select {
-	case req := <-r.Channel:
-		return req
-	}
-}
-
-func (r *SessInfoQueue) Size() int {
-	return len(r.Channel)
-}
-
 func (r *ResponseQueue) Enqueue(req interface{}) error {
 	select {
 	case r.channel <- req.(*transport.GenericHTTPResponse):
@@ -134,10 +108,6 @@ func NewRequestQueue() *RequestQueue {
 
 func NewResponseQueue() *ResponseQueue {
 	return &ResponseQueue{channel: make(chan *transport.GenericHTTPResponse, queueCapacity)}
-}
-
-func NewSessInfoQueue() *SessInfoQueue {
-	return &SessInfoQueue{Channel: make(chan transport.Registration, queueCapacity)}
 }
 
 func (h *Handler) Stop() error {
@@ -211,10 +181,9 @@ func NewHandler() *Handler {
 		sessionMap: make(map[int]*HTTPSession),
 	}
 	h := &Handler{
-		CertFile:             config.MainConfig.CertFile,
-		KeyFile:              config.MainConfig.KeyFile,
-		SessionNotifications: NewSessInfoQueue(),
-		sessions:             ssns,
+		CertFile: config.MainConfig.CertFile,
+		KeyFile:  config.MainConfig.KeyFile,
+		sessions: ssns,
 	}
 	router := mux.NewRouter()
 	sRouter := mux.NewRouter()
@@ -249,7 +218,7 @@ func (h *Handler) Serve() {
 		TranLogger.Error("failed to initialise listening socket: %v", err)
 		return
 	}
-	// ensures can only be started once the teamserver is available
+	// ensures can only be started once the TeamServer is available
 	h.httpLock = true
 	if err = h.httpServer.Serve(lh); err != nil &&
 		!errors.Is(err, http.ErrServerClosed) {
