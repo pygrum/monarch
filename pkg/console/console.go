@@ -5,6 +5,7 @@ import (
 	"github.com/pygrum/monarch/pkg/config"
 	"github.com/pygrum/monarch/pkg/consts"
 	"github.com/pygrum/monarch/pkg/db"
+	"github.com/pygrum/monarch/pkg/handler/http"
 	"github.com/pygrum/monarch/pkg/log"
 	"github.com/pygrum/monarch/pkg/protobuf/rpcpb"
 	"github.com/pygrum/monarch/pkg/teamserver"
@@ -30,6 +31,7 @@ func init() {
 		App: console.New("monarch"),
 	}
 	db.Initialize()
+	http.Initialize()
 	log.Initialize(monarchServer.App.TransientPrintf)
 }
 
