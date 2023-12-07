@@ -52,10 +52,12 @@ func NewRepo(url, branch string, private bool, stream rpcpb.Monarch_InstallServe
 			return errors.New("github credentials not configured")
 		}
 		if !c.IgnoreConsoleWarnings {
-			_ = stream.Send(&rpcpb.Notification{
-				LogLevel: rpcpb.LogLevel_LevelWarn,
-				Msg:      "Your GitHub credentials have not been configured",
-			})
+			if flag.Lookup("test.v") == nil {
+				_ = stream.Send(&rpcpb.Notification{
+					LogLevel: rpcpb.LogLevel_LevelWarn,
+					Msg:      "Your GitHub credentials have not been configured",
+				})
+			}
 		}
 	}
 	if private {
@@ -88,10 +90,12 @@ func Setup(path string, stream rpcpb.Monarch_InstallServer) (*db.Builder, error)
 	if err := config.YamlConfig(configPath, &royal); err != nil {
 		return nil, err
 	}
-	_ = stream.Send(&rpcpb.Notification{
-		LogLevel: rpcpb.LogLevel_LevelSuccess,
-		Msg:      fmt.Sprintf("success! installing: %s v%s", royal.Name, royal.Version),
-	})
+	if flag.Lookup("test.v") == nil {
+		_ = stream.Send(&rpcpb.Notification{
+			LogLevel: rpcpb.LogLevel_LevelSuccess,
+			Msg:      fmt.Sprintf("success! installing: %s v%s", royal.Name, royal.Version),
+		})
+	}
 	if len(royal.Name) == 0 || len(royal.Version) == 0 {
 		return nil, fmt.Errorf("name and / or version missing (configuration file at %s)", path)
 	}
@@ -135,10 +139,12 @@ func Setup(path string, stream rpcpb.Monarch_InstallServer) (*db.Builder, error)
 	}
 	builderImageID = ID
 	builderImageTag = royal.Name + ":" + royal.Version
-	_ = stream.Send(&rpcpb.Notification{
-		LogLevel: rpcpb.LogLevel_LevelSuccess,
-		Msg:      fmt.Sprintf("successfully created builder image: %s", builderImageID),
-	})
+	if flag.Lookup("test.v") == nil {
+		_ = stream.Send(&rpcpb.Notification{
+			LogLevel: rpcpb.LogLevel_LevelSuccess,
+			Msg:      fmt.Sprintf("successfully created builder image: %s", builderImageID),
+		})
+	}
 	buildContainerID, err := docker.StartContainer(docker.Cli, ctx, builderImageTag)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start builder services: %v", err)
