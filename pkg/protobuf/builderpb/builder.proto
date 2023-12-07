@@ -9,7 +9,9 @@ enum Status {
 }
 
 // Internal /////////////////////////////////////////
-message DescriptionsRequest {} // Empty request, needs no values
+message DescriptionsRequest {
+  string builder_id = 1;
+} // Empty request, needs no values
 message Description {
   string name = 1;
   int32 opcode = 2;
@@ -23,7 +25,9 @@ message Description {
 message DescriptionsReply {
   repeated Description descriptions = 1;
 }
-message OptionsRequest {}
+message OptionsRequest {
+  string builder_id = 1;
+}
 message Option {
   string name = 1;
   string description = 2;
@@ -37,6 +41,7 @@ message OptionsReply {
 }
 message BuildRequest {
   map<string, string> options = 1; // contains the agent ID
+  string builder_id = 2;
 }
 
 message BuildReply {

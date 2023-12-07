@@ -58,6 +58,7 @@ message InstallRequest {
   string path = 1;
   Source source = 2;
   string branch = 3;
+  bool use_creds = 4;
 }
 message UninstallRequest {
   BuilderRequest builders = 1;

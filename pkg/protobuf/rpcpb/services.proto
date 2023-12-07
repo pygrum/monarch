@@ -44,7 +44,7 @@ service Monarch {
 
   rpc Options(builderpb.OptionsRequest) returns (builderpb.OptionsReply) {}
   rpc Build(builderpb.BuildRequest) returns (builderpb.BuildReply) {}
-  rpc EndBuild(clientpb.BuilderRequest) returns (clientpb.Empty) {} // kills build
+  rpc EndBuild(builderpb.BuildRequest) returns (clientpb.Empty) {} // kills build
 
   rpc Install(clientpb.InstallRequest) returns (stream Notification) {}
   rpc Uninstall(clientpb.UninstallRequest) returns (stream Notification) {}

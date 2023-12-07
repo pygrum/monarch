@@ -192,7 +192,7 @@ type MonarchClient interface {
 	RmProfiles(ctx context.Context, in *clientpb.ProfileRequest, opts ...grpc.CallOption) (*clientpb.Empty, error)
 	Options(ctx context.Context, in *builderpb.OptionsRequest, opts ...grpc.CallOption) (*builderpb.OptionsReply, error)
 	Build(ctx context.Context, in *builderpb.BuildRequest, opts ...grpc.CallOption) (*builderpb.BuildReply, error)
-	EndBuild(ctx context.Context, in *clientpb.BuilderRequest, opts ...grpc.CallOption) (*clientpb.Empty, error)
+	EndBuild(ctx context.Context, in *builderpb.BuildRequest, opts ...grpc.CallOption) (*clientpb.Empty, error)
 	Install(ctx context.Context, in *clientpb.InstallRequest, opts ...grpc.CallOption) (Monarch_InstallClient, error)
 	Uninstall(ctx context.Context, in *clientpb.UninstallRequest, opts ...grpc.CallOption) (Monarch_UninstallClient, error)
 	HttpOpen(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*Notification, error)
@@ -305,7 +305,7 @@ func (c *monarchClient) Build(ctx context.Context, in *builderpb.BuildRequest, o
 	return out, nil
 }
 
-func (c *monarchClient) EndBuild(ctx context.Context, in *clientpb.BuilderRequest, opts ...grpc.CallOption) (*clientpb.Empty, error) {
+func (c *monarchClient) EndBuild(ctx context.Context, in *builderpb.BuildRequest, opts ...grpc.CallOption) (*clientpb.Empty, error) {
 	out := new(clientpb.Empty)
 	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/EndBuild", in, out, opts...)
 	if err != nil {
@@ -519,7 +519,7 @@ type MonarchServer interface {
 	RmProfiles(context.Context, *clientpb.ProfileRequest) (*clientpb.Empty, error)
 	Options(context.Context, *builderpb.OptionsRequest) (*builderpb.OptionsReply, error)
 	Build(context.Context, *builderpb.BuildRequest) (*builderpb.BuildReply, error)
-	EndBuild(context.Context, *clientpb.BuilderRequest) (*clientpb.Empty, error)
+	EndBuild(context.Context, *builderpb.BuildRequest) (*clientpb.Empty, error)
 	Install(*clientpb.InstallRequest, Monarch_InstallServer) error
 	Uninstall(*clientpb.UninstallRequest, Monarch_UninstallServer) error
 	HttpOpen(context.Context, *clientpb.Empty) (*Notification, error)
@@ -569,7 +569,7 @@ func (UnimplementedMonarchServer) Options(context.Context, *builderpb.OptionsReq
 func (UnimplementedMonarchServer) Build(context.Context, *builderpb.BuildRequest) (*builderpb.BuildReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Build not implemented")
 }
-func (UnimplementedMonarchServer) EndBuild(context.Context, *clientpb.BuilderRequest) (*clientpb.Empty, error) {
+func (UnimplementedMonarchServer) EndBuild(context.Context, *builderpb.BuildRequest) (*clientpb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method EndBuild not implemented")
 }
 func (UnimplementedMonarchServer) Install(*clientpb.InstallRequest, Monarch_InstallServer) error {
@@ -799,7 +799,7 @@ func _Monarch_Build_Handler(srv interface{}, ctx context.Context, dec func(inter
 }
 
 func _Monarch_EndBuild_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(clientpb.BuilderRequest)
+	in := new(builderpb.BuildRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -811,7 +811,7 @@ func _Monarch_EndBuild_Handler(srv interface{}, ctx context.Context, dec func(in
 		FullMethod: "/rpcpb.Monarch/EndBuild",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MonarchServer).EndBuild(ctx, req.(*clientpb.BuilderRequest))
+		return srv.(MonarchServer).EndBuild(ctx, req.(*builderpb.BuildRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
