@@ -7,6 +7,8 @@ import (
 	"github.com/pygrum/monarch/pkg/config"
 	"github.com/pygrum/monarch/pkg/coop"
 	"github.com/pygrum/monarch/pkg/db"
+	"github.com/pygrum/monarch/pkg/protobuf/rpcpb"
+	"github.com/pygrum/monarch/pkg/teamserver"
 	"github.com/pygrum/monarch/pkg/transport"
 	"net/http"
 	"sync"
@@ -77,10 +79,16 @@ func (s *sessions) newSession(agent *db.Agent, connectInfo *transport.Registrati
 		return "", time.Time{}, 0, err
 	}
 
-	_ = MainHandler.SessionNotifications.Enqueue(connectInfo)
 	s.sessionMap[id] = newSession
 	s.sortedSessions = append(s.sortedSessions, newSession)
 	s.count += 1 // increment session count
+	_ = teamserver.NotifQueue.Enqueue(&rpcpb.PlayerNotification{
+		Notification: &rpcpb.Notification{
+			LogLevel: rpcpb.LogLevel_LevelInfo,
+			Msg:      fmt.Sprintf("new session from %s@%s (%s) \n", agent.Name, connectInfo.IPAddress, agent.AgentID),
+		},
+		PlayerId: agent.CreatedBy, // blank means broadcast btw
+	})
 	return tokenString, expiresAt, id, nil
 }
 
