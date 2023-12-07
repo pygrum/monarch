@@ -27,15 +27,16 @@ type ResponseDetail struct {
 // Registration is the initial data that is received from a first-time authenticating agent
 // Can be viewed with the 'info' command
 type Registration struct {
-	AgentID  string `json:"agent_id"`
-	OS       string `json:"os"`
-	Arch     string `json:"arch"`
-	Username string `json:"username"`
-	Hostname string `json:"hostname"`
-	UID      string `json:"uid"`
-	GID      string `json:"gid"`
-	PID      string `json:"pid"`
-	HomeDir  string `json:"home_dir"`
+	AgentID   string `json:"agent_id"`
+	OS        string `json:"os"`
+	Arch      string `json:"arch"`
+	Username  string `json:"username"`
+	Hostname  string `json:"hostname"`
+	UID       string `json:"uid"`
+	GID       string `json:"gid"`
+	PID       string `json:"pid"`
+	HomeDir   string `json:"home_dir"`
+	IPAddress string `json:"ip_address"`
 }
 
 // GenericHTTPResponse is the structure received from an agent after a task is performed

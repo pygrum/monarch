@@ -253,7 +253,7 @@ func (s *MonarchServer) RmProfiles(ctx context.Context, req *clientpb.ProfileReq
 
 func (s *MonarchServer) newBuilderClient(bid string) (rpcpb.BuilderClient, error) {
 	if len(bid) == 0 {
-		return nil, errors.New("agentID+builderID pair was not passed to context with key 'builder_id'")
+		return nil, errors.New("agentID+builderID pair was not passed to packet")
 	}
 	if client, ok := s.builderClients[bid]; ok {
 		return client, nil
@@ -407,20 +407,22 @@ func (s *MonarchServer) Sessions(_ context.Context, req *clientpb.SessionsReques
 			Id:         int32(ss.ID),
 			AgentId:    ss.Agent.AgentID,
 			AgentName:  ss.Agent.Name,
+			AgentOwner: ss.Agent.CreatedBy,
 			QueueSize:  int32(ss.RequestQueue.Size()),
 			LastActive: ss.LastActive.Format(time.RFC850),
 			Status:     ss.Status,
 			BuilderId:  ss.Agent.Builder,
 			Info: &clientpb.Registration{
-				AgentId:  info.AgentID,
-				Os:       info.OS,
-				Arch:     info.Arch,
-				Username: info.Username,
-				Hostname: info.Hostname,
-				UID:      info.UID,
-				GID:      info.GID,
-				PID:      info.PID,
-				HomeDir:  info.HomeDir,
+				AgentId:   info.AgentID,
+				Os:        info.OS,
+				Arch:      info.Arch,
+				Username:  info.Username,
+				Hostname:  info.Hostname,
+				UID:       info.UID,
+				GID:       info.GID,
+				PID:       info.PID,
+				HomeDir:   info.HomeDir,
+				IPAddress: info.IPAddress,
 			},
 		})
 	}
@@ -461,37 +463,16 @@ func (s *MonarchServer) Send(_ context.Context, req *clientpb.HTTPRequest) (*cli
 	return resp, nil
 }
 
-func (s *MonarchServer) CallbackInfo(_ *clientpb.Empty, stream rpcpb.Monarch_CallbackInfoServer) error {
-	// blocking
-	for {
-		info := http.MainHandler.SessionNotifications.Dequeue().(transport.Registration)
-		pbRegInfo := &clientpb.Registration{
-			AgentId:  info.AgentID,
-			Os:       info.OS,
-			Arch:     info.Arch,
-			Username: info.Username,
-			Hostname: info.Hostname,
-			UID:      info.UID,
-			GID:      info.GID,
-			PID:      info.PID,
-			HomeDir:  info.HomeDir,
-		}
-		if err := stream.Send(pbRegInfo); err != nil {
-			return fmt.Errorf("failed to send to stream: %v", err)
-		}
-	}
-}
-
-func (s *MonarchServer) Notify(_ *clientpb.Empty, stream rpcpb.Monarch_NotifyServer) error {
+func (s *MonarchServer) Notify(req *clientpb.NotifyRequest, stream rpcpb.Monarch_NotifyServer) error {
 	// Implement a notification queue
-	ctx := stream.Context()
-	playerID, ok := ctx.Value("player_id").(string)
-	if !ok {
-		return errors.New("no player ID was passed via context with key 'player_id'")
+	playerID := req.PlayerId
+	if len(playerID) == 0 {
+		return errors.New("player ID cannot be blank")
 	}
 	for {
 		notification := NotifQueue.Dequeue().(*rpcpb.PlayerNotification)
-		if notification.PlayerId == playerID {
+		// blank player ID means broadcast
+		if notification.PlayerId == playerID || notification.PlayerId == "" {
 			_ = stream.Send(notification)
 		} else {
 			// Enqueue notification again since we consumed it by dequeueing
