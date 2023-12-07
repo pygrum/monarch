@@ -495,6 +495,9 @@ func (s *MonarchServer) Notify(_ *clientpb.Empty, stream rpcpb.Monarch_NotifySer
 		notification := NotifQueue.Dequeue().(*rpcpb.PlayerNotification)
 		if notification.PlayerId == playerID {
 			_ = stream.Send(notification)
+		} else {
+			// Enqueue notification again since we consumed it by dequeueing
+			_ = NotifQueue.Enqueue(notification)
 		}
 	}
 }
