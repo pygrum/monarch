@@ -387,11 +387,11 @@ func (s *MonarchServer) HttpsOpen(context.Context, *clientpb.Empty) (*rpcpb.Noti
 }
 
 func (s *MonarchServer) HttpClose(context.Context, *clientpb.Empty) (*clientpb.Empty, error) {
-	return nil, http.MainHandler.Stop()
+	return &clientpb.Empty{}, http.MainHandler.Stop()
 }
 
 func (s *MonarchServer) HttpsClose(context.Context, *clientpb.Empty) (*clientpb.Empty, error) {
-	return nil, http.MainHandler.StopTLS()
+	return &clientpb.Empty{}, http.MainHandler.StopTLS()
 }
 
 func (s *MonarchServer) Sessions(_ context.Context, req *clientpb.SessionsRequest) (*clientpb.Sessions, error) {
