@@ -32,6 +32,7 @@ type Agent struct {
 	Port      string
 	Builder   string // The builder used to build the agent
 	File      string // binary file associated with agent
+	CreatedBy string // TODO:use this field for notifications and whatnot
 	CreatedAt time.Time
 }
 
