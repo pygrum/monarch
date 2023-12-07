@@ -11,6 +11,7 @@ import (
 	"github.com/pygrum/monarch/pkg/protobuf/builderpb"
 	"github.com/pygrum/monarch/pkg/protobuf/clientpb"
 	"github.com/spf13/cobra"
+	"google.golang.org/grpc"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -123,8 +124,9 @@ func loadBuildOptions(b *clientpb.Builder) error {
 			Options: make(map[string]string),
 		},
 	}
-	optionsReply, err := console.Rpc.Options(context.WithValue(ctx, "builder_id", builderConfig.builderID),
-		&builderpb.OptionsRequest{})
+	optionsReply, err := console.Rpc.Options(ctx, &builderpb.OptionsRequest{
+		BuilderId: builderConfig.ID + b.BuilderId,
+	})
 	if err != nil {
 		return err
 	}
@@ -263,9 +265,10 @@ func build() {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
 	// uses both agent id and builder id for unique identifier for each build session
-	ctx = context.WithValue(ctx, "builder_id", builderConfig.ID+builderConfig.builderID)
 	// receive large bins
-	resp, err := console.Rpc.Build(ctx, builderConfig.request)
+	builderConfig.request.BuilderId = builderConfig.ID + builderConfig.builderID
+	maxSizeOption := grpc.MaxCallRecvMsgSize(32 * 10e6)
+	resp, err := console.Rpc.Build(ctx, builderConfig.request, maxSizeOption)
 	if err != nil {
 		l.Error("[RPC] failed to build agent: %v", err)
 		return
@@ -294,16 +297,15 @@ func build() {
 	l.Success("build complete. saved to %s", out.Name())
 	// save to agents table
 	agent := &clientpb.Agent{
-		AgentId:   builderConfig.ID,
-		Name:      builderConfig.request.Options["name"],
-		Version:   builderConfig.version,
-		OS:        builderConfig.request.Options["os"],
-		Arch:      builderConfig.request.Options["arch"],
-		Host:      builderConfig.request.Options["host"],
-		Port:      builderConfig.request.Options["port"],
-		Builder:   builderConfig.builderID,
-		File:      out.Name(),
-		CreatedAt: time.Now().Format(time.RFC850),
+		AgentId: builderConfig.ID,
+		Name:    builderConfig.request.Options["name"],
+		Version: builderConfig.version,
+		OS:      builderConfig.request.Options["os"],
+		Arch:    builderConfig.request.Options["arch"],
+		Host:    builderConfig.request.Options["host"],
+		Port:    builderConfig.request.Options["port"],
+		Builder: builderConfig.builderID,
+		File:    out.Name(),
 	}
 	if _, err = console.Rpc.NewAgent(ctx, agent); err != nil {
 		l.Error("%v", err)
