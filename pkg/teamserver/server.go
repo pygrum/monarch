@@ -34,7 +34,9 @@ type MonarchServer struct {
 }
 
 func New() (*MonarchServer, error) {
-	return &MonarchServer{}, nil
+	return &MonarchServer{
+		builderClients: make(map[string]rpcpb.BuilderClient),
+	}, nil
 }
 
 func (s *MonarchServer) Agents(_ context.Context, req *clientpb.AgentRequest) (*clientpb.Agents, error) {
@@ -79,23 +81,21 @@ func (s *MonarchServer) NewAgent(_ context.Context, agent *clientpb.Agent) (*cli
 			return nil, fmt.Errorf("duplicate agent names - choose a different name, or delete the other agent")
 		}
 	}
-	createdAt, _ := time.Parse(time.RFC850, agent.CreatedAt)
 	a = &db.Agent{
-		AgentID:   agent.AgentId,
-		Name:      agent.Name,
-		Version:   agent.Version,
-		OS:        agent.OS,
-		Arch:      agent.Arch,
-		Host:      agent.Host,
-		Port:      agent.Port,
-		Builder:   agent.Builder,
-		File:      agent.File,
-		CreatedAt: createdAt,
+		AgentID: agent.AgentId,
+		Name:    agent.Name,
+		Version: agent.Version,
+		OS:      agent.OS,
+		Arch:    agent.Arch,
+		Host:    agent.Host,
+		Port:    agent.Port,
+		Builder: agent.Builder,
+		File:    agent.File,
 	}
-	if err := db.Create(agent); err != nil {
+	if err := db.Create(a); err != nil {
 		return nil, fmt.Errorf("failed to save agent instance: %v", err)
 	}
-	return nil, nil
+	return &clientpb.Empty{}, nil
 }
 
 func (s *MonarchServer) RmAgents(_ context.Context, req *clientpb.AgentRequest) (*clientpb.Empty, error) {
@@ -201,7 +201,7 @@ func (s *MonarchServer) SaveProfile(_ context.Context, req *clientpb.SaveProfile
 	if err := db.Create(records); err != nil {
 		return nil, fmt.Errorf("failed to save profile values: %v", err)
 	}
-	return nil, nil
+	return &clientpb.Empty{}, nil
 }
 
 func (s *MonarchServer) LoadProfile(_ context.Context, req *clientpb.SaveProfileRequest) (*clientpb.ProfileData, error) {
@@ -248,19 +248,18 @@ func (s *MonarchServer) RmProfiles(ctx context.Context, req *clientpb.ProfileReq
 	if err := db.Delete(profiles); err != nil {
 		return nil, fmt.Errorf("failed to delete profiles: %v", err)
 	}
-	return nil, nil
+	return &clientpb.Empty{}, nil
 }
 
-func (s *MonarchServer) newBuilderClient(ctx context.Context) (rpcpb.BuilderClient, error) {
-	bid, ok := ctx.Value("builder_id").(string)
-	if !ok {
+func (s *MonarchServer) newBuilderClient(bid string) (rpcpb.BuilderClient, error) {
+	if len(bid) == 0 {
 		return nil, errors.New("agentID+builderID pair was not passed to context with key 'builder_id'")
 	}
 	if client, ok := s.builderClients[bid]; ok {
 		return client, nil
 	}
 	realBid := bid[16:] // first 16 bytes are the agent ID, which we can ignore
-	builderRPC, err := docker.RPCAddress(docker.Cli, ctx, realBid)
+	builderRPC, err := docker.RPCAddress(docker.Cli, context.Background(), realBid)
 	if err != nil {
 		return nil, err
 	}
@@ -273,9 +272,8 @@ func (s *MonarchServer) newBuilderClient(ctx context.Context) (rpcpb.BuilderClie
 	return client, nil
 }
 
-func (s *MonarchServer) killBuilderClient(ctx context.Context) error {
-	bid, ok := ctx.Value("builder_id").(string)
-	if !ok {
+func (s *MonarchServer) killBuilderClient(bid string) error {
+	if len(bid) == 0 {
 		return errors.New("agentID+builderID pair was not passed to context with key 'builder_id'")
 	}
 	delete(s.builderClients, bid)
@@ -285,7 +283,7 @@ func (s *MonarchServer) killBuilderClient(ctx context.Context) error {
 // Options returns build options for each request to start the build process
 // A builder client MUST be sent via ctx otherwise an error is returned.
 func (s *MonarchServer) Options(ctx context.Context, o *builderpb.OptionsRequest) (*builderpb.OptionsReply, error) {
-	client, err := s.newBuilderClient(ctx)
+	client, err := s.newBuilderClient(o.BuilderId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get builder client: %v", err)
 	}
@@ -295,7 +293,7 @@ func (s *MonarchServer) Options(ctx context.Context, o *builderpb.OptionsRequest
 // Build returns a reply for a build request issued by a client.
 // A builder client MUST be sent via ctx otherwise an error is returned.
 func (s *MonarchServer) Build(ctx context.Context, req *builderpb.BuildRequest) (*builderpb.BuildReply, error) {
-	client, err := s.newBuilderClient(ctx)
+	client, err := s.newBuilderClient(req.BuilderId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get builder client: %v", err)
 	}
@@ -303,8 +301,8 @@ func (s *MonarchServer) Build(ctx context.Context, req *builderpb.BuildRequest) 
 	return client.BuildAgent(ctx, req, maxSizeOption)
 }
 
-func (s *MonarchServer) EndBuild(ctx context.Context, _ *clientpb.BuilderRequest) (*clientpb.Empty, error) {
-	return nil, s.killBuilderClient(ctx)
+func (s *MonarchServer) EndBuild(_ context.Context, req *builderpb.BuildRequest) (*clientpb.Empty, error) {
+	return &clientpb.Empty{}, s.killBuilderClient(req.BuilderId)
 }
 
 func (s *MonarchServer) Install(req *clientpb.InstallRequest, stream rpcpb.Monarch_InstallServer) error {
@@ -318,7 +316,7 @@ func (s *MonarchServer) Install(req *clientpb.InstallRequest, stream rpcpb.Monar
 			return fmt.Errorf("failed to save new builder: %v", err)
 		}
 	case clientpb.InstallRequest_Git:
-		if err := install.NewRepo(req.Path, req.Branch, true, stream); err != nil {
+		if err := install.NewRepo(req.Path, req.Branch, req.UseCreds, stream); err != nil {
 			return fmt.Errorf("failed to install %s: %v", req.Path, err)
 		}
 		clonePath := filepath.Join(config.MainConfig.InstallDir, strings.TrimSuffix(filepath.Base(req.Path),
@@ -429,8 +427,8 @@ func (s *MonarchServer) Sessions(_ context.Context, req *clientpb.SessionsReques
 	return pbSessions, nil
 }
 
-func (s *MonarchServer) Commands(ctx context.Context, req *builderpb.DescriptionsRequest) (*builderpb.DescriptionsReply, error) {
-	client, err := s.newBuilderClient(ctx)
+func (s *MonarchServer) Commands(_ context.Context, req *builderpb.DescriptionsRequest) (*builderpb.DescriptionsReply, error) {
+	client, err := s.newBuilderClient(req.BuilderId)
 	if err != nil {
 		return nil, err
 	}
