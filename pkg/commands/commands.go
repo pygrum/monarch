@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/pygrum/monarch/pkg/console"
 	"github.com/pygrum/monarch/pkg/log"
+	"github.com/pygrum/monarch/pkg/protobuf/builderpb"
 	"github.com/pygrum/monarch/pkg/protobuf/clientpb"
 	"github.com/spf13/cobra"
 	"strconv"
@@ -196,8 +197,9 @@ func exit(short string, menuType string) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			switch mt {
 			case "build":
-				ctx := context.WithValue(ctx, "builder_id", builderConfig.ID+builderConfig.builderID)
-				if _, err := console.Rpc.EndBuild(ctx, nil); err != nil {
+				if _, err := console.Rpc.EndBuild(ctx, &builderpb.BuildRequest{
+					BuilderId: builderConfig.ID + builderConfig.builderID,
+				}); err != nil {
 					cLogger.Error("failed to delete builder client for %s: %v", builderConfig.builderID, err)
 					return
 				}
