@@ -12,6 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"net"
 )
 
@@ -56,7 +57,8 @@ func Run(rootCmd func() *cobra.Command) error {
 	}()
 
 	// new internal grpc client
-	conn, err := grpc.Dial(fmt.Sprintf("localhost:%d", config.MainConfig.MultiplayerPort))
+	conn, err := grpc.Dial(fmt.Sprintf("localhost:%d", config.MainConfig.MultiplayerPort),
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return err
 	}
