@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"context"
 	"encoding/binary"
 	"github.com/google/uuid"
 	"github.com/pygrum/monarch/pkg/console"
@@ -25,8 +24,8 @@ func useCmd(id int) {
 		return
 	}
 	sessionInfo := ss.Sessions[0]
-	ctx = context.WithValue(ctx, "builder_id", sessionInfo)
-	descriptions, err := console.Rpc.Commands(ctx, &builderpb.DescriptionsRequest{})
+	descriptions, err := console.Rpc.Commands(ctx,
+		&builderpb.DescriptionsRequest{BuilderId: sessionInfo.AgentId + sessionInfo.BuilderId})
 	if err != nil {
 		cLogger.Error("failed to acquire command descriptions (rpc): %v", err)
 		return
@@ -116,5 +115,3 @@ func useCmd(id int) {
 		return rootCmd
 	})
 }
-
-// TODO: multiplayer?
