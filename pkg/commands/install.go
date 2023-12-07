@@ -9,9 +9,10 @@ import (
 
 func installCmd(repoUrl, branch string, useCreds bool) {
 	stream, err := console.Rpc.Install(ctx, &clientpb.InstallRequest{
-		Path:   repoUrl,
-		Source: clientpb.InstallRequest_Git,
-		Branch: branch,
+		Path:     repoUrl,
+		Source:   clientpb.InstallRequest_Git,
+		Branch:   branch,
+		UseCreds: useCreds,
 	})
 	if err != nil {
 		cLogger.Error("%v", err)
@@ -23,7 +24,8 @@ func installCmd(repoUrl, branch string, useCreds bool) {
 			break
 		}
 		if err != nil {
-			cLogger.Error("failed to receive notification: %v", err)
+			cLogger.Error("install failed: %v", err)
+			break
 		}
 		log.NumericalLevel(cLogger, uint16(notif.LogLevel), notif.Msg)
 	}
