@@ -2,6 +2,9 @@ package commands
 
 import (
 	"encoding/binary"
+	"os"
+	"path/filepath"
+
 	"github.com/google/uuid"
 	"github.com/pygrum/monarch/pkg/console"
 	"github.com/pygrum/monarch/pkg/handler/http"
@@ -9,8 +12,7 @@ import (
 	"github.com/pygrum/monarch/pkg/protobuf/clientpb"
 	"github.com/pygrum/monarch/pkg/transport"
 	"github.com/spf13/cobra"
-	"os"
-	"path/filepath"
+	"google.golang.org/grpc"
 )
 
 func useCmd(id int) {
@@ -87,7 +89,8 @@ func useCmd(id int) {
 						Args:      byteArgs,
 					}
 					go func() {
-						resp, err := console.Rpc.Send(ctx, req)
+						maxSizeOption := grpc.MaxCallRecvMsgSize(32 * 10e6)
+						resp, err := console.Rpc.Send(ctx, req, maxSizeOption)
 						if err != nil {
 							http.TranLogger.Error("%v", err)
 						}
