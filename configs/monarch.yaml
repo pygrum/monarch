@@ -1,8 +1,8 @@
 # Default configuration for monarch. Consider changing these values after installation (~/.monarch/monarch.yaml)
 debug: false
 loglevel: 2
-certfile: monarch.crt # cert file relative to monarch home dir
-keyfile: monarch.key
+certfile: monarch-cert.pem # cert file relative to monarch home dir
+keyfile: monarch-key.pem
 interface: 0.0.0.0
 
 httpport: 8000
