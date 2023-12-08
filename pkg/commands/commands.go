@@ -3,12 +3,13 @@ package commands
 import (
 	"context"
 	"fmt"
+	"strconv"
+
 	"github.com/pygrum/monarch/pkg/console"
 	"github.com/pygrum/monarch/pkg/log"
 	"github.com/pygrum/monarch/pkg/protobuf/builderpb"
 	"github.com/pygrum/monarch/pkg/protobuf/clientpb"
 	"github.com/spf13/cobra"
-	"strconv"
 )
 
 var (
@@ -231,7 +232,8 @@ func info(systemInfo *clientpb.Registration) *cobra.Command {
 			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "UID:", systemInfo.UID))
 			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "GID:", systemInfo.GID))
 			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "PID:", systemInfo.PID))
-			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "Home Directory:", systemInfo.HomeDir))
+			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "Home directory:", systemInfo.HomeDir))
+			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "IP address:", systemInfo.IPAddress))
 			_ = w.Flush()
 			fmt.Println()
 		},

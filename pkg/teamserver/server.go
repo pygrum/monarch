@@ -2,9 +2,20 @@ package teamserver
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
+	"math"
+	"net"
+	"os"
+	"path/filepath"
+	"slices"
+	"strings"
+	"time"
+
 	"github.com/pygrum/monarch/pkg/config"
+	"github.com/pygrum/monarch/pkg/crypto"
 	"github.com/pygrum/monarch/pkg/db"
 	"github.com/pygrum/monarch/pkg/docker"
 	"github.com/pygrum/monarch/pkg/handler/http"
@@ -14,24 +25,20 @@ import (
 	"github.com/pygrum/monarch/pkg/protobuf/rpcpb"
 	"github.com/pygrum/monarch/pkg/transport"
 	"github.com/pygrum/monarch/pkg/utils"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
-	"net"
-	"os"
-	"path/filepath"
-	"slices"
-	"strings"
-	"time"
-)
-
-var (
-	NotifQueue http.Queue
 )
 
 type MonarchServer struct {
 	rpcpb.UnimplementedMonarchServer
 	builderClients map[string]rpcpb.BuilderClient
 }
+
+var (
+	grpcServer *grpc.Server
+)
 
 func New() (*MonarchServer, error) {
 	return &MonarchServer{
@@ -306,6 +313,7 @@ func (s *MonarchServer) EndBuild(_ context.Context, req *builderpb.BuildRequest)
 }
 
 func (s *MonarchServer) Install(req *clientpb.InstallRequest, stream rpcpb.Monarch_InstallServer) error {
+	user.NewUserClient()
 	switch req.Source {
 	case clientpb.InstallRequest_Local:
 		builder, err := install.Setup(req.Path, stream)
@@ -470,40 +478,19 @@ func (s *MonarchServer) Notify(req *clientpb.NotifyRequest, stream rpcpb.Monarch
 		return errors.New("player ID cannot be blank")
 	}
 	for {
-		notification := NotifQueue.Dequeue().(*rpcpb.PlayerNotification)
+		notification := http.NotifQueue.Dequeue().(*rpcpb.PlayerNotification)
 		// blank player ID means broadcast
 		if notification.PlayerId == playerID || notification.PlayerId == "" {
 			_ = stream.Send(notification)
 		} else {
 			// Enqueue notification again since we consumed it by dequeueing
-			_ = NotifQueue.Enqueue(notification)
+			_ = http.NotifQueue.Enqueue(notification)
 		}
 	}
 }
 
-type NotificationQueue struct {
-	Channel chan *rpcpb.PlayerNotification
-}
-
-func (r *NotificationQueue) Enqueue(req interface{}) error {
-	select {
-	case r.Channel <- req.(*rpcpb.PlayerNotification):
-		return nil
-	default:
-		return fmt.Errorf("queue is full - max capacity of 10")
-	}
-}
-
-func (r *NotificationQueue) Dequeue() interface{} {
-	// Must block, as we wait for a request to queue
-	select {
-	case req := <-r.Channel:
-		return req
-	}
-}
-
-func (r *NotificationQueue) Size() int {
-	return len(r.Channel)
+func Stop() {
+	grpcServer.Stop()
 }
 
 func Start() error {
@@ -511,9 +498,13 @@ func Start() error {
 	if err != nil {
 		return err
 	}
-	var opts []grpc.ServerOption
+	creds := credentials.NewTLS(serverTlsConfig())
+	opts := []grpc.ServerOption{
+		grpc.Creds(creds),
+		grpc.MaxRecvMsgSize(math.MaxInt32),
+	}
 	// TODO: fetch key pair and create credentials with credentials.NewTLS
-	grpcServer := grpc.NewServer(opts...)
+	grpcServer = grpc.NewServer(opts...)
 	srv, err := New()
 	if err != nil {
 		return err
@@ -521,4 +512,30 @@ func Start() error {
 	rpcpb.RegisterMonarchServer(grpcServer, srv)
 	// deliberately blocking
 	return grpcServer.Serve(lis)
+}
+
+func serverTlsConfig() *tls.Config {
+	caCert, _, err := crypto.CertificateAuthority()
+	if err != nil {
+		logrus.Fatalf("could not retrieve CA certificate: %v", err)
+	}
+	caCertPool := x509.NewCertPool()
+	caCertPool.AddCert(caCert)
+
+	certBlock, keyBlock, err := config.ServerCertificates()
+	if err != nil {
+		logrus.Fatalf("couldn't fetch server server certificate: %v", err)
+	}
+	cert, err := tls.X509KeyPair(certBlock, keyBlock)
+	if err != nil {
+		logrus.Fatalf("couldn't load key pair: %v", err)
+	}
+	return &tls.Config{
+		RootCAs: caCertPool,
+		// below checks whether client certs were signed by a RootCA, and nothing else
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		ClientCAs:    caCertPool,
+		Certificates: []tls.Certificate{cert},
+		MinVersion:   tls.VersionTLS13,
+	}
 }

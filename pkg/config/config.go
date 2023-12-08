@@ -4,17 +4,21 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
-	"github.com/goccy/go-yaml"
 	"os"
 	"path/filepath"
+
+	"github.com/goccy/go-yaml"
 )
 
 var (
 	MainConfig        MonarchConfig
+	ClientConfig      MonarchClientConfig
 	MonarchConfigFile string
 )
 
+// only used by monarch itself, not clients
 type MonarchConfig struct {
 	// Set monarch logging level, which can be one of: debug (1), informational (2), warning (3), fatal (4)
 	LogLevel uint16
@@ -47,6 +51,15 @@ type MonarchConfig struct {
 	MysqlAddress          string
 	MysqlUsername         string
 	MysqlPassword         string
+}
+
+type MonarchClientConfig struct {
+	UUID    string `json:"uuid"`
+	Name    string `json:"name"`
+	RHost   string `json:"rhost"`
+	RPort   int    `json:"rport"`
+	CertPEM []byte `json:"cert_pem"`
+	KeyPEM  []byte `json:"key_pem"`
 }
 
 type ProjectConfig struct {
@@ -94,7 +107,7 @@ type ProjectConfigBuildArg struct {
 	Choices     []string
 }
 
-func Init() {
+func Initialize() {
 	home, _ := os.UserHomeDir()
 	MonarchConfigFile = filepath.Join(home, ".monarch", "monarch.yaml")
 
@@ -106,6 +119,19 @@ func Init() {
 	MainConfig.InstallDir = filepath.Join(home, ".monarch", MainConfig.InstallDir)
 }
 
+// ServerCertificates returns the PEM-encoded monarch server key pair
+func ServerCertificates() ([]byte, []byte, error) {
+	certPEM, err := os.ReadFile(MainConfig.CertFile)
+	if err != nil {
+		return nil, nil, err
+	}
+	keyPEM, err := os.ReadFile(MainConfig.CertFile)
+	if err != nil {
+		return nil, nil, err
+	}
+	return certPEM, keyPEM, nil
+}
+
 // YamlConfig will unmarshal yaml data into the provided template pointer.
 func YamlConfig(path string, config interface{}) error {
 	data, err := os.ReadFile(path)
@@ -113,4 +139,12 @@ func YamlConfig(path string, config interface{}) error {
 		return err
 	}
 	return yaml.Unmarshal(data, config)
+}
+
+func JsonConfig(path string, config interface{}) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, config)
 }

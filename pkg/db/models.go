@@ -1,8 +1,9 @@
 package db
 
 import (
-	"gorm.io/gorm"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type Builder struct {
@@ -10,7 +11,7 @@ type Builder struct {
 	BuilderID   string `gorm:"primaryKey"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
-	Name        string // This is technically the agent name and is used as so
+	Name        string `gorm:"unique"` // This is technically the agent name and is used as so
 	Version     string
 	Author      string
 	Url         string
@@ -39,7 +40,7 @@ type Agent struct {
 // Profile is used to save build configurations
 type Profile struct {
 	gorm.Model
-	Name      string
+	Name      string `gorm:"unique"`
 	BuilderID string
 }
 
@@ -49,4 +50,10 @@ type ProfileRecord struct {
 	Profile string
 	Name    string
 	Value   string
+}
+
+type Player struct {
+	UUID     string `gorm:"primaryKey"`
+	Username string `gorm:"unique"`
+	ClientCA string // base64 representation of client certificate for mTLS
 }

@@ -2,6 +2,8 @@ package db
 
 import (
 	"fmt"
+
+	"github.com/google/uuid"
 	"github.com/pygrum/monarch/pkg/config"
 	"github.com/pygrum/monarch/pkg/log"
 	"gorm.io/driver/mysql"
@@ -13,9 +15,8 @@ var db *gorm.DB
 var l log.Logger
 
 // Initialize database
-func Initialize() {
+func Initialize() (serverConsoleUID string) {
 	l, _ = log.NewLogger(log.ConsoleLogger, "")
-	config.Init()
 	conf := config.MainConfig
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/monarch?charset=utf8mb4&parseTime=True&loc=Local",
 		conf.MysqlUsername, conf.MysqlPassword, conf.MysqlAddress)
@@ -27,9 +28,23 @@ func Initialize() {
 	if err != nil {
 		l.Fatal("failed to connect to database: %v. Monarch cannot continue to operate", err)
 	}
-	if err = db.AutoMigrate(&Builder{}, &Agent{}, &Profile{}, &ProfileRecord{}); err != nil {
+	if err = db.AutoMigrate(&Builder{}, &Agent{}, &Player{}, &Profile{}, &ProfileRecord{}); err != nil {
 		l.Fatal("failed to migrate schema: %v. Monarch cannot continue to operate", err)
 	}
+	consoleUser := &Player{
+		UUID:     "console",
+		Username: "console",
+	}
+	uid := uuid.New().String()
+	if result := db.First(consoleUser); result.RowsAffected == 0 {
+		if result = db.Create(&Player{
+			UUID:     uid,
+			Username: "console",
+		}); result.Error != nil {
+			l.Fatal("could not create default 'console' user: %v", err)
+		}
+	}
+	return uid
 }
 
 func Create(v interface{}) error {
