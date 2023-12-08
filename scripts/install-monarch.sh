@@ -55,15 +55,15 @@ docker run -dit --network ${MONARCH_NET} --ip 172.20.0.3 -e "MYSQL_ROOT_PASSWORD
 
 cp ../configs/monarch.yaml "${MONARCH_PATH}"
 
-echo "generating self-signed certs ${MONARCH_NAME}.crt ${MONARCH_NAME}.key..."
-openssl req -newkey rsa:4096 \
-            -x509 \
-            -sha256 \
-            -days 3650 \
-            -nodes \
-            -out "${MONARCH_PATH}/${MONARCH_NAME}.crt" \
-            -keyout "${MONARCH_PATH}/${MONARCH_NAME}.key" \
-            -subj "/C=US/ST=New York/L=New York City/O=${MONARCH_NAME}/OU=${MONARCH_NAME}/CN=www.${MONARCH_NAME}.com"
+echo "generating self-signed CA certificate ca-cert.pem ca-key.pem..."
+
+openssl req -x509 \
+  -newkey rsa:4096 \
+  -days 365 \
+  -nodes \
+  -keyout ca-key.pem \
+  -out ca-cert.pem \
+  -subj "/C=US/ST=New York/L=New York City/O=Organisation/OU=Education/CN=monarch"
 
 echo "done"
 
