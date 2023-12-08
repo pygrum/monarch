@@ -313,7 +313,6 @@ func (s *MonarchServer) EndBuild(_ context.Context, req *builderpb.BuildRequest)
 }
 
 func (s *MonarchServer) Install(req *clientpb.InstallRequest, stream rpcpb.Monarch_InstallServer) error {
-	user.NewUserClient()
 	switch req.Source {
 	case clientpb.InstallRequest_Local:
 		builder, err := install.Setup(req.Path, stream)
