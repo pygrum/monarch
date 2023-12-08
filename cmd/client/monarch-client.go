@@ -22,7 +22,7 @@ func init() {
 			if len(configFile) == 0 {
 				home, _ := os.UserHomeDir()
 				// default config
-				configFile = filepath.Join(home, ".monarch", "monarch-client.json")
+				configFile = filepath.Join(home, ".monarch", "monarch-client.config")
 			}
 			if err := config.JsonConfig(configFile, &config.ClientConfig); err != nil {
 				log.Fatalf("couldn't load client config (%s): %v", configFile, err)
