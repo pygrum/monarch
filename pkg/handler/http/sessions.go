@@ -2,17 +2,16 @@ package http
 
 import (
 	"fmt"
-	"github.com/golang-jwt/jwt/v4"
-	"github.com/google/uuid"
-	"github.com/pygrum/monarch/pkg/config"
-	"github.com/pygrum/monarch/pkg/coop"
-	"github.com/pygrum/monarch/pkg/db"
-	"github.com/pygrum/monarch/pkg/protobuf/rpcpb"
-	"github.com/pygrum/monarch/pkg/teamserver"
-	"github.com/pygrum/monarch/pkg/transport"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
+	"github.com/pygrum/monarch/pkg/config"
+	"github.com/pygrum/monarch/pkg/db"
+	"github.com/pygrum/monarch/pkg/protobuf/rpcpb"
+	"github.com/pygrum/monarch/pkg/transport"
 )
 
 var (
@@ -27,7 +26,6 @@ type HTTPSession struct {
 	Agent         *db.Agent
 	LastActive    time.Time
 	Status        string
-	Player        *coop.Player // nil if console is using it
 	lock          sync.Mutex
 	Authenticated bool
 	Info          transport.Registration
@@ -68,7 +66,6 @@ func (s *sessions) newSession(agent *db.Agent, connectInfo *transport.Registrati
 		RequestQueue:  NewRequestQueue(),
 		ResponseQueue: NewResponseQueue(),
 		Agent:         agent,
-		Player:        &coop.Player{},
 		Info:          *connectInfo,
 		Status:        status,
 		SentRequests:  make(map[string]int),
@@ -82,7 +79,7 @@ func (s *sessions) newSession(agent *db.Agent, connectInfo *transport.Registrati
 	s.sessionMap[id] = newSession
 	s.sortedSessions = append(s.sortedSessions, newSession)
 	s.count += 1 // increment session count
-	_ = teamserver.NotifQueue.Enqueue(&rpcpb.PlayerNotification{
+	_ = NotifQueue.Enqueue(&rpcpb.PlayerNotification{
 		Notification: &rpcpb.Notification{
 			LogLevel: rpcpb.LogLevel_LevelInfo,
 			Msg:      fmt.Sprintf("new session from %s@%s (%s) \n", agent.Name, connectInfo.IPAddress, agent.AgentID),

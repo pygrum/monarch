@@ -3,14 +3,16 @@ package http
 import (
 	"errors"
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/pygrum/monarch/pkg/config"
-	"github.com/pygrum/monarch/pkg/log"
-	"github.com/pygrum/monarch/pkg/transport"
 	"net"
 	"net/http"
 	"strconv"
 	"sync"
+
+	"github.com/gorilla/mux"
+	"github.com/pygrum/monarch/pkg/config"
+	"github.com/pygrum/monarch/pkg/log"
+	"github.com/pygrum/monarch/pkg/protobuf/rpcpb"
+	"github.com/pygrum/monarch/pkg/transport"
 )
 
 const (
@@ -18,6 +20,7 @@ const (
 )
 
 var (
+	NotifQueue  Queue
 	MainHandler *Handler
 	TranLogger  log.Logger
 	fl          log.Logger
@@ -49,6 +52,31 @@ type ResponseQueue struct {
 	channel chan *transport.GenericHTTPResponse
 }
 
+type NotificationQueue struct {
+	Channel chan *rpcpb.PlayerNotification
+}
+
+func (r *NotificationQueue) Enqueue(req interface{}) error {
+	select {
+	case r.Channel <- req.(*rpcpb.PlayerNotification):
+		return nil
+	default:
+		return fmt.Errorf("queue is full - max capacity of 10")
+	}
+}
+
+func (r *NotificationQueue) Dequeue() interface{} {
+	// Must block, as we wait for a request to queue
+	select {
+	case req := <-r.Channel:
+		return req
+	}
+}
+
+func (r *NotificationQueue) Size() int {
+	return len(r.Channel)
+}
+
 func Initialize() {
 	MainHandler = NewHandler()
 	TranLogger, _ = log.NewLogger(log.TransientLogger, "")
@@ -58,6 +86,10 @@ func Initialize() {
 	if err != nil {
 		TranLogger.Warn("could not create file logger: %v", err)
 	}
+}
+
+func ClientInitialize() {
+	TranLogger, _ = log.NewLogger(log.TransientLogger, "")
 }
 
 func (r *RequestQueue) Enqueue(req interface{}) error {

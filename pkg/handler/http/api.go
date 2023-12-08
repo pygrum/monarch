@@ -3,6 +3,12 @@ package http
 import (
 	"encoding/json"
 	"errors"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	"time"
+
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/gorilla/mux"
 	"github.com/pygrum/monarch/pkg/db"
@@ -10,11 +16,6 @@ import (
 	"github.com/pygrum/monarch/pkg/protobuf/builderpb"
 	"github.com/pygrum/monarch/pkg/protobuf/clientpb"
 	"github.com/pygrum/monarch/pkg/transport"
-	"io"
-	"net/http"
-	"os"
-	"path/filepath"
-	"time"
 )
 
 const (
@@ -74,7 +75,6 @@ func (s *sessions) loginHandler(w http.ResponseWriter, r *http.Request) {
 	// allows agent to use cookie from first request for subsequent ones
 	http.SetCookie(w, c)
 	w.WriteHeader(http.StatusOK)
-	TranLogger.Info("new session from %s - id: %s\n", r.RemoteAddr, agent.AgentID)
 }
 
 // http://host:port/
