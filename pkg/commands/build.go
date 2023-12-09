@@ -296,7 +296,6 @@ func build() {
 	}
 	l.Success("build complete. saved to %s", out.Name())
 	// save to agents table
-	if len()
 	agent := &clientpb.Agent{
 		AgentId:   builderConfig.ID,
 		Name:      builderConfig.request.Options["name"],
