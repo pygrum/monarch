@@ -41,13 +41,12 @@ func NamedMenu(name string, commands func() *cobra.Command) {
 // Run entrypoint for the entire application
 func Run(rootCmd func() *cobra.Command, isServer bool) error {
 	var err error
-	var serverUID string
 	var clientConn *grpc.ClientConn
 	monarchServer = &server{
 		App: console.New("monarch"),
 	}
 	if isServer {
-		clientConn, serverUID, err = initMonarchServer()
+		clientConn, err = initMonarchServer()
 		if err != nil {
 			return err
 		}
@@ -59,7 +58,7 @@ func Run(rootCmd func() *cobra.Command, isServer bool) error {
 	}
 	log.Initialize(monarchServer.App.TransientPrintf)
 	Rpc = rpcpb.NewMonarchClient(clientConn)
-	go getNotifications(serverUID)
+	go getNotifications()
 	srvMenu := monarchServer.App.ActiveMenu()
 	srvMenu.SetCommands(rootCmd)
 	monarchServer.App.SetPrintLogo(func(_ *console.Console) {
@@ -80,19 +79,18 @@ func Run(rootCmd func() *cobra.Command, isServer bool) error {
 	return monarchServer.App.Start()
 }
 
-func getNotifications(serverUID string) {
-	var playerID string
-	if len(serverUID) != 0 {
-		playerID = serverUID
-	} else {
-		playerID = config.ClientConfig.UUID
-	}
+func getNotifications() {
+	var playerID, playerName string
+	playerID = config.ClientConfig.UUID
+	playerName = config.ClientConfig.Name
+
 	tl, _ := log.NewLogger(log.TransientLogger, "")
 	stream, err := Rpc.Notify(context.Background(), &clientpb.NotifyRequest{
-		PlayerId: playerID,
+		PlayerId:   playerID,
+		PlayerName: playerName,
 	})
 	if err != nil {
-		tl.Error("cannot get notifications: %v", err)
+		tl.Fatal("can't receive notifications (%v)", err)
 	}
 	for {
 		notif, err := stream.Recv()
@@ -100,22 +98,23 @@ func getNotifications(serverUID string) {
 			tl.Error("notification error: %v", err)
 			return
 		}
-		log.NumericalLevel(tl, uint16(notif.Notification.LogLevel), notif.Notification.Msg)
+		log.NumericalLevel(tl, uint16(notif.LogLevel), notif.Msg)
 	}
 }
 
-func initMonarchServer() (*grpc.ClientConn, string, error) {
-	fmt.Println(config.MainConfig.MultiplayerPort)
+func initMonarchServer() (*grpc.ClientConn, error) {
 	config.Initialize()
 	uid := db.Initialize()
 	http.Initialize()
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", config.MainConfig.MultiplayerPort))
+	config.ClientConfig.UUID = uid
+	config.ClientConfig.Name = "console"
+	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:9999"))
 	if err != nil {
 		logrus.Fatalf("couldn't listen on localhost: %v", err)
 	}
 	grpcServer, err := newMonarchServer()
 	if err != nil {
-		return nil, uid, err
+		return nil, err
 	}
 	go func() {
 		if err = grpcServer.Serve(lis); err != nil {
@@ -124,12 +123,12 @@ func initMonarchServer() (*grpc.ClientConn, string, error) {
 	}()
 
 	// new internal grpc client
-	conn, err := grpc.Dial(fmt.Sprintf("localhost:%d", config.MainConfig.MultiplayerPort),
+	conn, err := grpc.Dial(fmt.Sprintf("localhost:9999"),
 		grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return nil, uid, err
+		return nil, err
 	}
-	return conn, uid, nil
+	return conn, nil
 }
 
 func initMonarchClient() (*grpc.ClientConn, error) {
@@ -147,7 +146,7 @@ func initMonarchClient() (*grpc.ClientConn, error) {
 }
 
 func newMonarchServer() (*grpc.Server, error) {
-	http.NotifQueue = &http.NotificationQueue{Channel: make(chan *rpcpb.PlayerNotification, 10)}
+	http.NotifQueues = make(map[string]http.Queue)
 	// TODO: fetch key pair and create credentials with credentials.NewTLS
 	grpcServer := grpc.NewServer()
 	srv, err := teamserver.New()
