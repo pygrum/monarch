@@ -105,10 +105,14 @@ func getNotifications(serverUID string) {
 }
 
 func initMonarchServer() (*grpc.ClientConn, string, error) {
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", config.MainConfig.MultiplayerPort))
+	fmt.Println(config.MainConfig.MultiplayerPort)
 	config.Initialize()
 	uid := db.Initialize()
 	http.Initialize()
+	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", config.MainConfig.MultiplayerPort))
+	if err != nil {
+		logrus.Fatalf("couldn't listen on localhost: %v", err)
+	}
 	grpcServer, err := newMonarchServer()
 	if err != nil {
 		return nil, uid, err
@@ -150,7 +154,6 @@ func newMonarchServer() (*grpc.Server, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new teamserver: %v", err)
 	}
-
 	rpcpb.RegisterMonarchServer(grpcServer, srv)
 	return grpcServer, nil
 }
