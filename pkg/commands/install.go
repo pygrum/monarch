@@ -8,7 +8,7 @@ import (
 )
 
 func installCmd(repoUrl, branch string, useCreds bool) {
-	stream, err := console.Rpc.Install(CTX, &clientpb.InstallRequest{
+	stream, err := console.Rpc.Install(ctx, &clientpb.InstallRequest{
 		Path:     repoUrl,
 		Source:   clientpb.InstallRequest_Git,
 		Branch:   branch,

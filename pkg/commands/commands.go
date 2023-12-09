@@ -3,8 +3,10 @@ package commands
 import (
 	"context"
 	"fmt"
+	"github.com/pygrum/monarch/pkg/completion"
 	"github.com/pygrum/monarch/pkg/config"
 	"github.com/pygrum/monarch/pkg/crypto"
+	"github.com/rsteube/carapace"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/metadata"
 	"strconv"
@@ -17,7 +19,7 @@ import (
 )
 
 var (
-	CTX     = context.Background()
+	ctx     = context.Background()
 	cLogger log.Logger
 )
 
@@ -35,7 +37,7 @@ func InitCTX() {
 	}
 	m["challenge"] = challenge
 	md := metadata.New(m)
-	CTX = metadata.NewOutgoingContext(CTX, md)
+	ctx = metadata.NewOutgoingContext(ctx, md)
 }
 
 func ServerConsoleCommands() *cobra.Command {
@@ -57,6 +59,8 @@ func ServerConsoleCommands() *cobra.Command {
 			playersCmd(args)
 		},
 	}
+	carapace.Gen(cmdPlayers).PositionalCompletion(completion.Players())
+
 	var name, lhost string
 	cmdPlayersNew := &cobra.Command{
 		Use:   "new",
@@ -76,6 +80,8 @@ func ServerConsoleCommands() *cobra.Command {
 			playersKickCmd(args[0])
 		},
 	}
+	carapace.Gen(cmdPlayersKick).PositionalCompletion(completion.Players())
+
 	cmdPlayers.AddCommand(cmdPlayersNew, cmdPlayersKick)
 	root.AddCommand(cmdCoop, cmdPlayers)
 	return root
@@ -95,13 +101,14 @@ func ConsoleCommands() *cobra.Command {
 	}
 
 	cmdBuild := &cobra.Command{
-		Use:   "build [agent]",
-		Short: "start the interactive builder for an installed agent",
+		Use:   "build [agent-type]",
+		Short: "start the interactive session with an installed builder",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			buildCmd(args[0])
 		},
 	}
+	carapace.Gen(cmdBuild).PositionalCompletion(completion.Builders(ctx))
 
 	cmdBuilders := &cobra.Command{
 		Use:   "builders [names...]",
@@ -110,6 +117,8 @@ func ConsoleCommands() *cobra.Command {
 			buildersCmd(args)
 		},
 	}
+	carapace.Gen(cmdBuilders).PositionalCompletion(completion.Builders(ctx))
+
 	cmdAgents := &cobra.Command{
 		Use:   "agents [flags] AGENTS...",
 		Short: "list compiled agents",
@@ -117,6 +126,8 @@ func ConsoleCommands() *cobra.Command {
 			agentsCmd(args)
 		},
 	}
+	carapace.Gen(cmdAgents).PositionalCompletion(completion.Agents(ctx))
+
 	cmdAgentsRm := &cobra.Command{
 		Use:   "rm [flags] AGENTS...",
 		Short: "remove compiled agents from listing",
@@ -125,6 +136,7 @@ func ConsoleCommands() *cobra.Command {
 			cmdRm(args)
 		},
 	}
+	carapace.Gen(cmdAgentsRm).PositionalCompletion(completion.Agents(ctx))
 	cmdAgents.AddCommand(cmdAgentsRm)
 
 	cmdSessions := &cobra.Command{
@@ -134,6 +146,7 @@ func ConsoleCommands() *cobra.Command {
 			sessionsCmd(args)
 		},
 	}
+	carapace.Gen(cmdSessions).PositionalCompletion(completion.Sessions(ctx))
 
 	cmdUse := &cobra.Command{
 		Use:   "use [id]",
@@ -148,6 +161,8 @@ func ConsoleCommands() *cobra.Command {
 			useCmd(id)
 		},
 	}
+	carapace.Gen(cmdUse).PositionalCompletion(completion.Sessions(ctx))
+
 	var httpStop bool
 	cmdHttp := &cobra.Command{
 		Use:   "http",
@@ -193,6 +208,8 @@ func ConsoleCommands() *cobra.Command {
 			localCmd(args[0])
 		},
 	}
+	carapace.Gen(cmdLocal).PositionalCompletion(carapace.ActionFiles())
+
 	// it's a subcommand of the 'install' command
 	cmdInstall.AddCommand(cmdLocal)
 
@@ -205,6 +222,8 @@ func ConsoleCommands() *cobra.Command {
 			uninstallCmd(args, purge)
 		},
 	}
+	carapace.Gen(cmdUninstall).PositionalCompletion(completion.Builders(ctx))
+
 	cmdUninstall.Flags().BoolVarP(&purge, "delete-data", "p", false, "delete the source"+
 		" folder that was saved to disk when installed")
 	cmdVersion := &cobra.Command{
@@ -224,6 +243,8 @@ func ConsoleCommands() *cobra.Command {
 			stageCmd(args, format, stageAs)
 		},
 	}
+	carapace.Gen(cmdStage).PositionalCompletion(completion.Agents(ctx))
+
 	cmdStage.Flags().StringVar(&stageAs, "as", "", "the file to stage your agent as (e.g. index.php)")
 	cmdStage.Flags().StringVarP(&format, "format", "f", "",
 		"the format of the staged file - shellcode")
@@ -236,6 +257,8 @@ func ConsoleCommands() *cobra.Command {
 			unstageCmd(args[0])
 		},
 	}
+	carapace.Gen(cmdUnstage).PositionalCompletion(completion.UnStage(ctx))
+
 	cmdClear := &cobra.Command{
 		Use:   "clear",
 		Short: "clear the terminal screen",
@@ -263,13 +286,13 @@ func exit(short string, menuType string, v ...any) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			switch mt {
 			case "build":
-				if _, err := console.Rpc.EndBuild(CTX, &builderpb.BuildRequest{
+				if _, err := console.Rpc.EndBuild(ctx, &builderpb.BuildRequest{
 					BuilderId: builderConfig.ID + builderConfig.builderID,
 				}); err != nil {
 					cLogger.Error("failed to delete builder client for %s: %v", builderConfig.builderID, err)
 				}
 			case "use":
-				if _, err := console.Rpc.FreeSession(CTX, &clientpb.FreeSessionRequest{
+				if _, err := console.Rpc.FreeSession(ctx, &clientpb.FreeSessionRequest{
 					SessionId: v[0].(int32), PlayerName: config.ClientConfig.Name,
 				}); err != nil {
 					cLogger.Error("couldn't free session: %v", err)

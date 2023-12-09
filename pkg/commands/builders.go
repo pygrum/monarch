@@ -16,7 +16,7 @@ func init() {
 
 // buildersCmd lists installed builders
 func buildersCmd(args []string) {
-	builders, err := console.Rpc.Builders(CTX, &clientpb.BuilderRequest{BuilderId: args})
+	builders, err := console.Rpc.Builders(ctx, &clientpb.BuilderRequest{BuilderId: args})
 	if err != nil {
 		cLogger.Error("failed to retrieve builders: %v", err)
 		return

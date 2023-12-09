@@ -9,12 +9,12 @@ import (
 // httpCmd starts an HTTP listener for incoming connections, whether it be from c2 profiles or agents directly
 func httpCmd(stop bool) {
 	if stop {
-		if _, err := console.Rpc.HttpClose(CTX, &clientpb.Empty{}); err != nil {
+		if _, err := console.Rpc.HttpClose(ctx, &clientpb.Empty{}); err != nil {
 			cLogger.Error("%v", err)
 		}
 		return
 	}
-	notif, err := console.Rpc.HttpOpen(CTX, &clientpb.Empty{})
+	notif, err := console.Rpc.HttpOpen(ctx, &clientpb.Empty{})
 	if err != nil {
 		cLogger.Error("%v", err)
 	}
@@ -24,12 +24,12 @@ func httpCmd(stop bool) {
 // same as httpCmd but starts an HTTPS listener
 func httpsCmd(stop bool) {
 	if stop {
-		if _, err := console.Rpc.HttpsClose(CTX, &clientpb.Empty{}); err != nil {
+		if _, err := console.Rpc.HttpsClose(ctx, &clientpb.Empty{}); err != nil {
 			cLogger.Error("%v", err)
 		}
 		return
 	}
-	notif, err := console.Rpc.HttpsOpen(CTX, &clientpb.Empty{})
+	notif, err := console.Rpc.HttpsOpen(ctx, &clientpb.Empty{})
 	if err != nil {
 		cLogger.Error("%v", err)
 	}

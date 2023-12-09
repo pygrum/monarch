@@ -6,7 +6,7 @@ import (
 )
 
 func cmdRm(names []string) {
-	if _, err := console.Rpc.RmAgents(CTX, &clientpb.AgentRequest{AgentId: names}); err != nil {
+	if _, err := console.Rpc.RmAgents(ctx, &clientpb.AgentRequest{AgentId: names}); err != nil {
 		cLogger.Error("failed to remove all agents: %v", err)
 		return
 	}

@@ -5,11 +5,13 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"github.com/pygrum/monarch/pkg/completion"
 	"github.com/pygrum/monarch/pkg/config"
 	"github.com/pygrum/monarch/pkg/console"
 	"github.com/pygrum/monarch/pkg/log"
 	"github.com/pygrum/monarch/pkg/protobuf/builderpb"
 	"github.com/pygrum/monarch/pkg/protobuf/clientpb"
+	"github.com/rsteube/carapace"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 	"os"
@@ -43,7 +45,7 @@ func init() {
 
 // buildCmd to start the interactive agent builder
 func buildCmd(builderName string) {
-	builders, err := console.Rpc.Builders(CTX, &clientpb.BuilderRequest{BuilderId: []string{builderName}})
+	builders, err := console.Rpc.Builders(ctx, &clientpb.BuilderRequest{BuilderId: []string{builderName}})
 	if err != nil {
 		cLogger.Error("%v", err)
 		return
@@ -124,7 +126,7 @@ func loadBuildOptions(b *clientpb.Builder) error {
 			Options: make(map[string]string),
 		},
 	}
-	optionsReply, err := console.Rpc.Options(CTX, &builderpb.OptionsRequest{
+	optionsReply, err := console.Rpc.Options(ctx, &builderpb.OptionsRequest{
 		BuilderId: builderConfig.ID + b.BuilderId,
 	})
 	if err != nil {
@@ -262,7 +264,7 @@ func build() {
 		}
 		return
 	}
-	buildCtx, cancel := context.WithTimeout(CTX, 1*time.Minute)
+	buildCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
 	defer cancel()
 	// uses both agent id and builder id for unique identifier for each build session
 	// receive large bins
@@ -308,7 +310,7 @@ func build() {
 		File:      out.Name(),
 		CreatedBy: config.ClientConfig.UUID,
 	}
-	if _, err = console.Rpc.NewAgent(CTX, agent); err != nil {
+	if _, err = console.Rpc.NewAgent(ctx, agent); err != nil {
 		l.Error("%v", err)
 		return
 	}
@@ -319,6 +321,17 @@ func agentID() string {
 	idBytes := make([]byte, 8) // 16l
 	_, _ = rand.Read(idBytes)
 	return hex.EncodeToString(idBytes)
+}
+
+func allOptions() []string {
+	var options []string
+	for k := range builderConfig.request.Options {
+		if slices.Contains(immutables, k) {
+			continue
+		}
+		options = append(options, k)
+	}
+	return options
 }
 
 func consoleCommands() *cobra.Command {
@@ -332,13 +345,15 @@ func consoleCommands() *cobra.Command {
 		},
 	}
 	cmdSet := &cobra.Command{
-		Use:   "set [option] [value]",
+		Use:   "set OPTION VALUE",
 		Args:  cobra.ExactArgs(2),
 		Short: "set a build option to the provided value",
 		Run: func(cmd *cobra.Command, args []string) {
 			setCmd(args[0], args[1])
 		},
 	}
+	carapace.Gen(cmdSet).PositionalCompletion(completion.Options(allOptions()))
+
 	cmdUnset := &cobra.Command{
 		Use:   "unset [option]",
 		Args:  cobra.ExactArgs(1),
@@ -347,6 +362,8 @@ func consoleCommands() *cobra.Command {
 			unsetCmd(args[0])
 		},
 	}
+	carapace.Gen(cmdUnset).PositionalCompletion(completion.Options(allOptions()))
+
 	cmdBuild := &cobra.Command{
 		Use:   "build",
 		Args:  cobra.NoArgs,

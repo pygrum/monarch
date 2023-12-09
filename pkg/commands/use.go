@@ -17,7 +17,7 @@ import (
 )
 
 func useCmd(id int) {
-	ss, err := console.Rpc.Sessions(CTX, &clientpb.SessionsRequest{IDs: []int32{int32(id)}})
+	ss, err := console.Rpc.Sessions(ctx, &clientpb.SessionsRequest{IDs: []int32{int32(id)}})
 	if err != nil {
 		cLogger.Error("%v", err)
 		return
@@ -27,13 +27,13 @@ func useCmd(id int) {
 		return
 	}
 	sessionInfo := ss.Sessions[0]
-	descriptions, err := console.Rpc.Commands(CTX,
+	descriptions, err := console.Rpc.Commands(ctx,
 		&builderpb.DescriptionsRequest{BuilderId: sessionInfo.AgentId + sessionInfo.BuilderId})
 	if err != nil {
 		cLogger.Error("failed to acquire command descriptions (rpc): %v", err)
 		return
 	}
-	if _, err = console.Rpc.LockSession(CTX, &clientpb.LockSessionRequest{
+	if _, err = console.Rpc.LockSession(ctx, &clientpb.LockSessionRequest{
 		SessionId: sessionInfo.Id, PlayerName: config.ClientConfig.Name}); err != nil {
 		cLogger.Error("couldn't acquire session: %v", err)
 		return
@@ -96,7 +96,7 @@ func useCmd(id int) {
 					}
 					go func() {
 						maxSizeOption := grpc.MaxCallRecvMsgSize(32 * 10e6)
-						resp, err := console.Rpc.Send(CTX, req, maxSizeOption)
+						resp, err := console.Rpc.Send(ctx, req, maxSizeOption)
 						if err != nil {
 							http.TranLogger.Error("%v", err)
 						}

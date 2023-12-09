@@ -2,14 +2,16 @@ package commands
 
 import (
 	"fmt"
+	"github.com/pygrum/monarch/pkg/completion"
 	"github.com/pygrum/monarch/pkg/console"
 	"github.com/pygrum/monarch/pkg/protobuf/clientpb"
+	"github.com/rsteube/carapace"
 	"github.com/spf13/cobra"
 	"strings"
 )
 
 func profilesCmd(names []string) {
-	profiles, err := console.Rpc.Profiles(CTX, &clientpb.ProfileRequest{Name: names, BuilderId: builderConfig.builderID})
+	profiles, err := console.Rpc.Profiles(ctx, &clientpb.ProfileRequest{Name: names, BuilderId: builderConfig.builderID})
 	if err != nil {
 		cLogger.Error("%v", err.Error())
 		return
@@ -24,7 +26,7 @@ func profilesCmd(names []string) {
 }
 
 func profilesSaveCmd(name string) {
-	if _, err := console.Rpc.SaveProfile(CTX, &clientpb.SaveProfileRequest{
+	if _, err := console.Rpc.SaveProfile(ctx, &clientpb.SaveProfileRequest{
 		Name:      name,
 		BuilderId: builderConfig.builderID,
 		Options:   builderConfig.request.Options,
@@ -36,7 +38,7 @@ func profilesSaveCmd(name string) {
 }
 
 func profilesLoadCmd(name string) {
-	profile, err := console.Rpc.LoadProfile(CTX, &clientpb.SaveProfileRequest{
+	profile, err := console.Rpc.LoadProfile(ctx, &clientpb.SaveProfileRequest{
 		Name:       name,
 		BuilderId:  builderConfig.builderID,
 		Immutables: immutables,
@@ -52,7 +54,7 @@ func profilesLoadCmd(name string) {
 }
 
 func profilesRmCmd(names []string) {
-	if _, err := console.Rpc.RmProfiles(CTX, &clientpb.ProfileRequest{Name: names, BuilderId: builderConfig.builderID}); err != nil {
+	if _, err := console.Rpc.RmProfiles(ctx, &clientpb.ProfileRequest{Name: names, BuilderId: builderConfig.builderID}); err != nil {
 		cLogger.Error("%v", err)
 		return
 	}
@@ -67,6 +69,7 @@ func cobraProfilesCmd() *cobra.Command {
 			profilesCmd(args)
 		},
 	}
+	carapace.Gen(cmd).PositionalCompletion(completion.Profiles(ctx, builderConfig.ID+builderConfig.builderID))
 	saveCmd := &cobra.Command{
 		Use:   "save [flags] NAME",
 		Short: "save current build configuration options as a new profile",
@@ -83,6 +86,8 @@ func cobraProfilesCmd() *cobra.Command {
 			profilesLoadCmd(args[0])
 		},
 	}
+	carapace.Gen(loadCmd).PositionalCompletion(completion.Profiles(ctx, builderConfig.ID+builderConfig.builderID))
+
 	rmCmd := &cobra.Command{
 		Use:   "rm [flags] NAMES...",
 		Short: "remove one or more saved profiles",
@@ -91,6 +96,8 @@ func cobraProfilesCmd() *cobra.Command {
 			profilesRmCmd(args)
 		},
 	}
+	carapace.Gen(rmCmd).PositionalCompletion(completion.Profiles(ctx, builderConfig.ID+builderConfig.builderID))
+
 	cmd.AddCommand(saveCmd, loadCmd, rmCmd)
 	return cmd
 }
