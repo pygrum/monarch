@@ -75,7 +75,6 @@ func StartContainer(cli *client.Client, ctx context.Context, builderImageTag str
 	if err = cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
 		return "", err
 	}
-	l.Info("started builder container %s", bContainerName)
 	builderID = resp.ID
 
 	return builderID, nil
