@@ -89,15 +89,16 @@ func (s *MonarchServer) NewAgent(_ context.Context, agent *clientpb.Agent) (*cli
 		}
 	}
 	a = &db.Agent{
-		AgentID: agent.AgentId,
-		Name:    agent.Name,
-		Version: agent.Version,
-		OS:      agent.OS,
-		Arch:    agent.Arch,
-		Host:    agent.Host,
-		Port:    agent.Port,
-		Builder: agent.Builder,
-		File:    agent.File,
+		AgentID:   agent.AgentId,
+		Name:      agent.Name,
+		Version:   agent.Version,
+		OS:        agent.OS,
+		Arch:      agent.Arch,
+		Host:      agent.Host,
+		Port:      agent.Port,
+		Builder:   agent.Builder,
+		File:      agent.File,
+		CreatedBy: agent.CreatedBy,
 	}
 	if err := db.Create(a); err != nil {
 		return nil, fmt.Errorf("failed to save agent instance: %v", err)
@@ -169,7 +170,7 @@ func (s *MonarchServer) Profiles(_ context.Context, req *clientpb.ProfileRequest
 			return nil, fmt.Errorf("failed to find profiles(s): %v", err)
 		}
 	} else {
-		if err := db.Where("builder_id = ?", req.BuilderId).Find(&profiles); err != nil {
+		if err := db.Where("builder_id = ?", req.BuilderId).Find(&profiles).Error; err != nil {
 			return nil, fmt.Errorf("failed to find profiles(s): %v", err)
 		}
 	}
@@ -476,18 +477,32 @@ func (s *MonarchServer) Notify(req *clientpb.NotifyRequest, stream rpcpb.Monarch
 		return errors.New("player ID cannot be blank")
 	}
 	// notify all that you have joined the game (this is done after subbing for notifications, by calling this func)
-	for _, q := range http.NotifQueues {
-		_ = q.Enqueue(&rpcpb.Notification{
+	notifyAll(&rpcpb.Notification{
+		LogLevel: rpcpb.LogLevel_LevelInfo,
+		Msg:      fmt.Sprintf("%s has joined the operation", req.PlayerName),
+	})
+	defer func() {
+		notifyAll(&rpcpb.Notification{
 			LogLevel: rpcpb.LogLevel_LevelInfo,
-			Msg:      fmt.Sprintf("%s has joined the operation", req.PlayerName),
+			Msg:      fmt.Sprintf("%s has left the operation", req.PlayerName),
 		})
-	}
+	}()
 	// Implement a notification queue
 	queue := &http.NotificationQueue{Channel: make(chan *rpcpb.Notification, 10)}
 	http.NotifQueues[playerID] = queue
 	for {
-		notification := queue.Dequeue().(*rpcpb.Notification)
-		_ = stream.Send(notification)
+		select {
+		case <-stream.Context().Done():
+			return nil
+		case notification := <-queue.Channel:
+			_ = stream.Send(notification)
+		}
+	}
+}
+
+func notifyAll(n *rpcpb.Notification) {
+	for _, q := range http.NotifQueues {
+		_ = q.Enqueue(n)
 	}
 }
 
