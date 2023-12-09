@@ -8,7 +8,7 @@ import (
 )
 
 func uninstallCmd(args []string, deleteSource bool) {
-	stream, err := console.Rpc.Uninstall(ctx, &clientpb.UninstallRequest{
+	stream, err := console.Rpc.Uninstall(CTX, &clientpb.UninstallRequest{
 		Builders:     &clientpb.BuilderRequest{BuilderId: args},
 		RemoveSource: deleteSource,
 	})

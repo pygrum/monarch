@@ -9,7 +9,7 @@ import (
 )
 
 func profilesCmd(names []string) {
-	profiles, err := console.Rpc.Profiles(ctx, &clientpb.ProfileRequest{Name: names, BuilderId: builderConfig.builderID})
+	profiles, err := console.Rpc.Profiles(CTX, &clientpb.ProfileRequest{Name: names, BuilderId: builderConfig.builderID})
 	if err != nil {
 		cLogger.Error("%v", err.Error())
 		return
@@ -24,7 +24,7 @@ func profilesCmd(names []string) {
 }
 
 func profilesSaveCmd(name string) {
-	if _, err := console.Rpc.SaveProfile(ctx, &clientpb.SaveProfileRequest{
+	if _, err := console.Rpc.SaveProfile(CTX, &clientpb.SaveProfileRequest{
 		Name:      name,
 		BuilderId: builderConfig.builderID,
 		Options:   builderConfig.request.Options,
@@ -36,7 +36,7 @@ func profilesSaveCmd(name string) {
 }
 
 func profilesLoadCmd(name string) {
-	profile, err := console.Rpc.LoadProfile(ctx, &clientpb.SaveProfileRequest{
+	profile, err := console.Rpc.LoadProfile(CTX, &clientpb.SaveProfileRequest{
 		Name:       name,
 		BuilderId:  builderConfig.builderID,
 		Immutables: immutables,
@@ -52,7 +52,7 @@ func profilesLoadCmd(name string) {
 }
 
 func profilesRmCmd(names []string) {
-	if _, err := console.Rpc.RmProfiles(ctx, &clientpb.ProfileRequest{Name: names, BuilderId: builderConfig.builderID}); err != nil {
+	if _, err := console.Rpc.RmProfiles(CTX, &clientpb.ProfileRequest{Name: names, BuilderId: builderConfig.builderID}); err != nil {
 		cLogger.Error("%v", err)
 		return
 	}

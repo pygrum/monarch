@@ -62,7 +62,8 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/reeflective/readline v1.0.10 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
-	github.com/rsteube/carapace v0.44.1 // indirect
+	github.com/rsteube/carapace v0.46.2 // indirect
+	github.com/rsteube/carapace-shlex v0.1.1 // indirect
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/skeema/knownhosts v1.2.0 // indirect

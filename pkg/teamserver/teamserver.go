@@ -496,6 +496,46 @@ func (s *MonarchServer) Send(_ context.Context, req *clientpb.HTTPRequest) (*cli
 	return resp, nil
 }
 
+func (s *MonarchServer) StageView(context.Context, *clientpb.Empty) (*clientpb.Stage, error) {
+	stage := &clientpb.Stage{
+		Endpoint: config.MainConfig.StageEndpoint,
+		Stage:    make(map[string]*clientpb.StageItem),
+	}
+	for k, v := range *http.Stage.View() {
+		stage.Stage[k] = &clientpb.StageItem{
+			Path:  v.Path,
+			Agent: v.Agent,
+		}
+	}
+	return stage, nil
+}
+
+func (s *MonarchServer) StageAdd(_ context.Context, r *clientpb.StageAddRequest) (*rpcpb.Notification, error) {
+	agent := &db.Agent{}
+	if err := db.FindOneConditional("agent_id = ?", r.Agent, &agent); err != nil {
+		if err = db.FindOneConditional("name = ?", r.Agent, &agent); err != nil {
+			return nil, fmt.Errorf("failed to retrieve the specified agent: %v", err)
+		}
+	}
+	if len(r.Alias) == 0 {
+		r.Alias = filepath.Base(agent.File)
+	}
+	r.Alias = filepath.Base(r.Alias)
+	http.Stage.Add(r.Alias, agent.Name, agent.File)
+	return &rpcpb.Notification{
+		LogLevel: rpcpb.LogLevel_LevelInfo,
+		Msg: fmt.Sprintf(
+			"staged %s on %s",
+			agent.File,
+			strings.ReplaceAll(config.MainConfig.StageEndpoint, "{file}", r.Alias)),
+	}, nil
+}
+
+func (s *MonarchServer) Unstage(_ context.Context, r *clientpb.UnstageRequest) (*clientpb.Empty, error) {
+	http.Stage.Rm(r.Alias)
+	return &clientpb.Empty{}, nil
+}
+
 func (s *MonarchServer) Notify(req *clientpb.NotifyRequest, stream rpcpb.Monarch_NotifyServer) error {
 	playerID := req.PlayerId
 	var authed, kicked bool

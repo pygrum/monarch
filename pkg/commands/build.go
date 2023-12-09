@@ -43,7 +43,7 @@ func init() {
 
 // buildCmd to start the interactive agent builder
 func buildCmd(builderName string) {
-	builders, err := console.Rpc.Builders(ctx, &clientpb.BuilderRequest{BuilderId: []string{builderName}})
+	builders, err := console.Rpc.Builders(CTX, &clientpb.BuilderRequest{BuilderId: []string{builderName}})
 	if err != nil {
 		cLogger.Error("%v", err)
 		return
@@ -124,7 +124,7 @@ func loadBuildOptions(b *clientpb.Builder) error {
 			Options: make(map[string]string),
 		},
 	}
-	optionsReply, err := console.Rpc.Options(ctx, &builderpb.OptionsRequest{
+	optionsReply, err := console.Rpc.Options(CTX, &builderpb.OptionsRequest{
 		BuilderId: builderConfig.ID + b.BuilderId,
 	})
 	if err != nil {
@@ -262,7 +262,7 @@ func build() {
 		}
 		return
 	}
-	buildCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+	buildCtx, cancel := context.WithTimeout(CTX, 1*time.Minute)
 	defer cancel()
 	// uses both agent id and builder id for unique identifier for each build session
 	// receive large bins
@@ -308,7 +308,7 @@ func build() {
 		File:      out.Name(),
 		CreatedBy: config.ClientConfig.UUID,
 	}
-	if _, err = console.Rpc.NewAgent(ctx, agent); err != nil {
+	if _, err = console.Rpc.NewAgent(CTX, agent); err != nil {
 		l.Error("%v", err)
 		return
 	}

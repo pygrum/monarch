@@ -17,7 +17,7 @@ func sessionsCmd(sessionIDs []string) {
 		}
 		sessIDs[i] = int32(intID)
 	}
-	sessions, err := console.Rpc.Sessions(ctx, &clientpb.SessionsRequest{IDs: sessIDs})
+	sessions, err := console.Rpc.Sessions(CTX, &clientpb.SessionsRequest{IDs: sessIDs})
 	if err != nil {
 		cLogger.Error("%v", err)
 		return

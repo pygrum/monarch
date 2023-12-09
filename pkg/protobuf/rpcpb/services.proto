@@ -56,6 +56,9 @@ service Monarch {
 
   rpc Commands(builderpb.DescriptionsRequest) returns (builderpb.DescriptionsReply) {}
   rpc Send(clientpb.HTTPRequest) returns (clientpb.HTTPResponse) {}
+  rpc StageView(clientpb.Empty) returns (clientpb.Stage) {}
+  rpc StageAdd(clientpb.StageAddRequest) returns (Notification) {}
+  rpc Unstage(clientpb.UnstageRequest) returns (clientpb.Empty) {}
 
   // Notify used for general notifications - likely run from a goroutine
   rpc Notify(clientpb.NotifyRequest) returns (stream Notification) {}

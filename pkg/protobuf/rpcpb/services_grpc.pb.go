@@ -204,6 +204,9 @@ type MonarchClient interface {
 	FreeSession(ctx context.Context, in *clientpb.FreeSessionRequest, opts ...grpc.CallOption) (*clientpb.Empty, error)
 	Commands(ctx context.Context, in *builderpb.DescriptionsRequest, opts ...grpc.CallOption) (*builderpb.DescriptionsReply, error)
 	Send(ctx context.Context, in *clientpb.HTTPRequest, opts ...grpc.CallOption) (*clientpb.HTTPResponse, error)
+	StageView(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*clientpb.Stage, error)
+	StageAdd(ctx context.Context, in *clientpb.StageAddRequest, opts ...grpc.CallOption) (*Notification, error)
+	Unstage(ctx context.Context, in *clientpb.UnstageRequest, opts ...grpc.CallOption) (*clientpb.Empty, error)
 	// Notify used for general notifications - likely run from a goroutine
 	Notify(ctx context.Context, in *clientpb.NotifyRequest, opts ...grpc.CallOption) (Monarch_NotifyClient, error)
 }
@@ -460,6 +463,33 @@ func (c *monarchClient) Send(ctx context.Context, in *clientpb.HTTPRequest, opts
 	return out, nil
 }
 
+func (c *monarchClient) StageView(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*clientpb.Stage, error) {
+	out := new(clientpb.Stage)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/StageView", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *monarchClient) StageAdd(ctx context.Context, in *clientpb.StageAddRequest, opts ...grpc.CallOption) (*Notification, error) {
+	out := new(Notification)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/StageAdd", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *monarchClient) Unstage(ctx context.Context, in *clientpb.UnstageRequest, opts ...grpc.CallOption) (*clientpb.Empty, error) {
+	out := new(clientpb.Empty)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/Unstage", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *monarchClient) Notify(ctx context.Context, in *clientpb.NotifyRequest, opts ...grpc.CallOption) (Monarch_NotifyClient, error) {
 	stream, err := c.cc.NewStream(ctx, &Monarch_ServiceDesc.Streams[2], "/rpcpb.Monarch/Notify", opts...)
 	if err != nil {
@@ -518,6 +548,9 @@ type MonarchServer interface {
 	FreeSession(context.Context, *clientpb.FreeSessionRequest) (*clientpb.Empty, error)
 	Commands(context.Context, *builderpb.DescriptionsRequest) (*builderpb.DescriptionsReply, error)
 	Send(context.Context, *clientpb.HTTPRequest) (*clientpb.HTTPResponse, error)
+	StageView(context.Context, *clientpb.Empty) (*clientpb.Stage, error)
+	StageAdd(context.Context, *clientpb.StageAddRequest) (*Notification, error)
+	Unstage(context.Context, *clientpb.UnstageRequest) (*clientpb.Empty, error)
 	// Notify used for general notifications - likely run from a goroutine
 	Notify(*clientpb.NotifyRequest, Monarch_NotifyServer) error
 	mustEmbedUnimplementedMonarchServer()
@@ -592,6 +625,15 @@ func (UnimplementedMonarchServer) Commands(context.Context, *builderpb.Descripti
 }
 func (UnimplementedMonarchServer) Send(context.Context, *clientpb.HTTPRequest) (*clientpb.HTTPResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Send not implemented")
+}
+func (UnimplementedMonarchServer) StageView(context.Context, *clientpb.Empty) (*clientpb.Stage, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method StageView not implemented")
+}
+func (UnimplementedMonarchServer) StageAdd(context.Context, *clientpb.StageAddRequest) (*Notification, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method StageAdd not implemented")
+}
+func (UnimplementedMonarchServer) Unstage(context.Context, *clientpb.UnstageRequest) (*clientpb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Unstage not implemented")
 }
 func (UnimplementedMonarchServer) Notify(*clientpb.NotifyRequest, Monarch_NotifyServer) error {
 	return status.Errorf(codes.Unimplemented, "method Notify not implemented")
@@ -1011,6 +1053,60 @@ func _Monarch_Send_Handler(srv interface{}, ctx context.Context, dec func(interf
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Monarch_StageView_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(clientpb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MonarchServer).StageView(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpcpb.Monarch/StageView",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MonarchServer).StageView(ctx, req.(*clientpb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Monarch_StageAdd_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(clientpb.StageAddRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MonarchServer).StageAdd(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpcpb.Monarch/StageAdd",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MonarchServer).StageAdd(ctx, req.(*clientpb.StageAddRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Monarch_Unstage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(clientpb.UnstageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MonarchServer).Unstage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpcpb.Monarch/Unstage",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MonarchServer).Unstage(ctx, req.(*clientpb.UnstageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Monarch_Notify_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(clientpb.NotifyRequest)
 	if err := stream.RecvMsg(m); err != nil {
@@ -1118,6 +1214,18 @@ var Monarch_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Send",
 			Handler:    _Monarch_Send_Handler,
+		},
+		{
+			MethodName: "StageView",
+			Handler:    _Monarch_StageView_Handler,
+		},
+		{
+			MethodName: "StageAdd",
+			Handler:    _Monarch_StageAdd_Handler,
+		},
+		{
+			MethodName: "Unstage",
+			Handler:    _Monarch_Unstage_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

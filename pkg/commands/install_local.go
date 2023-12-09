@@ -9,7 +9,7 @@ import (
 
 // installs local repositories / folders
 func localCmd(path string) {
-	stream, err := console.Rpc.Install(ctx, &clientpb.InstallRequest{
+	stream, err := console.Rpc.Install(CTX, &clientpb.InstallRequest{
 		Path:   path,
 		Source: clientpb.InstallRequest_Local,
 	})

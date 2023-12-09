@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	ctx     = context.Background()
+	CTX     = context.Background()
 	cLogger log.Logger
 )
 
@@ -35,7 +35,7 @@ func InitCTX() {
 	}
 	m["challenge"] = challenge
 	md := metadata.New(m)
-	ctx = metadata.NewOutgoingContext(ctx, md)
+	CTX = metadata.NewOutgoingContext(CTX, md)
 }
 
 func ServerConsoleCommands() *cobra.Command {
@@ -263,13 +263,13 @@ func exit(short string, menuType string, v ...any) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			switch mt {
 			case "build":
-				if _, err := console.Rpc.EndBuild(ctx, &builderpb.BuildRequest{
+				if _, err := console.Rpc.EndBuild(CTX, &builderpb.BuildRequest{
 					BuilderId: builderConfig.ID + builderConfig.builderID,
 				}); err != nil {
 					cLogger.Error("failed to delete builder client for %s: %v", builderConfig.builderID, err)
 				}
 			case "use":
-				if _, err := console.Rpc.FreeSession(ctx, &clientpb.FreeSessionRequest{
+				if _, err := console.Rpc.FreeSession(CTX, &clientpb.FreeSessionRequest{
 					SessionId: v[0].(int32), PlayerName: config.ClientConfig.Name,
 				}); err != nil {
 					cLogger.Error("couldn't free session: %v", err)
