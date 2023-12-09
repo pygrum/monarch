@@ -345,7 +345,7 @@ func (s *MonarchServer) Uninstall(req *clientpb.UninstallRequest, stream rpcpb.M
 		return err
 	}
 	for _, b := range builders.Builders {
-		stream.Send(&rpcpb.Notification{
+		_ = stream.Send(&rpcpb.Notification{
 			LogLevel: rpcpb.LogLevel_LevelInfo,
 			Msg:      fmt.Sprintf("deleting %s...", b.Name),
 		})
@@ -505,7 +505,6 @@ func Start() error {
 		grpc.Creds(creds),
 		grpc.MaxRecvMsgSize(math.MaxInt32),
 	}
-	// TODO: fetch key pair and create credentials with credentials.NewTLS
 	grpcServer = grpc.NewServer(opts...)
 	srv, err := New()
 	if err != nil {

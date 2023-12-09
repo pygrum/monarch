@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strconv"
 
 	"github.com/pygrum/monarch/pkg/config"
 	"github.com/pygrum/monarch/pkg/consts"
@@ -58,7 +59,14 @@ func Run(rootCmd func() *cobra.Command, isServer bool) error {
 	}
 	log.Initialize(monarchServer.App.TransientPrintf)
 	Rpc = rpcpb.NewMonarchClient(clientConn)
+	testServerConnectivity()
+
 	go getNotifications()
+
+	return start(rootCmd)
+}
+
+func start(rootCmd func() *cobra.Command) error {
 	srvMenu := monarchServer.App.ActiveMenu()
 	srvMenu.SetCommands(rootCmd)
 	monarchServer.App.SetPrintLogo(func(_ *console.Console) {
@@ -77,6 +85,13 @@ func Run(rootCmd func() *cobra.Command, isServer bool) error {
 		`, consts.Version)
 	})
 	return monarchServer.App.Start()
+}
+
+func testServerConnectivity() {
+	if _, err := net.Dial("tcp",
+		net.JoinHostPort(config.ClientConfig.RHost, strconv.Itoa(config.ClientConfig.RPort))); err != nil {
+		logrus.Fatalf("server seems down (%v)", err)
+	}
 }
 
 func getNotifications() {
