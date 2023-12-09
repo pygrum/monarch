@@ -64,6 +64,8 @@ type MonarchClientConfig struct {
 	CertPEM   []byte `json:"cert_pem"`
 	KeyPEM    []byte `json:"key_pem"`
 	CaCertPEM []byte `json:"ca_cert_pem"`
+	Secret    []byte `json:"secret"`
+	Challenge string `json:"challenge"`
 }
 
 type ProjectConfig struct {
