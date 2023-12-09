@@ -57,12 +57,13 @@ type MonarchConfig struct {
 }
 
 type MonarchClientConfig struct {
-	UUID    string `json:"uuid"`
-	Name    string `json:"name"`
-	RHost   string `json:"rhost"`
-	RPort   int    `json:"rport"`
-	CertPEM []byte `json:"cert_pem"`
-	KeyPEM  []byte `json:"key_pem"`
+	UUID      string `json:"uuid"`
+	Name      string `json:"name"`
+	RHost     string `json:"rhost"`
+	RPort     int    `json:"rport"`
+	CertPEM   []byte `json:"cert_pem"`
+	KeyPEM    []byte `json:"key_pem"`
+	CaCertPEM []byte `json:"ca_cert_pem"`
 }
 
 type ProjectConfig struct {
@@ -117,9 +118,18 @@ func Initialize() {
 	if err := YamlConfig(MonarchConfigFile, &MainConfig); err != nil {
 		panic(fmt.Errorf("%v. was monarch installed with install-monarch.sh? ", err))
 	}
-	MainConfig.CertFile = filepath.Join(home, ".monarch", MainConfig.CertFile)
-	MainConfig.KeyFile = filepath.Join(home, ".monarch", MainConfig.KeyFile)
-	MainConfig.InstallDir = filepath.Join(home, ".monarch", MainConfig.InstallDir)
+	MainConfig.CertFile = norm(MainConfig.CertFile)
+	MainConfig.KeyFile = norm(MainConfig.KeyFile)
+
+	MainConfig.CaCert = norm(MainConfig.CaCert)
+	MainConfig.CaKey = norm(MainConfig.CaKey)
+
+	MainConfig.InstallDir = norm(MainConfig.InstallDir)
+}
+
+func norm(s string) string {
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".monarch", s)
 }
 
 // ServerCertificates returns the PEM-encoded monarch server key pair
@@ -128,7 +138,7 @@ func ServerCertificates() ([]byte, []byte, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	keyPEM, err := os.ReadFile(MainConfig.CertFile)
+	keyPEM, err := os.ReadFile(MainConfig.KeyFile)
 	if err != nil {
 		return nil, nil, err
 	}
