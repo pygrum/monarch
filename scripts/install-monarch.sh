@@ -55,16 +55,35 @@ docker run -dit --network ${MONARCH_NET} --ip 172.20.0.3 -e "MYSQL_ROOT_PASSWORD
 
 cp ../configs/monarch.yaml "${MONARCH_PATH}"
 
-echo "generating self-signed CA certificate ca-cert.pem ca-key.pem..."
+echo "generating self-signed CA certificate ca-cert.pem ca-key.pem"
 
 openssl req -x509 \
   -newkey rsa:4096 \
   -days 365 \
   -nodes \
-  -keyout ca-key.pem \
-  -out ca-cert.pem \
+  -keyout "${MONARCH_PATH}/ca-key.pem" \
+  -out "${MONARCH_PATH}/ca-cert.pem" \
   -subj "/C=US/ST=New York/L=New York City/O=Organisation/OU=Education/CN=monarch"
+echo "done"
 
+echo "generating server key and certificate signing request"
+openssl req -newkey rsa:4096 \
+  -nodes \
+  -out "${MONARCH_PATH}/server-req.pem" \
+  -keyout "${MONARCH_PATH}/${MONARCH_NAME}-key.pem" \
+  -subj "/C=US/ST=California/L=Mountain View/O=Google LLC/CN=*.google.com"
+echo "signing server request with CA certificate"
+
+echo "signing server request with CA private key"
+openssl x509 -req \
+  -in "${MONARCH_PATH}/server-req.pem" \
+  -days 60 \
+  -CA "${MONARCH_PATH}/ca-cert.pem" \
+  -CAkey "${MONARCH_PATH}/ca-key.pem" \
+  -CAcreateserial \
+  -out "${MONARCH_PATH}/${MONARCH_NAME}-cert.pem" \
+
+rm -rf "${MONARCH_PATH}/server-req.pem"
 echo "done"
 
 mkdir -p "$HOME/.local/bin" 2>/dev/null
