@@ -471,20 +471,23 @@ func (s *MonarchServer) Send(_ context.Context, req *clientpb.HTTPRequest) (*cli
 }
 
 func (s *MonarchServer) Notify(req *clientpb.NotifyRequest, stream rpcpb.Monarch_NotifyServer) error {
-	// Implement a notification queue
 	playerID := req.PlayerId
 	if len(playerID) == 0 {
 		return errors.New("player ID cannot be blank")
 	}
+	// notify all that you have joined the game (this is done after subbing for notifications, by calling this func)
+	for _, q := range http.NotifQueues {
+		_ = q.Enqueue(&rpcpb.Notification{
+			LogLevel: rpcpb.LogLevel_LevelInfo,
+			Msg:      fmt.Sprintf("%s has joined the operation", req.PlayerName),
+		})
+	}
+	// Implement a notification queue
+	queue := &http.NotificationQueue{Channel: make(chan *rpcpb.Notification, 10)}
+	http.NotifQueues[playerID] = queue
 	for {
-		notification := http.NotifQueue.Dequeue().(*rpcpb.PlayerNotification)
-		// blank player ID means broadcast
-		if notification.PlayerId == playerID || notification.PlayerId == "" {
-			_ = stream.Send(notification)
-		} else {
-			// Enqueue notification again since we consumed it by dequeueing
-			_ = http.NotifQueue.Enqueue(notification)
-		}
+		notification := queue.Dequeue().(*rpcpb.Notification)
+		_ = stream.Send(notification)
 	}
 }
 
