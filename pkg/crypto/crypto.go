@@ -140,11 +140,11 @@ func ClientTLSConfig(c *config.MonarchClientConfig) (*tls.Config, error) {
 
 // caFiles returns pem encoded certificate and key for monarchCA
 func caFiles() ([]byte, []byte, error) {
-	cert, err := os.ReadFile(config.MainConfig.CertFile)
+	cert, err := os.ReadFile(config.MainConfig.CaCert)
 	if err != nil {
 		return nil, nil, err
 	}
-	key, err := os.ReadFile(config.MainConfig.KeyFile)
+	key, err := os.ReadFile(config.MainConfig.CaKey)
 	if err != nil {
 		return nil, nil, err
 	}

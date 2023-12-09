@@ -3,6 +3,9 @@ debug: false
 loglevel: 2
 certfile: monarch-cert.pem # cert file relative to monarch home dir
 keyfile: monarch-key.pem
+cacert: ca-cert.pem # signing cert and key
+cakey: ca-key.pem
+
 interface: 0.0.0.0
 
 httpport: 8000
