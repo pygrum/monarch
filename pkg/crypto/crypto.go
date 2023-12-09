@@ -29,7 +29,7 @@ func init() {
 	r = rand.New(source)
 }
 
-func PeerCertificateVerifier(certPool x509.CertPool) CertVerifier {
+func PeerCertificateVerifier(caCertPEM []byte) CertVerifier {
 	return func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 		certs := make([]*x509.Certificate, len(rawCerts))
 		for i, asn1Data := range rawCerts {
@@ -39,8 +39,10 @@ func PeerCertificateVerifier(certPool x509.CertPool) CertVerifier {
 			}
 			certs[i] = cert
 		}
+		certPool := x509.NewCertPool()
+		certPool.AppendCertsFromPEM(caCertPEM)
 		opts := x509.VerifyOptions{
-			Roots:         &certPool,
+			Roots:         certPool,
 			CurrentTime:   time.Now(),
 			DNSName:       "", // Skip hostname verification
 			Intermediates: x509.NewCertPool(),
@@ -95,7 +97,7 @@ func NewClientCertificate(cn string) ([]byte, []byte, error) {
 }
 
 func CertificateAuthority() (*x509.Certificate, *rsa.PrivateKey, error) {
-	encodedCert, encodedKey, err := caFiles()
+	encodedCert, encodedKey, err := CaCertKeyPair()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get CA cert data: %v", err)
 	}
@@ -111,11 +113,11 @@ func CertificateAuthority() (*x509.Certificate, *rsa.PrivateKey, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("couldn't parse CA certificate: %v", err)
 	}
-	key, err := x509.ParsePKCS1PrivateKey(keyBlock.Bytes)
+	key, err := x509.ParsePKCS8PrivateKey(keyBlock.Bytes)
 	if err != nil {
 		return nil, nil, fmt.Errorf("couldn't parse CA key: %v", err)
 	}
-	return cert, key, nil
+	return cert, key.(*rsa.PrivateKey), nil
 }
 
 func ClientTLSConfig(c *config.MonarchClientConfig) (*tls.Config, error) {
@@ -123,23 +125,19 @@ func ClientTLSConfig(c *config.MonarchClientConfig) (*tls.Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create certificate key pair: %v", err)
 	}
-	caCert, _, err := caFiles()
-	if err != nil {
-		return nil, fmt.Errorf("couldn't get CA certificate information: %v", err)
-	}
 	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
+	caCertPool.AppendCertsFromPEM(c.CaCertPEM)
 	tlsConfig := &tls.Config{
 		Certificates:          []tls.Certificate{cert},
 		RootCAs:               caCertPool,
 		InsecureSkipVerify:    true,
-		VerifyPeerCertificate: PeerCertificateVerifier(*caCertPool),
+		VerifyPeerCertificate: PeerCertificateVerifier(c.CaCertPEM),
 	}
 	return tlsConfig, nil
 }
 
-// caFiles returns pem encoded certificate and key for monarchCA
-func caFiles() ([]byte, []byte, error) {
+// CaCertKeyPair returns pem encoded certificate and key for monarchCA
+func CaCertKeyPair() ([]byte, []byte, error) {
 	cert, err := os.ReadFile(config.MainConfig.CaCert)
 	if err != nil {
 		return nil, nil, err
