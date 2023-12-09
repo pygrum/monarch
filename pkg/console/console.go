@@ -2,14 +2,17 @@ package console
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/pygrum/monarch/pkg/types"
+	"google.golang.org/grpc/metadata"
+	"io"
 	"net"
 	"strconv"
 
 	"github.com/pygrum/monarch/pkg/config"
 	"github.com/pygrum/monarch/pkg/consts"
 	"github.com/pygrum/monarch/pkg/crypto"
-	"github.com/pygrum/monarch/pkg/db"
 	"github.com/pygrum/monarch/pkg/handler/http"
 	"github.com/pygrum/monarch/pkg/log"
 	"github.com/pygrum/monarch/pkg/protobuf/clientpb"
@@ -29,6 +32,7 @@ type server struct {
 
 var (
 	Rpc           rpcpb.MonarchClient
+	CTX           = context.Background()
 	monarchServer *server
 )
 
@@ -53,16 +57,15 @@ func Run(rootCmd func() *cobra.Command, isServer bool) error {
 		}
 	} else {
 		clientConn, err = initMonarchClient()
+		testServerConnectivity()
 		if err != nil {
 			return err
 		}
 	}
 	log.Initialize(monarchServer.App.TransientPrintf)
 	Rpc = rpcpb.NewMonarchClient(clientConn)
-	testServerConnectivity()
 
 	go getNotifications()
-
 	return start(rootCmd)
 }
 
@@ -100,7 +103,7 @@ func getNotifications() {
 	playerName = config.ClientConfig.Name
 
 	tl, _ := log.NewLogger(log.TransientLogger, "")
-	stream, err := Rpc.Notify(context.Background(), &clientpb.NotifyRequest{
+	stream, err := Rpc.Notify(CTX, &clientpb.NotifyRequest{
 		PlayerId:   playerID,
 		PlayerName: playerName,
 	})
@@ -109,20 +112,25 @@ func getNotifications() {
 	}
 	for {
 		notif, err := stream.Recv()
+		if errors.Is(err, io.EOF) {
+			tl.Error("server connection closed")
+			return
+		}
 		if err != nil {
 			tl.Error("notification error: %v", err)
 			return
 		}
 		log.NumericalLevel(tl, uint16(notif.LogLevel), notif.Msg)
+		if notif.Msg == types.NotificationKickPlayer {
+			_, _ = monarchServer.App.TransientPrintf("")
+			_ = stream.CloseSend()
+			return
+		}
 	}
 }
 
 func initMonarchServer() (*grpc.ClientConn, error) {
-	config.Initialize()
-	uid := db.Initialize()
 	http.Initialize()
-	config.ClientConfig.UUID = uid
-	config.ClientConfig.Name = "console"
 	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:9999"))
 	if err != nil {
 		logrus.Fatalf("couldn't listen on localhost: %v", err)
@@ -147,6 +155,7 @@ func initMonarchServer() (*grpc.ClientConn, error) {
 }
 
 func initMonarchClient() (*grpc.ClientConn, error) {
+	initCTX()
 	http.ClientInitialize()
 	c, err := crypto.ClientTLSConfig(&config.ClientConfig)
 	if err != nil {
@@ -161,7 +170,7 @@ func initMonarchClient() (*grpc.ClientConn, error) {
 }
 
 func newMonarchServer() (*grpc.Server, error) {
-	http.NotifQueues = make(map[string]http.Queue)
+	types.NotifQueues = make(map[string]types.Queue)
 	// TODO: fetch key pair and create credentials with credentials.NewTLS
 	grpcServer := grpc.NewServer()
 	srv, err := teamserver.New()
@@ -170,6 +179,19 @@ func newMonarchServer() (*grpc.Server, error) {
 	}
 	rpcpb.RegisterMonarchServer(grpcServer, srv)
 	return grpcServer, nil
+}
+
+func initCTX() {
+	m := make(map[string]string)
+	m["uid"] = config.ClientConfig.UUID
+
+	challenge, err := crypto.EncryptAES(config.ClientConfig.Secret, config.ClientConfig.Challenge)
+	if err != nil {
+		logrus.Fatalf("couldn't encrypt challenge for auth: %v", err)
+	}
+	m["challenge"] = challenge
+	md := metadata.New(m)
+	CTX = metadata.NewIncomingContext(CTX, md)
 }
 
 // MainMenu switches back to the main menu

@@ -2,7 +2,6 @@ package db
 
 import (
 	"fmt"
-
 	"github.com/google/uuid"
 	"github.com/pygrum/monarch/pkg/config"
 	"github.com/pygrum/monarch/pkg/log"
@@ -15,7 +14,7 @@ var db *gorm.DB
 var l log.Logger
 
 // Initialize database
-func Initialize() (serverConsoleUID string) {
+func Initialize() string {
 	l, _ = log.NewLogger(log.ConsoleLogger, "")
 	conf := config.MainConfig
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/monarch?charset=utf8mb4&parseTime=True&loc=Local",
@@ -39,7 +38,9 @@ func Initialize() (serverConsoleUID string) {
 		if result := db.Create(consoleUser); result.Error != nil {
 			l.Fatal("could not create default 'console' user: %v", result.Error)
 		}
+		config.ClientConfig.UUID = uid
 	} else {
+		config.ClientConfig.UUID = consoleUser.UUID
 		return consoleUser.UUID
 	}
 	return uid

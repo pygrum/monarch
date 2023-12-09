@@ -89,7 +89,7 @@ func Initialize(printFunc func(string, ...any) (int, error)) {
 	logLevel = config.MainConfig.LogLevel
 	Print = func(format string, v ...any) (int, error) {
 		format = strings.ReplaceAll(format, "%", "%%")
-		return printFunc(format, v...)
+		return printFunc("\n"+format+"\n", v...)
 	}
 }
 

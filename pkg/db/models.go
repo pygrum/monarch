@@ -56,5 +56,7 @@ type Player struct {
 	UUID      string `gorm:"primaryKey"`
 	Username  string `gorm:"unique"`
 	ClientCA  string // base64 representation of client certificate for mTLS
+	Challenge string
+	Secret    string
 	CreatedAt time.Time
 }
