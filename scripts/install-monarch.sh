@@ -97,6 +97,10 @@ echo "building monarch.."
 go build ../cmd/monarch/monarch.go
 mv ./monarch "${HOME}/.local/bin"
 
+echo "building monarch client..."
+go build ../cmd/client/monarch-client.go
+mv ./monarch-client "${HOME}/.local/bin"
+
 echo "done. waiting for all services to start..."
 sleep 5
 echo "monarch saved to $HOME/.local/bin"
