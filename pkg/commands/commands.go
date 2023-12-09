@@ -21,20 +21,54 @@ func init() {
 	cLogger, _ = log.NewLogger(log.ConsoleLogger, "")
 }
 
+func ServerConsoleCommands() *cobra.Command {
+	root := ConsoleCommands()
+	var stop bool
+	cmdCoop := &cobra.Command{
+		Use:   "coop",
+		Short: "start / stop co-op mode",
+		Run: func(cmd *cobra.Command, args []string) {
+			coopCmd(stop)
+		},
+	}
+	cmdCoop.Flags().BoolVarP(&stop, "stop", "s", false, "turn off co-op mode")
+
+	cmdPlayers := &cobra.Command{
+		Use:   "players",
+		Short: "list players that have been registered on the server",
+		Run: func(cmd *cobra.Command, args []string) {
+			playersCmd(args)
+		},
+	}
+	var name, lhost string
+	cmdPlayersNew := &cobra.Command{
+		Use:   "new",
+		Short: "generate a configuration file for a new player",
+		Run: func(cmd *cobra.Command, args []string) {
+			playersNewCmd(name, lhost)
+		},
+	}
+	cmdPlayersNew.Flags().StringVarP(&name, "username", "u", "", "username of the new player")
+	cmdPlayersNew.Flags().StringVarP(&lhost, "lhost", "l", "",
+		"the hostname the player authenticates to this server using")
+	cmdPlayers.AddCommand(cmdPlayersNew)
+
+	root.AddCommand(cmdCoop, cmdPlayers)
+	return root
+}
+
 // ConsoleCommands returns all commands used by the console
 func ConsoleCommands() *cobra.Command {
 	root := &cobra.Command{}
 
-	var yesExit bool
 	cmdExit := &cobra.Command{
 		Use:   "exit",
-		Short: "shutdown the monarch teamserver",
+		Short: "shutdown the monarch server",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			exitCmd(yesExit)
+			exitCmd()
 		},
 	}
-	cmdExit.Flags().BoolVarP(&yesExit, "yes", "y", false, "confirm exit")
 
 	cmdBuild := &cobra.Command{
 		Use:   "build [agent]",
@@ -178,9 +212,16 @@ func ConsoleCommands() *cobra.Command {
 			unstageCmd(args[0])
 		},
 	}
-
+	cmdClear := &cobra.Command{
+		Use:   "clear",
+		Short: "clear the terminal screen",
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Print("\033[H\033[2J")
+		},
+	}
 	root.AddCommand(cmdSessions, cmdUse, cmdHttp, cmdHttps, cmdAgents, cmdBuilders, cmdBuild, cmdInstall, cmdUninstall,
-		cmdStage, cmdUnstage, cmdVersion, cmdExit)
+		cmdStage, cmdUnstage, cmdVersion, cmdClear, cmdExit)
 	root.CompletionOptions.HiddenDefaultCmd = true
 	return root
 }
@@ -233,7 +274,7 @@ func info(systemInfo *clientpb.Registration) *cobra.Command {
 			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "GID:", systemInfo.GID))
 			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "PID:", systemInfo.PID))
 			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "Home directory:", systemInfo.HomeDir))
-			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "IP address:", systemInfo.IPAddress))
+			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "Remote address:", systemInfo.IPAddress))
 			_ = w.Flush()
 			fmt.Println()
 		},

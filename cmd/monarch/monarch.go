@@ -13,7 +13,7 @@ func init() {
 }
 
 func main() {
-	if err := console.Run(commands.ConsoleCommands, true); err != nil {
+	if err := console.Run(commands.ServerConsoleCommands, true); err != nil {
 		log.Fatal(err)
 	}
 }
