@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -86,7 +87,10 @@ type fileLogger struct {
 
 func Initialize(printFunc func(string, ...any) (int, error)) {
 	logLevel = config.MainConfig.LogLevel
-	Print = printFunc
+	Print = func(format string, v ...any) (int, error) {
+		format = strings.ReplaceAll(format, "%", "%%")
+		return printFunc(format, v...)
+	}
 }
 
 // NewLogger creates either a file or console logger.
