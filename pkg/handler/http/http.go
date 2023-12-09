@@ -232,7 +232,7 @@ func (h *Handler) ServeTLS() {
 		TranLogger.Error("failed to initialise listening socket: %v", err)
 		return
 	}
-	// ensures can only be started once the teamserver is available
+	// ensures can only be started once the server is available
 	h.httpsLock = true
 	if err = h.httpsServer.ServeTLS(lh, h.CertFile, h.KeyFile); err != nil &&
 		!errors.Is(err, http.ErrServerClosed) {

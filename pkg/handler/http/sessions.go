@@ -2,6 +2,7 @@ package http
 
 import (
 	"fmt"
+	"github.com/pygrum/monarch/pkg/types"
 	"net/http"
 	"sync"
 	"time"
@@ -21,8 +22,8 @@ var (
 
 type HTTPSession struct {
 	ID            int
-	RequestQueue  Queue
-	ResponseQueue Queue
+	RequestQueue  types.Queue
+	ResponseQueue types.Queue
 	Agent         *db.Agent
 	LastActive    time.Time
 	Status        string
@@ -79,7 +80,7 @@ func (s *sessions) newSession(agent *db.Agent, connectInfo *transport.Registrati
 	s.sessionMap[id] = newSession
 	s.sortedSessions = append(s.sortedSessions, newSession)
 	s.count += 1 // increment session count
-	queue, ok := NotifQueues[agent.CreatedBy]
+	queue, ok := types.NotifQueues[agent.CreatedBy]
 	if ok {
 		_ = queue.Enqueue(&rpcpb.Notification{
 			LogLevel: rpcpb.LogLevel_LevelInfo,
