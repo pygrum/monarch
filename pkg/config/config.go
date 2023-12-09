@@ -18,7 +18,7 @@ var (
 	MonarchConfigFile string
 )
 
-// only used by monarch itself, not clients
+// MonarchConfig is only used by monarch itself, not clients
 type MonarchConfig struct {
 	// Set monarch logging level, which can be one of: debug (1), informational (2), warning (3), fatal (4)
 	LogLevel uint16
@@ -26,6 +26,9 @@ type MonarchConfig struct {
 	CertFile string
 	// Path to the key file used for TLS enabled connections.
 	KeyFile string
+	// certificate authority x509 key pair
+	CaCert string
+	CaKey  string
 	// The main interface that Monarch will bind to for operations.
 	Interface string
 	// The port to use for the Monarch HTTP listener.
