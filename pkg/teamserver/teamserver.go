@@ -474,10 +474,19 @@ func (s *MonarchServer) Send(_ context.Context, req *clientpb.HTTPRequest) (*cli
 
 func (s *MonarchServer) Notify(req *clientpb.NotifyRequest, stream rpcpb.Monarch_NotifyServer) error {
 	playerID := req.PlayerId
-	kicked := false
+	var authed, kicked bool
+	p := &db.Player{}
 	if len(playerID) == 0 {
 		return errors.New("player ID cannot be blank")
 	}
+	if err := db.FindOneConditional("uuid = ?", playerID, &p); err != nil {
+		_ = stream.Send(&rpcpb.Notification{
+			LogLevel: rpcpb.LogLevel_LevelError,
+			Msg:      "you are not registered to this server",
+		})
+		return nil
+	}
+	authed = true
 	// notify all that you have joined the game (this is done after subbing for notifications, by calling this func)
 	notifyAll(&rpcpb.Notification{
 		LogLevel: rpcpb.LogLevel_LevelInfo,
@@ -485,7 +494,7 @@ func (s *MonarchServer) Notify(req *clientpb.NotifyRequest, stream rpcpb.Monarch
 	})
 	defer func() {
 		delete(types.NotifQueues, playerID)
-		if !kicked {
+		if !kicked && authed {
 			notifyAll(&rpcpb.Notification{
 				LogLevel: rpcpb.LogLevel_LevelInfo,
 				Msg:      fmt.Sprintf("%s has left the operation", req.PlayerName),
@@ -505,17 +514,20 @@ func (s *MonarchServer) Notify(req *clientpb.NotifyRequest, stream rpcpb.Monarch
 				// name and shame!
 				notifyAll(&rpcpb.Notification{
 					LogLevel: rpcpb.LogLevel_LevelInfo,
-					Msg:      "%s has been kicked from the operation",
-				})
+					Msg:      fmt.Sprintf("%s has been kicked from the operation", req.PlayerName),
+				}, p.Username, config.ClientConfig.UUID)
 				kicked = true
+				break
 			}
 		}
 	}
 }
 
-func notifyAll(n *rpcpb.Notification) {
-	for _, q := range types.NotifQueues {
-		_ = q.Enqueue(n)
+func notifyAll(n *rpcpb.Notification, excludes ...string) {
+	for k, q := range types.NotifQueues {
+		if !slices.Contains(excludes, k) {
+			_ = q.Enqueue(n)
+		}
 	}
 }
 
@@ -529,8 +541,11 @@ func Start() error {
 		return err
 	}
 	creds := credentials.NewTLS(serverTlsConfig())
+	interceptor := NewAuthInterceptor()
+
 	opts := []grpc.ServerOption{
 		grpc.Creds(creds),
+		grpc.UnaryInterceptor(interceptor.Unary()),
 		grpc.MaxRecvMsgSize(math.MaxInt32),
 	}
 	grpcServer = grpc.NewServer(opts...)
