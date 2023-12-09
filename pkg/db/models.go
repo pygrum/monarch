@@ -53,7 +53,8 @@ type ProfileRecord struct {
 }
 
 type Player struct {
-	UUID     string `gorm:"primaryKey"`
-	Username string `gorm:"unique"`
-	ClientCA string // base64 representation of client certificate for mTLS
+	UUID      string `gorm:"primaryKey"`
+	Username  string `gorm:"unique"`
+	ClientCA  string // base64 representation of client certificate for mTLS
+	CreatedAt time.Time
 }

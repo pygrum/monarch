@@ -31,18 +31,16 @@ func Initialize() (serverConsoleUID string) {
 	if err = db.AutoMigrate(&Builder{}, &Agent{}, &Player{}, &Profile{}, &ProfileRecord{}); err != nil {
 		l.Fatal("failed to migrate schema: %v. Monarch cannot continue to operate", err)
 	}
-	consoleUser := &Player{
-		UUID:     "console",
-		Username: "console",
-	}
 	uid := uuid.New().String()
-	if result := db.First(consoleUser); result.RowsAffected == 0 {
-		if result = db.Create(&Player{
-			UUID:     uid,
-			Username: "console",
-		}); result.Error != nil {
-			l.Fatal("could not create default 'console' user: %v", err)
+	consoleUser := &Player{}
+	if db.Where("username = ?", "console").First(consoleUser); len(consoleUser.UUID) == 0 {
+		consoleUser.UUID = uid
+		consoleUser.Username = "console"
+		if result := db.Create(consoleUser); result.Error != nil {
+			l.Fatal("could not create default 'console' user: %v", result.Error)
 		}
+	} else {
+		return consoleUser.UUID
 	}
 	return uid
 }
