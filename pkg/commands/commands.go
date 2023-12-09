@@ -3,6 +3,10 @@ package commands
 import (
 	"context"
 	"fmt"
+	"github.com/pygrum/monarch/pkg/config"
+	"github.com/pygrum/monarch/pkg/crypto"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc/metadata"
 	"strconv"
 
 	"github.com/pygrum/monarch/pkg/console"
@@ -21,11 +25,24 @@ func init() {
 	cLogger, _ = log.NewLogger(log.ConsoleLogger, "")
 }
 
+func InitCTX() {
+	m := make(map[string]string)
+	m["uid"] = config.ClientConfig.UUID
+
+	challenge, err := crypto.EncryptAES(config.ClientConfig.Secret, config.ClientConfig.Challenge)
+	if err != nil {
+		logrus.Fatalf("couldn't encrypt challenge for auth: %v", err)
+	}
+	m["challenge"] = challenge
+	md := metadata.New(m)
+	ctx = metadata.NewOutgoingContext(ctx, md)
+}
+
 func ServerConsoleCommands() *cobra.Command {
 	root := ConsoleCommands()
 	var stop bool
 	cmdCoop := &cobra.Command{
-		Use:   "coop",
+		Use:   "co-op",
 		Short: "start / stop co-op mode",
 		Run: func(cmd *cobra.Command, args []string) {
 			coopCmd(stop)
@@ -51,8 +68,15 @@ func ServerConsoleCommands() *cobra.Command {
 	cmdPlayersNew.Flags().StringVarP(&name, "username", "u", "", "username of the new player")
 	cmdPlayersNew.Flags().StringVarP(&lhost, "lhost", "l", "",
 		"the hostname the player authenticates to this server using")
-	cmdPlayers.AddCommand(cmdPlayersNew)
-
+	cmdPlayersKick := &cobra.Command{
+		Use:   "kick [flags] NAME",
+		Short: "kick a player from the server",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			playersKickCmd(args[0])
+		},
+	}
+	cmdPlayers.AddCommand(cmdPlayersNew, cmdPlayersKick)
 	root.AddCommand(cmdCoop, cmdPlayers)
 	return root
 }

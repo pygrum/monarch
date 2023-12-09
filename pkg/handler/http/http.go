@@ -11,7 +11,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pygrum/monarch/pkg/config"
 	"github.com/pygrum/monarch/pkg/log"
-	"github.com/pygrum/monarch/pkg/protobuf/rpcpb"
 	"github.com/pygrum/monarch/pkg/transport"
 )
 
@@ -20,7 +19,6 @@ const (
 )
 
 var (
-	NotifQueues map[string]Queue
 	MainHandler *Handler
 	TranLogger  log.Logger
 	fl          log.Logger
@@ -36,12 +34,6 @@ type Handler struct {
 	sessions    *sessions
 }
 
-type Queue interface {
-	Enqueue(interface{}) error
-	Dequeue() interface{}
-	Size() int
-}
-
 // RequestQueue holds up to queueCapacity responses for a callback.
 // If full, an error is raised.
 type RequestQueue struct {
@@ -50,31 +42,6 @@ type RequestQueue struct {
 
 type ResponseQueue struct {
 	channel chan *transport.GenericHTTPResponse
-}
-
-type NotificationQueue struct {
-	Channel chan *rpcpb.Notification
-}
-
-func (r *NotificationQueue) Enqueue(req interface{}) error {
-	select {
-	case r.Channel <- req.(*rpcpb.Notification):
-		return nil
-	default:
-		return fmt.Errorf("queue is full - max capacity of 10")
-	}
-}
-
-func (r *NotificationQueue) Dequeue() interface{} {
-	// Must block, as we wait for a request to queue
-	select {
-	case req := <-r.Channel:
-		return req
-	}
-}
-
-func (r *NotificationQueue) Size() int {
-	return len(r.Channel)
 }
 
 func Initialize() {

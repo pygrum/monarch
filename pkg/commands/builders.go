@@ -19,6 +19,7 @@ func buildersCmd(args []string) {
 	builders, err := console.Rpc.Builders(ctx, &clientpb.BuilderRequest{BuilderId: args})
 	if err != nil {
 		cLogger.Error("failed to retrieve builders: %v", err)
+		return
 	}
 	header := "AGENT NAME\tVERSION\tAUTHOR\tINSTALLATION DATE\tID\tRUNS ON\t"
 	_, _ = fmt.Fprintln(w, header)

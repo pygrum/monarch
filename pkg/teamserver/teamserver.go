@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"github.com/pygrum/monarch/pkg/types"
 	"math"
 	"net"
 	"os"
@@ -473,6 +474,7 @@ func (s *MonarchServer) Send(_ context.Context, req *clientpb.HTTPRequest) (*cli
 
 func (s *MonarchServer) Notify(req *clientpb.NotifyRequest, stream rpcpb.Monarch_NotifyServer) error {
 	playerID := req.PlayerId
+	kicked := false
 	if len(playerID) == 0 {
 		return errors.New("player ID cannot be blank")
 	}
@@ -482,26 +484,37 @@ func (s *MonarchServer) Notify(req *clientpb.NotifyRequest, stream rpcpb.Monarch
 		Msg:      fmt.Sprintf("%s has joined the operation", req.PlayerName),
 	})
 	defer func() {
-		notifyAll(&rpcpb.Notification{
-			LogLevel: rpcpb.LogLevel_LevelInfo,
-			Msg:      fmt.Sprintf("%s has left the operation", req.PlayerName),
-		})
+		delete(types.NotifQueues, playerID)
+		if !kicked {
+			notifyAll(&rpcpb.Notification{
+				LogLevel: rpcpb.LogLevel_LevelInfo,
+				Msg:      fmt.Sprintf("%s has left the operation", req.PlayerName),
+			})
+		}
 	}()
 	// Implement a notification queue
-	queue := &http.NotificationQueue{Channel: make(chan *rpcpb.Notification, 10)}
-	http.NotifQueues[playerID] = queue
+	queue := &types.NotificationQueue{Channel: make(chan *rpcpb.Notification, 10)}
+	types.NotifQueues[playerID] = queue
 	for {
 		select {
 		case <-stream.Context().Done():
 			return nil
 		case notification := <-queue.Channel:
 			_ = stream.Send(notification)
+			if notification.Msg == types.NotificationKickPlayer {
+				// name and shame!
+				notifyAll(&rpcpb.Notification{
+					LogLevel: rpcpb.LogLevel_LevelInfo,
+					Msg:      "%s has been kicked from the operation",
+				})
+				kicked = true
+			}
 		}
 	}
 }
 
 func notifyAll(n *rpcpb.Notification) {
-	for _, q := range http.NotifQueues {
+	for _, q := range types.NotifQueues {
 		_ = q.Enqueue(n)
 	}
 }

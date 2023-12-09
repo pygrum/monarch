@@ -27,6 +27,7 @@ func init() {
 			if err := config.JsonConfig(configFile, &config.ClientConfig); err != nil {
 				log.Fatalf("couldn't load client config (%s): %v", configFile, err)
 			}
+			commands.InitCTX()
 			if err := console.Run(commands.ConsoleCommands, false); err != nil {
 				log.Fatal(err)
 			}

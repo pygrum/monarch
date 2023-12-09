@@ -14,7 +14,10 @@ func httpCmd(stop bool) {
 		}
 		return
 	}
-	notif, _ := console.Rpc.HttpOpen(ctx, &clientpb.Empty{})
+	notif, err := console.Rpc.HttpOpen(ctx, &clientpb.Empty{})
+	if err != nil {
+		cLogger.Error("%v", err)
+	}
 	log.NumericalLevel(cLogger, uint16(notif.LogLevel), notif.Msg)
 }
 
@@ -26,6 +29,9 @@ func httpsCmd(stop bool) {
 		}
 		return
 	}
-	notif, _ := console.Rpc.HttpsOpen(ctx, &clientpb.Empty{})
+	notif, err := console.Rpc.HttpsOpen(ctx, &clientpb.Empty{})
+	if err != nil {
+		cLogger.Error("%v", err)
+	}
 	log.NumericalLevel(cLogger, uint16(notif.LogLevel), notif.Msg)
 }

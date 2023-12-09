@@ -262,13 +262,13 @@ func build() {
 		}
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	buildCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
 	defer cancel()
 	// uses both agent id and builder id for unique identifier for each build session
 	// receive large bins
 	builderConfig.request.BuilderId = builderConfig.ID + builderConfig.builderID
 	maxSizeOption := grpc.MaxCallRecvMsgSize(32 * 10e6)
-	resp, err := console.Rpc.Build(ctx, builderConfig.request, maxSizeOption)
+	resp, err := console.Rpc.Build(buildCtx, builderConfig.request, maxSizeOption)
 	if err != nil {
 		l.Error("[RPC] failed to build agent: %v", err)
 		return

@@ -2,8 +2,11 @@ package commands
 
 import (
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/pygrum/monarch/pkg/protobuf/rpcpb"
+	"github.com/pygrum/monarch/pkg/types"
 	"os"
 	"time"
 
@@ -77,6 +80,8 @@ func playersNewCmd(name, lhost string) {
 		cLogger.Error("failed to get CA certificate: %v", err)
 		return
 	}
+	secret := crypto.RandomBytes(32)
+	challenge := hex.EncodeToString(crypto.RandomBytes(128))
 	clientConfig := &config.MonarchClientConfig{
 		UUID:      uid,
 		Name:      name,
@@ -85,12 +90,16 @@ func playersNewCmd(name, lhost string) {
 		CertPEM:   certPEM,
 		KeyPEM:    keyPEM,
 		CaCertPEM: caCertPEM,
+		Secret:    secret,
+		Challenge: challenge,
 	}
 	b64Cert := base64.StdEncoding.EncodeToString(certPEM)
 	player := &db.Player{
-		UUID:     uid,
-		Username: name,
-		ClientCA: b64Cert,
+		UUID:      uid,
+		Username:  name,
+		ClientCA:  b64Cert,
+		Challenge: challenge,
+		Secret:    hex.EncodeToString(secret),
 	}
 	bytes, err := json.Marshal(clientConfig)
 	if err != nil {
@@ -106,4 +115,25 @@ func playersNewCmd(name, lhost string) {
 		return
 	}
 	cLogger.Success("saved player config to ./" + name + "-monarch-client.config")
+}
+
+func playersKickCmd(name string) {
+	player := &db.Player{}
+	if err := db.FindOneConditional("username = ?", name, &player); err != nil {
+		cLogger.Error("query failed: %v", err)
+		return
+	}
+	if len(player.UUID) == 0 {
+		cLogger.Error("player '%s' doesn't exist")
+		return
+	}
+	queue, ok := types.NotifQueues[player.UUID]
+	if ok {
+		_ = queue.Enqueue(&rpcpb.Notification{LogLevel: rpcpb.LogLevel_LevelError, Msg: types.NotificationKickPlayer})
+	}
+	if err := db.DeleteOne(player); err != nil {
+		cLogger.Error("failed to remove player: %v", err)
+		return
+	}
+	cLogger.Info("kicked %s from the operation", player.Username)
 }
