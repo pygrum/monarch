@@ -20,11 +20,6 @@ message Notification {
   string msg = 2;
 }
 
-message PlayerNotification {
-  string player_id = 1;
-  Notification notification = 2;
-}
-
 service Builder {
   rpc GetCommands (builderpb.DescriptionsRequest) returns (builderpb.DescriptionsReply) {}
   rpc GetOptions (builderpb.OptionsRequest) returns (builderpb.OptionsReply) {}
@@ -60,5 +55,5 @@ service Monarch {
   rpc Send(clientpb.HTTPRequest) returns (clientpb.HTTPResponse) {}
 
   // Notify used for general notifications - likely run from a goroutine
-  rpc Notify(clientpb.NotifyRequest) returns (stream PlayerNotification) {}
+  rpc Notify(clientpb.NotifyRequest) returns (stream Notification) {}
 }

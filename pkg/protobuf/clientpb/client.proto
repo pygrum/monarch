@@ -40,7 +40,9 @@ message Agent {
   string builder = 8;
   string file = 9;
   string created_at = 10;
+  string created_by = 11;
 }
+
 message Agents {
   repeated Agent agents = 1;
 }
@@ -149,5 +151,6 @@ message Registration {
 }
 message NotifyRequest {
   string player_id = 1;
+  string player_name = 2;
 }
 message Empty {}

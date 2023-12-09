@@ -456,7 +456,7 @@ func (c *monarchClient) Notify(ctx context.Context, in *clientpb.NotifyRequest, 
 }
 
 type Monarch_NotifyClient interface {
-	Recv() (*PlayerNotification, error)
+	Recv() (*Notification, error)
 	grpc.ClientStream
 }
 
@@ -464,8 +464,8 @@ type monarchNotifyClient struct {
 	grpc.ClientStream
 }
 
-func (x *monarchNotifyClient) Recv() (*PlayerNotification, error) {
-	m := new(PlayerNotification)
+func (x *monarchNotifyClient) Recv() (*Notification, error) {
+	m := new(Notification)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -956,7 +956,7 @@ func _Monarch_Notify_Handler(srv interface{}, stream grpc.ServerStream) error {
 }
 
 type Monarch_NotifyServer interface {
-	Send(*PlayerNotification) error
+	Send(*Notification) error
 	grpc.ServerStream
 }
 
@@ -964,7 +964,7 @@ type monarchNotifyServer struct {
 	grpc.ServerStream
 }
 
-func (x *monarchNotifyServer) Send(m *PlayerNotification) error {
+func (x *monarchNotifyServer) Send(m *Notification) error {
 	return x.ServerStream.SendMsg(m)
 }
 
