@@ -20,7 +20,7 @@ const (
 )
 
 var (
-	NotifQueue  Queue
+	NotifQueues map[string]Queue
 	MainHandler *Handler
 	TranLogger  log.Logger
 	fl          log.Logger
@@ -53,12 +53,12 @@ type ResponseQueue struct {
 }
 
 type NotificationQueue struct {
-	Channel chan *rpcpb.PlayerNotification
+	Channel chan *rpcpb.Notification
 }
 
 func (r *NotificationQueue) Enqueue(req interface{}) error {
 	select {
-	case r.Channel <- req.(*rpcpb.PlayerNotification):
+	case r.Channel <- req.(*rpcpb.Notification):
 		return nil
 	default:
 		return fmt.Errorf("queue is full - max capacity of 10")

@@ -79,13 +79,13 @@ func (s *sessions) newSession(agent *db.Agent, connectInfo *transport.Registrati
 	s.sessionMap[id] = newSession
 	s.sortedSessions = append(s.sortedSessions, newSession)
 	s.count += 1 // increment session count
-	_ = NotifQueue.Enqueue(&rpcpb.PlayerNotification{
-		Notification: &rpcpb.Notification{
+	queue, ok := NotifQueues[agent.CreatedBy]
+	if ok {
+		_ = queue.Enqueue(&rpcpb.Notification{
 			LogLevel: rpcpb.LogLevel_LevelInfo,
 			Msg:      fmt.Sprintf("new session from %s@%s (%s) \n", agent.Name, connectInfo.IPAddress, agent.AgentID),
-		},
-		PlayerId: agent.CreatedBy, // blank means broadcast btw
-	})
+		})
+	}
 	return tokenString, expiresAt, id, nil
 }
 
