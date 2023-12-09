@@ -438,6 +438,30 @@ func (s *MonarchServer) Sessions(_ context.Context, req *clientpb.SessionsReques
 	return pbSessions, nil
 }
 
+func (s *MonarchServer) LockSession(_ context.Context, r *clientpb.LockSessionRequest) (*clientpb.Empty, error) {
+	session := http.MainHandler.SessionByID(int(r.SessionId))
+	if session == nil {
+		return &clientpb.Empty{}, errors.New("session not found")
+	}
+	if session.UsedBy != "" {
+		return &clientpb.Empty{}, fmt.Errorf("session is in use by %s", session.UsedBy)
+	}
+	session.UsedBy = r.PlayerName
+	return &clientpb.Empty{}, nil
+}
+
+func (s *MonarchServer) FreeSession(_ context.Context, r *clientpb.FreeSessionRequest) (*clientpb.Empty, error) {
+	session := http.MainHandler.SessionByID(int(r.SessionId))
+	if session == nil {
+		return &clientpb.Empty{}, errors.New("session not found")
+	}
+	if session.UsedBy != r.PlayerName {
+		return &clientpb.Empty{}, fmt.Errorf("unauthorized free (%s != %s)", session.UsedBy, r.PlayerName)
+	}
+	session.UsedBy = ""
+	return &clientpb.Empty{}, nil
+}
+
 func (s *MonarchServer) Commands(_ context.Context, req *builderpb.DescriptionsRequest) (*builderpb.DescriptionsReply, error) {
 	client, err := s.newBuilderClient(req.BuilderId)
 	if err != nil {

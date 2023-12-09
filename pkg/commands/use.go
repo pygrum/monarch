@@ -2,6 +2,7 @@ package commands
 
 import (
 	"encoding/binary"
+	"github.com/pygrum/monarch/pkg/config"
 	"os"
 	"path/filepath"
 
@@ -30,6 +31,11 @@ func useCmd(id int) {
 		&builderpb.DescriptionsRequest{BuilderId: sessionInfo.AgentId + sessionInfo.BuilderId})
 	if err != nil {
 		cLogger.Error("failed to acquire command descriptions (rpc): %v", err)
+		return
+	}
+	if _, err = console.Rpc.LockSession(ctx, &clientpb.LockSessionRequest{
+		SessionId: sessionInfo.Id, PlayerName: config.ClientConfig.Name}); err != nil {
+		cLogger.Error("couldn't acquire session: %v", err)
 		return
 	}
 	console.NamedMenu("\033[35m"+sessionInfo.AgentName+"\033[0m", func() *cobra.Command {
@@ -112,7 +118,7 @@ func useCmd(id int) {
 			}
 			rootCmd.AddCommand(cmd)
 		}
-		rootCmd.AddCommand(exit("", "use"))
+		rootCmd.AddCommand(exit("", "use", sessionInfo.Id))
 		rootCmd.AddCommand(info(sessionInfo.Info))
 		rootCmd.CompletionOptions.HiddenDefaultCmd = true
 		return rootCmd

@@ -153,4 +153,12 @@ message NotifyRequest {
   string player_id = 1;
   string player_name = 2;
 }
+message LockSessionRequest {
+  string player_name = 1;
+  int32 session_id = 3;
+}
+message FreeSessionRequest {
+  string player_name = 1;
+  int32 session_id = 3;
+}
 message Empty {}

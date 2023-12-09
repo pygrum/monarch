@@ -1638,6 +1638,116 @@ func (x *NotifyRequest) GetPlayerName() string {
 	return ""
 }
 
+type LockSessionRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	PlayerName string `protobuf:"bytes,1,opt,name=player_name,json=playerName,proto3" json:"player_name,omitempty"`
+	SessionId  int32  `protobuf:"varint,3,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+}
+
+func (x *LockSessionRequest) Reset() {
+	*x = LockSessionRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_clientpb_client_proto_msgTypes[22]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *LockSessionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LockSessionRequest) ProtoMessage() {}
+
+func (x *LockSessionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_clientpb_client_proto_msgTypes[22]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LockSessionRequest.ProtoReflect.Descriptor instead.
+func (*LockSessionRequest) Descriptor() ([]byte, []int) {
+	return file_clientpb_client_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *LockSessionRequest) GetPlayerName() string {
+	if x != nil {
+		return x.PlayerName
+	}
+	return ""
+}
+
+func (x *LockSessionRequest) GetSessionId() int32 {
+	if x != nil {
+		return x.SessionId
+	}
+	return 0
+}
+
+type FreeSessionRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	PlayerName string `protobuf:"bytes,1,opt,name=player_name,json=playerName,proto3" json:"player_name,omitempty"`
+	SessionId  int32  `protobuf:"varint,3,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+}
+
+func (x *FreeSessionRequest) Reset() {
+	*x = FreeSessionRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_clientpb_client_proto_msgTypes[23]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *FreeSessionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FreeSessionRequest) ProtoMessage() {}
+
+func (x *FreeSessionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_clientpb_client_proto_msgTypes[23]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FreeSessionRequest.ProtoReflect.Descriptor instead.
+func (*FreeSessionRequest) Descriptor() ([]byte, []int) {
+	return file_clientpb_client_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *FreeSessionRequest) GetPlayerName() string {
+	if x != nil {
+		return x.PlayerName
+	}
+	return ""
+}
+
+func (x *FreeSessionRequest) GetSessionId() int32 {
+	if x != nil {
+		return x.SessionId
+	}
+	return 0
+}
+
 type Empty struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -1647,7 +1757,7 @@ type Empty struct {
 func (x *Empty) Reset() {
 	*x = Empty{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_clientpb_client_proto_msgTypes[22]
+		mi := &file_clientpb_client_proto_msgTypes[24]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1660,7 +1770,7 @@ func (x *Empty) String() string {
 func (*Empty) ProtoMessage() {}
 
 func (x *Empty) ProtoReflect() protoreflect.Message {
-	mi := &file_clientpb_client_proto_msgTypes[22]
+	mi := &file_clientpb_client_proto_msgTypes[24]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1673,7 +1783,7 @@ func (x *Empty) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Empty.ProtoReflect.Descriptor instead.
 func (*Empty) Descriptor() ([]byte, []int) {
-	return file_clientpb_client_proto_rawDescGZIP(), []int{22}
+	return file_clientpb_client_proto_rawDescGZIP(), []int{24}
 }
 
 var File_clientpb_client_proto protoreflect.FileDescriptor
@@ -1866,11 +1976,22 @@ var file_clientpb_client_proto_rawDesc = []byte{
 	0x72, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x70, 0x6c, 0x61, 0x79,
 	0x65, 0x72, 0x49, 0x64, 0x12, 0x1f, 0x0a, 0x0b, 0x70, 0x6c, 0x61, 0x79, 0x65, 0x72, 0x5f, 0x6e,
 	0x61, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x70, 0x6c, 0x61, 0x79, 0x65,
-	0x72, 0x4e, 0x61, 0x6d, 0x65, 0x22, 0x07, 0x0a, 0x05, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x42, 0x31,
-	0x5a, 0x2f, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x70, 0x79, 0x67,
-	0x72, 0x75, 0x6d, 0x2f, 0x6d, 0x6f, 0x6e, 0x61, 0x72, 0x63, 0x68, 0x2f, 0x70, 0x6b, 0x67, 0x2f,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2f, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x70,
-	0x62, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x72, 0x4e, 0x61, 0x6d, 0x65, 0x22, 0x54, 0x0a, 0x12, 0x4c, 0x6f, 0x63, 0x6b, 0x53, 0x65, 0x73,
+	0x73, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1f, 0x0a, 0x0b, 0x70,
+	0x6c, 0x61, 0x79, 0x65, 0x72, 0x5f, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x0a, 0x70, 0x6c, 0x61, 0x79, 0x65, 0x72, 0x4e, 0x61, 0x6d, 0x65, 0x12, 0x1d, 0x0a, 0x0a,
+	0x73, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x5f, 0x69, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x05,
+	0x52, 0x09, 0x73, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x64, 0x22, 0x54, 0x0a, 0x12, 0x46,
+	0x72, 0x65, 0x65, 0x53, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x12, 0x1f, 0x0a, 0x0b, 0x70, 0x6c, 0x61, 0x79, 0x65, 0x72, 0x5f, 0x6e, 0x61, 0x6d, 0x65,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x70, 0x6c, 0x61, 0x79, 0x65, 0x72, 0x4e, 0x61,
+	0x6d, 0x65, 0x12, 0x1d, 0x0a, 0x0a, 0x73, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x5f, 0x69, 0x64,
+	0x18, 0x03, 0x20, 0x01, 0x28, 0x05, 0x52, 0x09, 0x73, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49,
+	0x64, 0x22, 0x07, 0x0a, 0x05, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x42, 0x31, 0x5a, 0x2f, 0x67, 0x69,
+	0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x70, 0x79, 0x67, 0x72, 0x75, 0x6d, 0x2f,
+	0x6d, 0x6f, 0x6e, 0x61, 0x72, 0x63, 0x68, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x70, 0x72, 0x6f, 0x74,
+	0x6f, 0x62, 0x75, 0x66, 0x2f, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x70, 0x62, 0x62, 0x06, 0x70,
+	0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -1886,7 +2007,7 @@ func file_clientpb_client_proto_rawDescGZIP() []byte {
 }
 
 var file_clientpb_client_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_clientpb_client_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
+var file_clientpb_client_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
 var file_clientpb_client_proto_goTypes = []interface{}{
 	(InstallRequest_Source)(0), // 0: clientpb.InstallRequest.Source
 	(ResponseDetail_Dest)(0),   // 1: clientpb.ResponseDetail.Dest
@@ -1912,9 +2033,11 @@ var file_clientpb_client_proto_goTypes = []interface{}{
 	(*HTTPResponse)(nil),       // 21: clientpb.HTTPResponse
 	(*Registration)(nil),       // 22: clientpb.Registration
 	(*NotifyRequest)(nil),      // 23: clientpb.NotifyRequest
-	(*Empty)(nil),              // 24: clientpb.Empty
-	nil,                        // 25: clientpb.SaveProfileRequest.OptionsEntry
-	(builderpb.Status)(0),      // 26: builderpb.Status
+	(*LockSessionRequest)(nil), // 24: clientpb.LockSessionRequest
+	(*FreeSessionRequest)(nil), // 25: clientpb.FreeSessionRequest
+	(*Empty)(nil),              // 26: clientpb.Empty
+	nil,                        // 27: clientpb.SaveProfileRequest.OptionsEntry
+	(builderpb.Status)(0),      // 28: builderpb.Status
 }
 var file_clientpb_client_proto_depIdxs = []int32{
 	3,  // 0: clientpb.Builders.builders:type_name -> clientpb.Builder
@@ -1922,12 +2045,12 @@ var file_clientpb_client_proto_depIdxs = []int32{
 	0,  // 2: clientpb.InstallRequest.source:type_name -> clientpb.InstallRequest.Source
 	2,  // 3: clientpb.UninstallRequest.builders:type_name -> clientpb.BuilderRequest
 	12, // 4: clientpb.Profiles.profiles:type_name -> clientpb.Profile
-	25, // 5: clientpb.SaveProfileRequest.options:type_name -> clientpb.SaveProfileRequest.OptionsEntry
+	27, // 5: clientpb.SaveProfileRequest.options:type_name -> clientpb.SaveProfileRequest.OptionsEntry
 	12, // 6: clientpb.ProfileData.profile:type_name -> clientpb.Profile
 	11, // 7: clientpb.ProfileData.records:type_name -> clientpb.ProfileRecord
 	22, // 8: clientpb.Session.info:type_name -> clientpb.Registration
 	17, // 9: clientpb.Sessions.sessions:type_name -> clientpb.Session
-	26, // 10: clientpb.ResponseDetail.status:type_name -> builderpb.Status
+	28, // 10: clientpb.ResponseDetail.status:type_name -> builderpb.Status
 	1,  // 11: clientpb.ResponseDetail.dest:type_name -> clientpb.ResponseDetail.Dest
 	20, // 12: clientpb.HTTPResponse.responses:type_name -> clientpb.ResponseDetail
 	13, // [13:13] is the sub-list for method output_type
@@ -2208,6 +2331,30 @@ func file_clientpb_client_proto_init() {
 			}
 		}
 		file_clientpb_client_proto_msgTypes[22].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*LockSessionRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_clientpb_client_proto_msgTypes[23].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*FreeSessionRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_clientpb_client_proto_msgTypes[24].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Empty); i {
 			case 0:
 				return &v.state
@@ -2226,7 +2373,7 @@ func file_clientpb_client_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_clientpb_client_proto_rawDesc,
 			NumEnums:      2,
-			NumMessages:   24,
+			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

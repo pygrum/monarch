@@ -251,7 +251,7 @@ func ConsoleCommands() *cobra.Command {
 }
 
 // exits any named menus spawned by any commands
-func exit(short string, menuType string) *cobra.Command {
+func exit(short string, menuType string, v ...any) *cobra.Command {
 	if len(short) == 0 {
 		short = "exit the interactive menu"
 	}
@@ -267,7 +267,12 @@ func exit(short string, menuType string) *cobra.Command {
 					BuilderId: builderConfig.ID + builderConfig.builderID,
 				}); err != nil {
 					cLogger.Error("failed to delete builder client for %s: %v", builderConfig.builderID, err)
-					return
+				}
+			case "use":
+				if _, err := console.Rpc.FreeSession(ctx, &clientpb.FreeSessionRequest{
+					SessionId: v[0].(int32), PlayerName: config.ClientConfig.Name,
+				}); err != nil {
+					cLogger.Error("couldn't free session: %v", err)
 				}
 			}
 			console.MainMenu()

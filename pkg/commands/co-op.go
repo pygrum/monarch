@@ -29,7 +29,7 @@ func coopCmd(stop bool) {
 		}
 		return
 	}()
-	cLogger.Info("co-op mode activated (%s:%s)", config.MainConfig.MainEndpoint, config.MainConfig.MultiplayerPort)
+	cLogger.Info("co-op mode activated (%s:%d)", config.MainConfig.Interface, config.MainConfig.MultiplayerPort)
 }
 
 func playersCmd(names []string) {

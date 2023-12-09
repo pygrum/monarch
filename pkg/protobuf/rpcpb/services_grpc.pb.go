@@ -200,6 +200,8 @@ type MonarchClient interface {
 	HttpsOpen(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*Notification, error)
 	HttpsClose(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*clientpb.Empty, error)
 	Sessions(ctx context.Context, in *clientpb.SessionsRequest, opts ...grpc.CallOption) (*clientpb.Sessions, error)
+	LockSession(ctx context.Context, in *clientpb.LockSessionRequest, opts ...grpc.CallOption) (*clientpb.Empty, error)
+	FreeSession(ctx context.Context, in *clientpb.FreeSessionRequest, opts ...grpc.CallOption) (*clientpb.Empty, error)
 	Commands(ctx context.Context, in *builderpb.DescriptionsRequest, opts ...grpc.CallOption) (*builderpb.DescriptionsReply, error)
 	Send(ctx context.Context, in *clientpb.HTTPRequest, opts ...grpc.CallOption) (*clientpb.HTTPResponse, error)
 	// Notify used for general notifications - likely run from a goroutine
@@ -422,6 +424,24 @@ func (c *monarchClient) Sessions(ctx context.Context, in *clientpb.SessionsReque
 	return out, nil
 }
 
+func (c *monarchClient) LockSession(ctx context.Context, in *clientpb.LockSessionRequest, opts ...grpc.CallOption) (*clientpb.Empty, error) {
+	out := new(clientpb.Empty)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/LockSession", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *monarchClient) FreeSession(ctx context.Context, in *clientpb.FreeSessionRequest, opts ...grpc.CallOption) (*clientpb.Empty, error) {
+	out := new(clientpb.Empty)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/FreeSession", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *monarchClient) Commands(ctx context.Context, in *builderpb.DescriptionsRequest, opts ...grpc.CallOption) (*builderpb.DescriptionsReply, error) {
 	out := new(builderpb.DescriptionsReply)
 	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/Commands", in, out, opts...)
@@ -494,6 +514,8 @@ type MonarchServer interface {
 	HttpsOpen(context.Context, *clientpb.Empty) (*Notification, error)
 	HttpsClose(context.Context, *clientpb.Empty) (*clientpb.Empty, error)
 	Sessions(context.Context, *clientpb.SessionsRequest) (*clientpb.Sessions, error)
+	LockSession(context.Context, *clientpb.LockSessionRequest) (*clientpb.Empty, error)
+	FreeSession(context.Context, *clientpb.FreeSessionRequest) (*clientpb.Empty, error)
 	Commands(context.Context, *builderpb.DescriptionsRequest) (*builderpb.DescriptionsReply, error)
 	Send(context.Context, *clientpb.HTTPRequest) (*clientpb.HTTPResponse, error)
 	// Notify used for general notifications - likely run from a goroutine
@@ -558,6 +580,12 @@ func (UnimplementedMonarchServer) HttpsClose(context.Context, *clientpb.Empty) (
 }
 func (UnimplementedMonarchServer) Sessions(context.Context, *clientpb.SessionsRequest) (*clientpb.Sessions, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Sessions not implemented")
+}
+func (UnimplementedMonarchServer) LockSession(context.Context, *clientpb.LockSessionRequest) (*clientpb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LockSession not implemented")
+}
+func (UnimplementedMonarchServer) FreeSession(context.Context, *clientpb.FreeSessionRequest) (*clientpb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FreeSession not implemented")
 }
 func (UnimplementedMonarchServer) Commands(context.Context, *builderpb.DescriptionsRequest) (*builderpb.DescriptionsReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Commands not implemented")
@@ -911,6 +939,42 @@ func _Monarch_Sessions_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Monarch_LockSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(clientpb.LockSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MonarchServer).LockSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpcpb.Monarch/LockSession",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MonarchServer).LockSession(ctx, req.(*clientpb.LockSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Monarch_FreeSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(clientpb.FreeSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MonarchServer).FreeSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpcpb.Monarch/FreeSession",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MonarchServer).FreeSession(ctx, req.(*clientpb.FreeSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Monarch_Commands_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(builderpb.DescriptionsRequest)
 	if err := dec(in); err != nil {
@@ -1038,6 +1102,14 @@ var Monarch_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Sessions",
 			Handler:    _Monarch_Sessions_Handler,
+		},
+		{
+			MethodName: "LockSession",
+			Handler:    _Monarch_LockSession_Handler,
+		},
+		{
+			MethodName: "FreeSession",
+			Handler:    _Monarch_FreeSession_Handler,
 		},
 		{
 			MethodName: "Commands",

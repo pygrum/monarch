@@ -31,6 +31,7 @@ type HTTPSession struct {
 	Authenticated bool
 	Info          transport.Registration
 	SentRequests  map[string]int
+	UsedBy        string
 }
 
 type Claims struct {
@@ -84,7 +85,7 @@ func (s *sessions) newSession(agent *db.Agent, connectInfo *transport.Registrati
 	if ok {
 		_ = queue.Enqueue(&rpcpb.Notification{
 			LogLevel: rpcpb.LogLevel_LevelInfo,
-			Msg:      fmt.Sprintf("new session from %s@%s (%s) \n", agent.Name, connectInfo.IPAddress, agent.AgentID),
+			Msg:      fmt.Sprintf("new session from %s@%s", agent.Name, connectInfo.IPAddress),
 		})
 	}
 	return tokenString, expiresAt, id, nil

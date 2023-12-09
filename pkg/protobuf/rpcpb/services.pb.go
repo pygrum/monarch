@@ -172,7 +172,7 @@ var file_rpcpb_services_proto_rawDesc = []byte{
 	0x12, 0x17, 0x2e, 0x62, 0x75, 0x69, 0x6c, 0x64, 0x65, 0x72, 0x70, 0x62, 0x2e, 0x42, 0x75, 0x69,
 	0x6c, 0x64, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x15, 0x2e, 0x62, 0x75, 0x69, 0x6c,
 	0x64, 0x65, 0x72, 0x70, 0x62, 0x2e, 0x42, 0x75, 0x69, 0x6c, 0x64, 0x52, 0x65, 0x70, 0x6c, 0x79,
-	0x22, 0x00, 0x32, 0xdd, 0x09, 0x0a, 0x07, 0x4d, 0x6f, 0x6e, 0x61, 0x72, 0x63, 0x68, 0x12, 0x34,
+	0x22, 0x00, 0x32, 0xdd, 0x0a, 0x0a, 0x07, 0x4d, 0x6f, 0x6e, 0x61, 0x72, 0x63, 0x68, 0x12, 0x34,
 	0x0a, 0x06, 0x41, 0x67, 0x65, 0x6e, 0x74, 0x73, 0x12, 0x16, 0x2e, 0x63, 0x6c, 0x69, 0x65, 0x6e,
 	0x74, 0x70, 0x62, 0x2e, 0x41, 0x67, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
 	0x1a, 0x10, 0x2e, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x70, 0x62, 0x2e, 0x41, 0x67, 0x65, 0x6e,
@@ -238,6 +238,14 @@ var file_rpcpb_services_proto_rawDesc = []byte{
 	0x12, 0x19, 0x2e, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x70, 0x62, 0x2e, 0x53, 0x65, 0x73, 0x73,
 	0x69, 0x6f, 0x6e, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x12, 0x2e, 0x63, 0x6c,
 	0x69, 0x65, 0x6e, 0x74, 0x70, 0x62, 0x2e, 0x53, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x22,
+	0x00, 0x12, 0x3e, 0x0a, 0x0b, 0x4c, 0x6f, 0x63, 0x6b, 0x53, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e,
+	0x12, 0x1c, 0x2e, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x70, 0x62, 0x2e, 0x4c, 0x6f, 0x63, 0x6b,
+	0x53, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x0f,
+	0x2e, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x70, 0x62, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x22,
+	0x00, 0x12, 0x3e, 0x0a, 0x0b, 0x46, 0x72, 0x65, 0x65, 0x53, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e,
+	0x12, 0x1c, 0x2e, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x70, 0x62, 0x2e, 0x46, 0x72, 0x65, 0x65,
+	0x53, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x0f,
+	0x2e, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x70, 0x62, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x22,
 	0x00, 0x12, 0x4a, 0x0a, 0x08, 0x43, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x73, 0x12, 0x1e, 0x2e,
 	0x62, 0x75, 0x69, 0x6c, 0x64, 0x65, 0x72, 0x70, 0x62, 0x2e, 0x44, 0x65, 0x73, 0x63, 0x72, 0x69,
 	0x70, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1c, 0x2e,
@@ -285,17 +293,19 @@ var file_rpcpb_services_proto_goTypes = []interface{}{
 	(*clientpb.UninstallRequest)(nil),     // 11: clientpb.UninstallRequest
 	(*clientpb.Empty)(nil),                // 12: clientpb.Empty
 	(*clientpb.SessionsRequest)(nil),      // 13: clientpb.SessionsRequest
-	(*clientpb.HTTPRequest)(nil),          // 14: clientpb.HTTPRequest
-	(*clientpb.NotifyRequest)(nil),        // 15: clientpb.NotifyRequest
-	(*builderpb.DescriptionsReply)(nil),   // 16: builderpb.DescriptionsReply
-	(*builderpb.OptionsReply)(nil),        // 17: builderpb.OptionsReply
-	(*builderpb.BuildReply)(nil),          // 18: builderpb.BuildReply
-	(*clientpb.Agents)(nil),               // 19: clientpb.Agents
-	(*clientpb.Builders)(nil),             // 20: clientpb.Builders
-	(*clientpb.Profiles)(nil),             // 21: clientpb.Profiles
-	(*clientpb.ProfileData)(nil),          // 22: clientpb.ProfileData
-	(*clientpb.Sessions)(nil),             // 23: clientpb.Sessions
-	(*clientpb.HTTPResponse)(nil),         // 24: clientpb.HTTPResponse
+	(*clientpb.LockSessionRequest)(nil),   // 14: clientpb.LockSessionRequest
+	(*clientpb.FreeSessionRequest)(nil),   // 15: clientpb.FreeSessionRequest
+	(*clientpb.HTTPRequest)(nil),          // 16: clientpb.HTTPRequest
+	(*clientpb.NotifyRequest)(nil),        // 17: clientpb.NotifyRequest
+	(*builderpb.DescriptionsReply)(nil),   // 18: builderpb.DescriptionsReply
+	(*builderpb.OptionsReply)(nil),        // 19: builderpb.OptionsReply
+	(*builderpb.BuildReply)(nil),          // 20: builderpb.BuildReply
+	(*clientpb.Agents)(nil),               // 21: clientpb.Agents
+	(*clientpb.Builders)(nil),             // 22: clientpb.Builders
+	(*clientpb.Profiles)(nil),             // 23: clientpb.Profiles
+	(*clientpb.ProfileData)(nil),          // 24: clientpb.ProfileData
+	(*clientpb.Sessions)(nil),             // 25: clientpb.Sessions
+	(*clientpb.HTTPResponse)(nil),         // 26: clientpb.HTTPResponse
 }
 var file_rpcpb_services_proto_depIdxs = []int32{
 	0,  // 0: rpcpb.Notification.log_level:type_name -> rpcpb.LogLevel
@@ -320,35 +330,39 @@ var file_rpcpb_services_proto_depIdxs = []int32{
 	12, // 19: rpcpb.Monarch.HttpsOpen:input_type -> clientpb.Empty
 	12, // 20: rpcpb.Monarch.HttpsClose:input_type -> clientpb.Empty
 	13, // 21: rpcpb.Monarch.Sessions:input_type -> clientpb.SessionsRequest
-	2,  // 22: rpcpb.Monarch.Commands:input_type -> builderpb.DescriptionsRequest
-	14, // 23: rpcpb.Monarch.Send:input_type -> clientpb.HTTPRequest
-	15, // 24: rpcpb.Monarch.Notify:input_type -> clientpb.NotifyRequest
-	16, // 25: rpcpb.Builder.GetCommands:output_type -> builderpb.DescriptionsReply
-	17, // 26: rpcpb.Builder.GetOptions:output_type -> builderpb.OptionsReply
-	18, // 27: rpcpb.Builder.BuildAgent:output_type -> builderpb.BuildReply
-	19, // 28: rpcpb.Monarch.Agents:output_type -> clientpb.Agents
-	12, // 29: rpcpb.Monarch.NewAgent:output_type -> clientpb.Empty
-	12, // 30: rpcpb.Monarch.RmAgents:output_type -> clientpb.Empty
-	20, // 31: rpcpb.Monarch.Builders:output_type -> clientpb.Builders
-	21, // 32: rpcpb.Monarch.Profiles:output_type -> clientpb.Profiles
-	12, // 33: rpcpb.Monarch.SaveProfile:output_type -> clientpb.Empty
-	22, // 34: rpcpb.Monarch.LoadProfile:output_type -> clientpb.ProfileData
-	12, // 35: rpcpb.Monarch.RmProfiles:output_type -> clientpb.Empty
-	17, // 36: rpcpb.Monarch.Options:output_type -> builderpb.OptionsReply
-	18, // 37: rpcpb.Monarch.Build:output_type -> builderpb.BuildReply
-	12, // 38: rpcpb.Monarch.EndBuild:output_type -> clientpb.Empty
-	1,  // 39: rpcpb.Monarch.Install:output_type -> rpcpb.Notification
-	1,  // 40: rpcpb.Monarch.Uninstall:output_type -> rpcpb.Notification
-	1,  // 41: rpcpb.Monarch.HttpOpen:output_type -> rpcpb.Notification
-	12, // 42: rpcpb.Monarch.HttpClose:output_type -> clientpb.Empty
-	1,  // 43: rpcpb.Monarch.HttpsOpen:output_type -> rpcpb.Notification
-	12, // 44: rpcpb.Monarch.HttpsClose:output_type -> clientpb.Empty
-	23, // 45: rpcpb.Monarch.Sessions:output_type -> clientpb.Sessions
-	16, // 46: rpcpb.Monarch.Commands:output_type -> builderpb.DescriptionsReply
-	24, // 47: rpcpb.Monarch.Send:output_type -> clientpb.HTTPResponse
-	1,  // 48: rpcpb.Monarch.Notify:output_type -> rpcpb.Notification
-	25, // [25:49] is the sub-list for method output_type
-	1,  // [1:25] is the sub-list for method input_type
+	14, // 22: rpcpb.Monarch.LockSession:input_type -> clientpb.LockSessionRequest
+	15, // 23: rpcpb.Monarch.FreeSession:input_type -> clientpb.FreeSessionRequest
+	2,  // 24: rpcpb.Monarch.Commands:input_type -> builderpb.DescriptionsRequest
+	16, // 25: rpcpb.Monarch.Send:input_type -> clientpb.HTTPRequest
+	17, // 26: rpcpb.Monarch.Notify:input_type -> clientpb.NotifyRequest
+	18, // 27: rpcpb.Builder.GetCommands:output_type -> builderpb.DescriptionsReply
+	19, // 28: rpcpb.Builder.GetOptions:output_type -> builderpb.OptionsReply
+	20, // 29: rpcpb.Builder.BuildAgent:output_type -> builderpb.BuildReply
+	21, // 30: rpcpb.Monarch.Agents:output_type -> clientpb.Agents
+	12, // 31: rpcpb.Monarch.NewAgent:output_type -> clientpb.Empty
+	12, // 32: rpcpb.Monarch.RmAgents:output_type -> clientpb.Empty
+	22, // 33: rpcpb.Monarch.Builders:output_type -> clientpb.Builders
+	23, // 34: rpcpb.Monarch.Profiles:output_type -> clientpb.Profiles
+	12, // 35: rpcpb.Monarch.SaveProfile:output_type -> clientpb.Empty
+	24, // 36: rpcpb.Monarch.LoadProfile:output_type -> clientpb.ProfileData
+	12, // 37: rpcpb.Monarch.RmProfiles:output_type -> clientpb.Empty
+	19, // 38: rpcpb.Monarch.Options:output_type -> builderpb.OptionsReply
+	20, // 39: rpcpb.Monarch.Build:output_type -> builderpb.BuildReply
+	12, // 40: rpcpb.Monarch.EndBuild:output_type -> clientpb.Empty
+	1,  // 41: rpcpb.Monarch.Install:output_type -> rpcpb.Notification
+	1,  // 42: rpcpb.Monarch.Uninstall:output_type -> rpcpb.Notification
+	1,  // 43: rpcpb.Monarch.HttpOpen:output_type -> rpcpb.Notification
+	12, // 44: rpcpb.Monarch.HttpClose:output_type -> clientpb.Empty
+	1,  // 45: rpcpb.Monarch.HttpsOpen:output_type -> rpcpb.Notification
+	12, // 46: rpcpb.Monarch.HttpsClose:output_type -> clientpb.Empty
+	25, // 47: rpcpb.Monarch.Sessions:output_type -> clientpb.Sessions
+	12, // 48: rpcpb.Monarch.LockSession:output_type -> clientpb.Empty
+	12, // 49: rpcpb.Monarch.FreeSession:output_type -> clientpb.Empty
+	18, // 50: rpcpb.Monarch.Commands:output_type -> builderpb.DescriptionsReply
+	26, // 51: rpcpb.Monarch.Send:output_type -> clientpb.HTTPResponse
+	1,  // 52: rpcpb.Monarch.Notify:output_type -> rpcpb.Notification
+	27, // [27:53] is the sub-list for method output_type
+	1,  // [1:27] is the sub-list for method input_type
 	1,  // [1:1] is the sub-list for extension type_name
 	1,  // [1:1] is the sub-list for extension extendee
 	0,  // [0:1] is the sub-list for field type_name

@@ -22,6 +22,7 @@ import (
 	"io"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
 const (
@@ -30,7 +31,8 @@ const (
 )
 
 var (
-	l log.Logger
+	l  log.Logger
+	mu sync.Mutex
 )
 
 func init() {
@@ -84,6 +86,8 @@ func NewRepo(url, branch string, private bool, stream rpcpb.Monarch_InstallServe
 }
 
 func Setup(path string, stream rpcpb.Monarch_InstallServer) (*db.Builder, error) {
+	mu.Lock()
+	defer mu.Unlock()
 	ctx := context.Background()
 	configPath := filepath.Join(path, configName)
 	royal := config.ProjectConfig{}
