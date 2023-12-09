@@ -296,16 +296,18 @@ func build() {
 	}
 	l.Success("build complete. saved to %s", out.Name())
 	// save to agents table
+	if len()
 	agent := &clientpb.Agent{
-		AgentId: builderConfig.ID,
-		Name:    builderConfig.request.Options["name"],
-		Version: builderConfig.version,
-		OS:      builderConfig.request.Options["os"],
-		Arch:    builderConfig.request.Options["arch"],
-		Host:    builderConfig.request.Options["host"],
-		Port:    builderConfig.request.Options["port"],
-		Builder: builderConfig.builderID,
-		File:    out.Name(),
+		AgentId:   builderConfig.ID,
+		Name:      builderConfig.request.Options["name"],
+		Version:   builderConfig.version,
+		OS:        builderConfig.request.Options["os"],
+		Arch:      builderConfig.request.Options["arch"],
+		Host:      builderConfig.request.Options["host"],
+		Port:      builderConfig.request.Options["port"],
+		Builder:   builderConfig.builderID,
+		File:      out.Name(),
+		CreatedBy: config.ClientConfig.UUID,
 	}
 	if _, err = console.Rpc.NewAgent(ctx, agent); err != nil {
 		l.Error("%v", err)
