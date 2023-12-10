@@ -11,6 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/metadata"
 	"strconv"
+	"strings"
 
 	"github.com/pygrum/monarch/pkg/console"
 	"github.com/pygrum/monarch/pkg/log"
@@ -20,8 +21,9 @@ import (
 )
 
 var (
-	ctx     = context.Background()
-	cLogger log.Logger
+	ctx        = context.Background()
+	cLogger    log.Logger
+	cmdPlayers *cobra.Command
 )
 
 func init() {
@@ -61,15 +63,6 @@ func ServerConsoleCommands() *cobra.Command {
 	}
 	cmdCoop.Flags().BoolVarP(&stop, "stop", "s", false, "turn off co-op mode")
 
-	cmdPlayers := &cobra.Command{
-		Use:   "players",
-		Short: "list players that have been registered on the server",
-		Run: func(cmd *cobra.Command, args []string) {
-			playersCmd(args)
-		},
-	}
-	carapace.Gen(cmdPlayers).PositionalCompletion(completion.Players())
-
 	var name, lhost, role string
 	cmdPlayersNew := &cobra.Command{
 		Use:   "new",
@@ -98,10 +91,10 @@ func ServerConsoleCommands() *cobra.Command {
 			playersKickCmd(args[0])
 		},
 	}
-	carapace.Gen(cmdPlayersKick).PositionalCompletion(completion.Players())
+	carapace.Gen(cmdPlayersKick).PositionalCompletion(completion.Players(ctx))
 
 	cmdPlayers.AddCommand(cmdPlayersNew, cmdPlayersKick)
-	root.AddCommand(cmdCoop, cmdPlayers)
+	root.AddCommand(cmdCoop)
 	return root
 }
 
@@ -285,8 +278,33 @@ func ConsoleCommands() *cobra.Command {
 			fmt.Print("\033[H\033[2J")
 		},
 	}
+	cmdPlayers = &cobra.Command{
+		Use:   "players [USERNAMES...]",
+		Short: "list registered players",
+		Run: func(cmd *cobra.Command, args []string) {
+			playersCmd(args)
+		},
+	}
+	carapace.Gen(cmdPlayers).PositionalCompletion(completion.Players(ctx))
+
+	var to string
+	var all bool
+	cmdSend := &cobra.Command{
+		Use:   "send",
+		Short: "send a message to another online player",
+		Run: func(cmd *cobra.Command, args []string) {
+			sendCmd(to, strings.Join(args, " "), all)
+		},
+	}
+	cmdSend.Flags().StringVarP(&to, "to", "t", "", "player to message")
+	cmdSend.Flags().BoolVarP(&all, "all", "a", false, "message all players")
+
+	carapace.Gen(cmdSend).FlagCompletion(carapace.ActionMap{
+		"to": completion.Players(ctx),
+	})
+
 	root.AddCommand(cmdSessions, cmdUse, cmdHttp, cmdHttps, cmdAgents, cmdBuilders, cmdBuild, cmdInstall, cmdUninstall,
-		cmdStage, cmdUnstage, cmdVersion, cmdClear, cmdExit)
+		cmdStage, cmdUnstage, cmdVersion, cmdClear, cmdPlayers, cmdSend, cmdExit)
 	root.CompletionOptions.HiddenDefaultCmd = true
 	return root
 }

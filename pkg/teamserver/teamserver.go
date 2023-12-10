@@ -40,13 +40,36 @@ type MonarchServer struct {
 }
 
 var (
-	grpcServer *grpc.Server
+	grpcServer    *grpc.Server
+	ErrNoMetadata = errors.New("no metadata attached")
 )
 
 func New() (*MonarchServer, error) {
 	return &MonarchServer{
 		builderClients: make(map[string]rpcpb.BuilderClient),
 	}, nil
+}
+
+func (s *MonarchServer) Players(_ context.Context, r *clientpb.PlayerRequest) (*clientpb.Players, error) {
+	var players []db.Player
+	var pbPlayers []*clientpb.Player
+	if len(r.Names) > 0 {
+		if err := db.Where("username IN ?", r.Names).Find(&players).Error; err != nil {
+			return nil, fmt.Errorf("query failed: %v", err)
+		}
+	} else {
+		if err := db.Find(&players); err != nil {
+			return nil, fmt.Errorf("query failed: %v", err)
+		}
+	}
+	for _, p := range players {
+		pbPlayers = append(pbPlayers, &clientpb.Player{
+			Username:   p.Username,
+			Role:       string(p.Role),
+			Registered: p.CreatedAt.Format(time.RFC850),
+		})
+	}
+	return &clientpb.Players{Players: pbPlayers}, nil
 }
 
 func (s *MonarchServer) Agents(_ context.Context, req *clientpb.AgentRequest) (*clientpb.Agents, error) {
@@ -112,9 +135,9 @@ func (s *MonarchServer) NewAgent(_ context.Context, agent *clientpb.Agent) (*cli
 func (s *MonarchServer) RmAgents(ctx context.Context, req *clientpb.AgentRequest) (*clientpb.Empty, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return nil, errors.New("no metadata attached")
+		return nil, ErrNoMetadata
 	}
-	player := md["player"]
+	player := md["uid"]
 	role := md["role"]
 
 	var agents []db.Agent
@@ -202,9 +225,9 @@ func (s *MonarchServer) SaveProfile(ctx context.Context, req *clientpb.SaveProfi
 	profile := &db.Profile{}
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return nil, errors.New("no metadata attached")
+		return nil, ErrNoMetadata
 	}
-	player := md["player"]
+	player := md["uid"]
 	if db.Where("name = ? AND builder_id = ?", req.Name, req.BuilderId).Find(&profile); len(profile.Name) != 0 {
 		return nil, fmt.Errorf("a profile for this build named '%s' already exists", req.Name)
 	}
@@ -263,9 +286,9 @@ func (s *MonarchServer) LoadProfile(_ context.Context, req *clientpb.SaveProfile
 func (s *MonarchServer) RmProfiles(ctx context.Context, req *clientpb.ProfileRequest) (*clientpb.Empty, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return nil, errors.New("no metadata attached")
+		return nil, ErrNoMetadata
 	}
-	player := md["player"][0]
+	player := md["uid"][0]
 	role := md["role"][0]
 
 	var profiles []db.Profile
@@ -556,9 +579,9 @@ func (s *MonarchServer) StageAdd(ctx context.Context, r *clientpb.StageAddReques
 	r.Alias = filepath.Base(r.Alias)
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return nil, errors.New("no metadata attached")
+		return nil, ErrNoMetadata
 	}
-	player := md["player"][0]
+	player := md["uid"][0]
 	http.Stage.Add(r.Alias, agent.Name, agent.File, player)
 	return &rpcpb.Notification{
 		LogLevel: rpcpb.LogLevel_LevelInfo,
@@ -572,9 +595,9 @@ func (s *MonarchServer) StageAdd(ctx context.Context, r *clientpb.StageAddReques
 func (s *MonarchServer) Unstage(ctx context.Context, r *clientpb.UnstageRequest) (*clientpb.Empty, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return nil, errors.New("no metadata attached")
+		return nil, ErrNoMetadata
 	}
-	player := md["player"][0]
+	player := md["uid"][0]
 	role := md["role"][0]
 	for k, v := range *http.Stage.View() {
 		if r.Alias == k {
@@ -587,13 +610,69 @@ func (s *MonarchServer) Unstage(ctx context.Context, r *clientpb.UnstageRequest)
 	return &clientpb.Empty{}, nil
 }
 
-func (s *MonarchServer) Notify(req *clientpb.NotifyRequest, stream rpcpb.Monarch_NotifyServer) error {
-	playerID := req.PlayerId
+func (s *MonarchServer) SendMessage(ctx context.Context, msg *rpcpb.Message) (*clientpb.Empty, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, ErrNoMetadata
+	}
+	role := md["role"][0]
+	username := md["username"][0]
+	uid := md["uid"][0]
+
+	msg.From = username
+	msg.Role = role
+	if len(msg.To) == 0 {
+		msg.From = "(*) " + msg.From
+		sendAll(msg, types.MessageQueues, uid)
+		return &clientpb.Empty{}, nil
+	}
+	id, err := db.GetIDByUsername(msg.To)
+	if err != nil {
+		return nil, fmt.Errorf("'%s' doesn't exist", msg.To)
+	}
+	if id == uid {
+		return nil, errors.New("can't send a message to yourself")
+	}
+	mQueue, ok := types.MessageQueues[id]
+	if !ok {
+		return nil, fmt.Errorf("'%s' is offline", msg.To)
+	}
+	return &clientpb.Empty{}, mQueue.Enqueue(msg)
+}
+
+func (s *MonarchServer) GetMessages(_ *clientpb.Empty, stream rpcpb.Monarch_GetMessagesServer) error {
+	md, ok := metadata.FromIncomingContext(stream.Context())
+	if !ok {
+		return ErrNoMetadata
+	}
+	player := md["uid"][0]
+
+	defer func() {
+		delete(types.MessageQueues, player)
+	}()
+	mQueue := &types.MessageQueue{Channel: make(chan *rpcpb.Message, 10)}
+	types.MessageQueues[player] = mQueue
+	for {
+		select {
+		case <-stream.Context().Done():
+			return nil
+		case msg := <-mQueue.Channel:
+			_ = stream.Send(msg)
+		}
+	}
+}
+
+func (s *MonarchServer) Notify(_ *clientpb.Empty, stream rpcpb.Monarch_NotifyServer) error {
+	md, ok := metadata.FromIncomingContext(stream.Context())
+	if !ok {
+		return ErrNoMetadata
+	}
+	playerID := md["uid"][0]
+	username := md["username"][0]
+
 	var authed, kicked bool
 	p := &db.Player{}
-	if len(playerID) == 0 {
-		return errors.New("player ID cannot be blank")
-	}
+
 	if err := db.FindOneConditional("uuid = ?", playerID, &p); err != nil {
 		_ = stream.Send(&rpcpb.Notification{
 			LogLevel: rpcpb.LogLevel_LevelError,
@@ -603,34 +682,35 @@ func (s *MonarchServer) Notify(req *clientpb.NotifyRequest, stream rpcpb.Monarch
 	}
 	authed = true
 	// notify all that you have joined the game (this is done after subbing for notifications, by calling this func)
-	notifyAll(&rpcpb.Notification{
+	sendAll(&rpcpb.Notification{
 		LogLevel: rpcpb.LogLevel_LevelInfo,
-		Msg:      fmt.Sprintf("%s has joined the operation", req.PlayerName),
-	})
+		Msg:      fmt.Sprintf("%s has joined the operation", username),
+	}, types.NotifQueues)
 	defer func() {
 		delete(types.NotifQueues, playerID)
 		if !kicked && authed {
-			notifyAll(&rpcpb.Notification{
+			sendAll(&rpcpb.Notification{
 				LogLevel: rpcpb.LogLevel_LevelInfo,
-				Msg:      fmt.Sprintf("%s has left the operation", req.PlayerName),
-			})
+				Msg:      fmt.Sprintf("%s has left the operation", username),
+			}, types.NotifQueues)
 		}
 	}()
 	// Implement a notification queue
-	queue := &types.NotificationQueue{Channel: make(chan *rpcpb.Notification, 10)}
-	types.NotifQueues[playerID] = queue
+	nQueue := &types.NotificationQueue{Channel: make(chan *rpcpb.Notification, 10)}
+
+	types.NotifQueues[playerID] = nQueue
 	for {
 		select {
 		case <-stream.Context().Done():
 			return nil
-		case notification := <-queue.Channel:
+		case notification := <-nQueue.Channel:
 			_ = stream.Send(notification)
 			if notification.Msg == types.NotificationKickPlayer {
 				// name and shame!
-				notifyAll(&rpcpb.Notification{
+				sendAll(&rpcpb.Notification{
 					LogLevel: rpcpb.LogLevel_LevelInfo,
-					Msg:      fmt.Sprintf("%s has been kicked from the operation", req.PlayerName),
-				}, p.Username, config.ClientConfig.UUID)
+					Msg:      fmt.Sprintf("%s has been kicked from the operation", username),
+				}, types.NotifQueues, p.Username, config.ClientConfig.UUID)
 				kicked = true
 				break
 			}
@@ -638,8 +718,8 @@ func (s *MonarchServer) Notify(req *clientpb.NotifyRequest, stream rpcpb.Monarch
 	}
 }
 
-func notifyAll(n *rpcpb.Notification, excludes ...string) {
-	for k, q := range types.NotifQueues {
+func sendAll(n interface{}, queues map[string]types.Queue, excludes ...string) {
+	for k, q := range queues {
 		if !slices.Contains(excludes, k) {
 			_ = q.Enqueue(n)
 		}

@@ -5,7 +5,7 @@ import (
 	"github.com/pygrum/monarch/pkg/protobuf/rpcpb"
 )
 
-func msgCmd(to, msg string, all bool) {
+func sendCmd(to, msg string, all bool) {
 	if len(to) == 0 {
 		if !all {
 			cLogger.Error("player not specified with -to, please specify a player name or --all")

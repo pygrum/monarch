@@ -1,6 +1,7 @@
 package db
 
 import (
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/pygrum/monarch/pkg/config"
@@ -11,8 +12,11 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-var db *gorm.DB
-var l log.Logger
+var (
+	ErrPlayerNotFound = errors.New("player not found")
+	db                *gorm.DB
+	l                 log.Logger
+)
 
 // Initialize database
 func Initialize() string {
@@ -84,4 +88,15 @@ func DeleteOne(v interface{}) error {
 
 func Where(query interface{}, target ...interface{}) *gorm.DB {
 	return db.Where(query, target...)
+}
+
+func GetIDByUsername(user string) (string, error) {
+	p := &Player{}
+	if err := FindOneConditional("username = ?", user, &p); err != nil {
+		return "", err
+	}
+	if len(p.UUID) == 0 {
+		return p.UUID, ErrPlayerNotFound
+	}
+	return p.UUID, nil
 }
