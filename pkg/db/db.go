@@ -5,6 +5,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/pygrum/monarch/pkg/config"
 	"github.com/pygrum/monarch/pkg/log"
+	"github.com/pygrum/monarch/pkg/teamserver/roles"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -33,8 +34,11 @@ func Initialize() string {
 	uid := uuid.New().String()
 	consoleUser := &Player{}
 	if db.Where("username = ?", "console").First(consoleUser); len(consoleUser.UUID) == 0 {
-		consoleUser.UUID = uid
-		consoleUser.Username = "console"
+		consoleUser = &Player{
+			UUID:     uid,
+			Username: "console",
+			Role:     roles.RoleAdmin,
+		}
 		if result := db.Create(consoleUser); result.Error != nil {
 			l.Fatal("could not create default 'console' user: %v", result.Error)
 		}
