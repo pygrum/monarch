@@ -6,6 +6,7 @@ import (
 	"github.com/pygrum/monarch/pkg/completion"
 	"github.com/pygrum/monarch/pkg/config"
 	"github.com/pygrum/monarch/pkg/crypto"
+	"github.com/pygrum/monarch/pkg/teamserver/roles"
 	"github.com/rsteube/carapace"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/metadata"
@@ -40,6 +41,14 @@ func InitCTX() {
 	ctx = metadata.NewOutgoingContext(ctx, md)
 }
 
+func ConsoleInitCTX() {
+	m := make(map[string]string)
+	m["player"] = config.ClientConfig.UUID
+	m["role"] = string(roles.RoleAdmin)
+	md := metadata.New(m)
+	ctx = metadata.NewOutgoingContext(ctx, md)
+}
+
 func ServerConsoleCommands() *cobra.Command {
 	root := ConsoleCommands()
 	var stop bool
@@ -61,17 +70,26 @@ func ServerConsoleCommands() *cobra.Command {
 	}
 	carapace.Gen(cmdPlayers).PositionalCompletion(completion.Players())
 
-	var name, lhost string
+	var name, lhost, role string
 	cmdPlayersNew := &cobra.Command{
 		Use:   "new",
 		Short: "generate a configuration file for a new player",
 		Run: func(cmd *cobra.Command, args []string) {
-			playersNewCmd(name, lhost)
+			playersNewCmd(name, lhost, role)
 		},
 	}
 	cmdPlayersNew.Flags().StringVarP(&name, "username", "u", "", "username of the new player")
 	cmdPlayersNew.Flags().StringVarP(&lhost, "lhost", "l", "",
 		"the hostname the player authenticates to this server using")
+	cmdPlayersNew.Flags().StringVarP(&role, "role", "r", "player",
+		"the player role (see autocomplete options)")
+	carapace.Gen(cmdPlayersNew).FlagCompletion(carapace.ActionMap{
+		"role": carapace.ActionValues(roles.All().String()...),
+	})
+
+	_ = cmdPlayersNew.MarkFlagRequired("username")
+	_ = cmdPlayersNew.MarkFlagRequired("lhost")
+
 	cmdPlayersKick := &cobra.Command{
 		Use:   "kick [flags] NAME",
 		Short: "kick a player from the server",
@@ -117,7 +135,7 @@ func ConsoleCommands() *cobra.Command {
 			buildersCmd(args)
 		},
 	}
-	carapace.Gen(cmdBuilders).PositionalCompletion(completion.Builders(ctx))
+	carapace.Gen(cmdBuilders).PositionalAnyCompletion(completion.Builders(ctx))
 
 	cmdAgents := &cobra.Command{
 		Use:   "agents [flags] AGENTS...",
@@ -126,7 +144,7 @@ func ConsoleCommands() *cobra.Command {
 			agentsCmd(args)
 		},
 	}
-	carapace.Gen(cmdAgents).PositionalCompletion(completion.Agents(ctx))
+	carapace.Gen(cmdAgents).PositionalAnyCompletion(completion.Agents(ctx))
 
 	cmdAgentsRm := &cobra.Command{
 		Use:   "rm [flags] AGENTS...",
@@ -136,7 +154,7 @@ func ConsoleCommands() *cobra.Command {
 			cmdRm(args)
 		},
 	}
-	carapace.Gen(cmdAgentsRm).PositionalCompletion(completion.Agents(ctx))
+	carapace.Gen(cmdAgentsRm).PositionalAnyCompletion(completion.Agents(ctx))
 	cmdAgents.AddCommand(cmdAgentsRm)
 
 	cmdSessions := &cobra.Command{
@@ -146,7 +164,7 @@ func ConsoleCommands() *cobra.Command {
 			sessionsCmd(args)
 		},
 	}
-	carapace.Gen(cmdSessions).PositionalCompletion(completion.Sessions(ctx))
+	carapace.Gen(cmdSessions).PositionalAnyCompletion(completion.Sessions(ctx))
 
 	cmdUse := &cobra.Command{
 		Use:   "use [id]",
@@ -222,7 +240,7 @@ func ConsoleCommands() *cobra.Command {
 			uninstallCmd(args, purge)
 		},
 	}
-	carapace.Gen(cmdUninstall).PositionalCompletion(completion.Builders(ctx))
+	carapace.Gen(cmdUninstall).PositionalAnyCompletion(completion.Builders(ctx))
 
 	cmdUninstall.Flags().BoolVarP(&purge, "delete-data", "p", false, "delete the source"+
 		" folder that was saved to disk when installed")

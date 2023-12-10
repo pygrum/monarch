@@ -3,6 +3,7 @@ package completion
 import (
 	"context"
 	"github.com/pygrum/monarch/pkg/console"
+	"github.com/pygrum/monarch/pkg/consts"
 	"github.com/pygrum/monarch/pkg/db"
 	"github.com/pygrum/monarch/pkg/protobuf/clientpb"
 	"github.com/rsteube/carapace"
@@ -64,7 +65,9 @@ func Players() carapace.Action {
 		var players []db.Player
 		if err := db.Find(&players); err == nil {
 			for _, p := range players {
-				results = append(results, p.Username)
+				if p.Username != consts.UserConsole {
+					results = append(results, p.Username)
+				}
 			}
 		}
 		return carapace.ActionValues(results...).Tag("players")
