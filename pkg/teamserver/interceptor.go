@@ -87,7 +87,7 @@ func (a *AuthInterceptor) authorize(ctx context.Context, method string) (context
 		return ctx, errors.New("player is unauthorized")
 	}
 	md["role"] = []string{string(player.Role)}
-	md["player"] = []string{player.UUID}
+	md["username"] = []string{player.Username}
 	ctx = metadata.NewIncomingContext(ctx, md)
 
 	return ctx, nil
