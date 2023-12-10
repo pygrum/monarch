@@ -11,8 +11,9 @@ const (
 )
 
 type StageItem struct {
-	Path  string
-	Agent string
+	Path     string
+	Agent    string
+	StagedBy string
 }
 
 type stage struct {
@@ -26,10 +27,11 @@ func init() {
 		fileNameMappings: make(map[string]StageItem),
 	}
 }
-func (s *stage) Add(name, agent, path string) {
+func (s *stage) Add(name, agent, path, stagedBy string) {
 	s.fileNameMappings[name] = StageItem{
-		Path:  path,
-		Agent: agent,
+		Path:     path,
+		Agent:    agent,
+		StagedBy: stagedBy,
 	}
 }
 

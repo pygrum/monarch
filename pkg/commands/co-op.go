@@ -5,7 +5,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/pygrum/monarch/pkg/consts"
 	"github.com/pygrum/monarch/pkg/protobuf/rpcpb"
+	"github.com/pygrum/monarch/pkg/teamserver/roles"
 	"github.com/pygrum/monarch/pkg/types"
 	"os"
 	"time"
@@ -47,7 +49,7 @@ func playersCmd(names []string) {
 	header := "USERNAME\tACCOUNT CREATION DATE\t"
 	_, _ = fmt.Fprintln(w, header)
 	for _, player := range players {
-		if player.Username == "console" {
+		if player.Username == consts.UserConsole {
 			continue
 		}
 		line := fmt.Sprintf("%s\t%s\t",
@@ -59,13 +61,9 @@ func playersCmd(names []string) {
 	_ = w.Flush()
 }
 
-func playersNewCmd(name, lhost string) {
-	if len(name) == 0 {
-		cLogger.Error("you must specify the player name")
-		return
-	}
-	if len(lhost) == 0 {
-		cLogger.Error("you must specify the server host")
+func playersNewCmd(name, lhost, role string) {
+	if !roles.ValidRole(role) {
+		cLogger.Error("'%s' is not a valid role", role)
 		return
 	}
 	// don't save certificate deliberately, we don't need to and could be an issue if
@@ -100,6 +98,7 @@ func playersNewCmd(name, lhost string) {
 		Username:  name,
 		ClientCA:  b64Cert,
 		Challenge: challenge,
+		Role:      roles.Role(role),
 		Secret:    hex.EncodeToString(secret),
 	}
 	bytes, err := json.Marshal(clientConfig)
@@ -115,10 +114,15 @@ func playersNewCmd(name, lhost string) {
 		cLogger.Error("failed to create configuration file: %v", err)
 		return
 	}
+	cLogger.Info("account '%s' created with role '%s'", name, role)
 	cLogger.Success("saved player config to ./" + name + "-monarch-client.config")
 }
 
 func playersKickCmd(name string) {
+	if name == consts.UserConsole {
+		cLogger.Warn("you cannot kick yourself")
+		return
+	}
 	player := &db.Player{}
 	if err := db.FindOneConditional("username = ?", name, &player); err != nil {
 		cLogger.Error("query failed: %v", err)
