@@ -69,7 +69,7 @@ func cobraProfilesCmd() *cobra.Command {
 			profilesCmd(args)
 		},
 	}
-	carapace.Gen(cmd).PositionalCompletion(completion.Profiles(ctx, builderConfig.ID+builderConfig.builderID))
+	carapace.Gen(cmd).PositionalCompletion(completion.Profiles(ctx, builderConfig.builderID))
 	saveCmd := &cobra.Command{
 		Use:   "save [flags] NAME",
 		Short: "save current build configuration options as a new profile",
@@ -86,7 +86,7 @@ func cobraProfilesCmd() *cobra.Command {
 			profilesLoadCmd(args[0])
 		},
 	}
-	carapace.Gen(loadCmd).PositionalCompletion(completion.Profiles(ctx, builderConfig.ID+builderConfig.builderID))
+	carapace.Gen(loadCmd).PositionalCompletion(completion.Profiles(ctx, builderConfig.builderID))
 
 	rmCmd := &cobra.Command{
 		Use:   "rm [flags] NAMES...",
@@ -96,7 +96,7 @@ func cobraProfilesCmd() *cobra.Command {
 			profilesRmCmd(args)
 		},
 	}
-	carapace.Gen(rmCmd).PositionalCompletion(completion.Profiles(ctx, builderConfig.ID+builderConfig.builderID))
+	carapace.Gen(rmCmd).PositionalCompletion(completion.Profiles(ctx, builderConfig.builderID))
 
 	cmd.AddCommand(saveCmd, loadCmd, rmCmd)
 	return cmd

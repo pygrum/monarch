@@ -264,6 +264,9 @@ func (s *MonarchServer) LoadProfile(_ context.Context, req *clientpb.SaveProfile
 	if err := db.FindConditional("profile = ?", req.Name, &records); err != nil {
 		return nil, fmt.Errorf("failed to get profile values: %v", err)
 	}
+	if len(profile.Name) == 0 {
+		return nil, errors.New("profile does not exist")
+	}
 	profileData.Profile = &clientpb.Profile{
 		Id:        int32(profile.ID),
 		Name:      profile.Name,

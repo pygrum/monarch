@@ -45,7 +45,7 @@ func InitCTX() {
 
 func ConsoleInitCTX() {
 	m := make(map[string]string)
-	m["player"] = config.ClientConfig.UUID
+	m["uid"] = config.ClientConfig.UUID
 	m["role"] = string(roles.RoleAdmin)
 	md := metadata.New(m)
 	ctx = metadata.NewOutgoingContext(ctx, md)

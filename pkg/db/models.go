@@ -3,8 +3,6 @@ package db
 import (
 	"github.com/pygrum/monarch/pkg/teamserver/roles"
 	"time"
-
-	"gorm.io/gorm"
 )
 
 type Builder struct {
@@ -40,7 +38,9 @@ type Agent struct {
 
 // Profile is used to save build configurations
 type Profile struct {
-	gorm.Model
+	ID        uint `gorm:"primaryKey"`
+	UpdatedAt time.Time
+	CreatedAt time.Time
 	Name      string `gorm:"unique"`
 	BuilderID string
 	CreatedBy string
@@ -48,10 +48,12 @@ type Profile struct {
 
 // ProfileRecord is one build configuration, and is bound to a profile in the profiles table
 type ProfileRecord struct {
-	gorm.Model
-	Profile string
-	Name    string
-	Value   string
+	ID        uint `gorm:"primaryKey"`
+	UpdatedAt time.Time
+	CreatedAt time.Time
+	Profile   string
+	Name      string
+	Value     string
 }
 
 type Player struct {
