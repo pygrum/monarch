@@ -6,7 +6,9 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"github.com/pygrum/monarch/pkg/teamserver/roles"
 	"github.com/pygrum/monarch/pkg/types"
+	"google.golang.org/grpc/metadata"
 	"math"
 	"net"
 	"os"
@@ -107,7 +109,14 @@ func (s *MonarchServer) NewAgent(_ context.Context, agent *clientpb.Agent) (*cli
 	return &clientpb.Empty{}, nil
 }
 
-func (s *MonarchServer) RmAgents(_ context.Context, req *clientpb.AgentRequest) (*clientpb.Empty, error) {
+func (s *MonarchServer) RmAgents(ctx context.Context, req *clientpb.AgentRequest) (*clientpb.Empty, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, errors.New("no metadata attached")
+	}
+	player := md["player"]
+	role := md["role"]
+
 	var agents []db.Agent
 	if err := db.FindConditional("agent_id IN ?", req.AgentId, &agents); err != nil {
 		return nil, fmt.Errorf("failed to retrieve the specified agents: %v", err)
@@ -121,6 +130,9 @@ func (s *MonarchServer) RmAgents(_ context.Context, req *clientpb.AgentRequest) 
 		return nil, fmt.Errorf("no agents with the provided names exist")
 	}
 	for _, agent := range agents {
+		if agent.CreatedBy != player[0] && roles.Role(role[0]) != roles.RoleAdmin {
+			return nil, fmt.Errorf("you are not authorized to delete %s", agent.Name)
+		}
 		if err := db.DeleteOne(&agent); err != nil {
 			return nil, fmt.Errorf("failed to delete %s: %v", agent.Name, err)
 		}
@@ -186,14 +198,20 @@ func (s *MonarchServer) Profiles(_ context.Context, req *clientpb.ProfileRequest
 	return pbProfiles, nil
 }
 
-func (s *MonarchServer) SaveProfile(_ context.Context, req *clientpb.SaveProfileRequest) (*clientpb.Empty, error) {
+func (s *MonarchServer) SaveProfile(ctx context.Context, req *clientpb.SaveProfileRequest) (*clientpb.Empty, error) {
 	profile := &db.Profile{}
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, errors.New("no metadata attached")
+	}
+	player := md["player"]
 	if db.Where("name = ? AND builder_id = ?", req.Name, req.BuilderId).Find(&profile); len(profile.Name) != 0 {
 		return nil, fmt.Errorf("a profile for this build named '%s' already exists", req.Name)
 	}
 	profile = &db.Profile{
 		Name:      req.Name,
 		BuilderID: req.BuilderId,
+		CreatedBy: player[0],
 	}
 	var records []db.ProfileRecord
 	for k, v := range req.Options {
@@ -243,19 +261,34 @@ func (s *MonarchServer) LoadProfile(_ context.Context, req *clientpb.SaveProfile
 }
 
 func (s *MonarchServer) RmProfiles(ctx context.Context, req *clientpb.ProfileRequest) (*clientpb.Empty, error) {
-	profiles, err := s.Profiles(ctx, req)
-	if err != nil {
-		return nil, err
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, errors.New("no metadata attached")
 	}
-	var records []db.ProfileRecord
-	if err := db.FindConditional("profile IN ?", req.Name, &records); err != nil {
-		return nil, fmt.Errorf("failed to find profile values: %v", err)
+	player := md["player"][0]
+	role := md["role"][0]
+
+	var profiles []db.Profile
+	if err := db.Where("name IN ? AND builder_id = ? ", req.Name, req.BuilderId).Find(&profiles).Error; err != nil {
+		return nil, fmt.Errorf("couldn't get profiles: %v", err)
 	}
-	if err := db.Delete(records); err != nil {
-		return nil, fmt.Errorf("failed to delete profile values: %v", err)
+	if len(profiles) == 0 {
+		return nil, errors.New("no profiles found")
 	}
-	if err := db.Delete(profiles); err != nil {
-		return nil, fmt.Errorf("failed to delete profiles: %v", err)
+	for _, profile := range profiles {
+		var records []db.ProfileRecord
+		if err := db.FindConditional("profile IN ?", req.Name, &records); err != nil {
+			return nil, fmt.Errorf("failed to find profile values: %v", err)
+		}
+		if profile.CreatedBy != player && roles.Role(role) != roles.RoleAdmin {
+			return nil, fmt.Errorf("you are not authorized to delete %s", profile.Name)
+		}
+		if err := db.Delete(profiles); err != nil {
+			return nil, fmt.Errorf("failed to delete profiles: %v", err)
+		}
+		if err := db.Delete(records); err != nil {
+			return nil, fmt.Errorf("failed to delete profile values: %v", err)
+		}
 	}
 	return &clientpb.Empty{}, nil
 }
@@ -360,7 +393,7 @@ func (s *MonarchServer) Uninstall(req *clientpb.UninstallRequest, stream rpcpb.M
 		if err = db.FindOneConditional("builder_id = ?", b.BuilderId, &builder); err != nil {
 			return err
 		}
-		if err := utils.Cleanup(builder); err != nil {
+		if err := utils.Cleanup(builder, stream); err != nil {
 			return fmt.Errorf("%v", err)
 		}
 		_ = stream.Send(&rpcpb.Notification{
@@ -510,7 +543,7 @@ func (s *MonarchServer) StageView(context.Context, *clientpb.Empty) (*clientpb.S
 	return stage, nil
 }
 
-func (s *MonarchServer) StageAdd(_ context.Context, r *clientpb.StageAddRequest) (*rpcpb.Notification, error) {
+func (s *MonarchServer) StageAdd(ctx context.Context, r *clientpb.StageAddRequest) (*rpcpb.Notification, error) {
 	agent := &db.Agent{}
 	if err := db.FindOneConditional("agent_id = ?", r.Agent, &agent); err != nil {
 		if err = db.FindOneConditional("name = ?", r.Agent, &agent); err != nil {
@@ -521,7 +554,12 @@ func (s *MonarchServer) StageAdd(_ context.Context, r *clientpb.StageAddRequest)
 		r.Alias = filepath.Base(agent.File)
 	}
 	r.Alias = filepath.Base(r.Alias)
-	http.Stage.Add(r.Alias, agent.Name, agent.File)
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, errors.New("no metadata attached")
+	}
+	player := md["player"][0]
+	http.Stage.Add(r.Alias, agent.Name, agent.File, player)
 	return &rpcpb.Notification{
 		LogLevel: rpcpb.LogLevel_LevelInfo,
 		Msg: fmt.Sprintf(
@@ -531,7 +569,20 @@ func (s *MonarchServer) StageAdd(_ context.Context, r *clientpb.StageAddRequest)
 	}, nil
 }
 
-func (s *MonarchServer) Unstage(_ context.Context, r *clientpb.UnstageRequest) (*clientpb.Empty, error) {
+func (s *MonarchServer) Unstage(ctx context.Context, r *clientpb.UnstageRequest) (*clientpb.Empty, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, errors.New("no metadata attached")
+	}
+	player := md["player"][0]
+	role := md["role"][0]
+	for k, v := range *http.Stage.View() {
+		if r.Alias == k {
+			if v.StagedBy != player && roles.Role(role) != roles.RoleAdmin {
+				return nil, fmt.Errorf("you are not authorized to remove %s from the stage", r.Alias)
+			}
+		}
+	}
 	http.Stage.Rm(r.Alias)
 	return &clientpb.Empty{}, nil
 }
@@ -610,6 +661,7 @@ func Start() error {
 	opts := []grpc.ServerOption{
 		grpc.Creds(creds),
 		grpc.UnaryInterceptor(interceptor.Unary()),
+		grpc.StreamInterceptor(interceptor.Stream()),
 		grpc.MaxRecvMsgSize(math.MaxInt32),
 	}
 	grpcServer = grpc.NewServer(opts...)

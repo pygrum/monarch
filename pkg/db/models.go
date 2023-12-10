@@ -1,6 +1,7 @@
 package db
 
 import (
+	"github.com/pygrum/monarch/pkg/teamserver/roles"
 	"time"
 
 	"gorm.io/gorm"
@@ -42,6 +43,7 @@ type Profile struct {
 	gorm.Model
 	Name      string `gorm:"unique"`
 	BuilderID string
+	CreatedBy string
 }
 
 // ProfileRecord is one build configuration, and is bound to a profile in the profiles table
@@ -58,5 +60,6 @@ type Player struct {
 	ClientCA  string // base64 representation of client certificate for mTLS
 	Challenge string
 	Secret    string
+	Role      roles.Role
 	CreatedAt time.Time
 }
