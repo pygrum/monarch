@@ -21,11 +21,11 @@ func installCmd(repoUrl, branch string, useCreds bool) {
 	for {
 		notif, err := stream.Recv()
 		if err == io.EOF {
-			break
+			return
 		}
 		if err != nil {
 			cLogger.Error("install failed: %v", err)
-			break
+			return
 		}
 		log.NumericalLevel(cLogger, uint16(notif.LogLevel), notif.Msg)
 	}

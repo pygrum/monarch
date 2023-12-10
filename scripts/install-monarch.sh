@@ -72,7 +72,6 @@ openssl req -newkey rsa:4096 \
   -out "${MONARCH_PATH}/server-req.pem" \
   -keyout "${MONARCH_PATH}/${MONARCH_NAME}-key.pem" \
   -subj "/C=US/ST=California/L=Mountain View/O=Google LLC/CN=*.google.com"
-echo "signing server request with CA certificate"
 
 echo "signing server request with CA private key"
 openssl x509 -req \

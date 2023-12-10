@@ -109,7 +109,7 @@ func Setup(path string, stream rpcpb.Monarch_InstallServer) (*db.Builder, error)
 		if err := db.FindOneConditional("name = ?", royal.Name, b); err == nil {
 			// just to check that we actually returned sum
 			if b.Name == royal.Name {
-				if err = utils.Cleanup(b); err != nil {
+				if err = utils.Cleanup(b, stream); err != nil {
 					return nil, fmt.Errorf("failed to delete existing builder: %v", err)
 				}
 			}

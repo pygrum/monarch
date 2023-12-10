@@ -23,7 +23,8 @@ func localCmd(path string) {
 			break
 		}
 		if err != nil {
-			cLogger.Error("failed to receive notification: %v", err)
+			cLogger.Error("install failed: %v", err)
+			return
 		}
 		log.NumericalLevel(cLogger, uint16(notif.LogLevel), notif.Msg)
 	}
