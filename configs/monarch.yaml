@@ -1,26 +1,26 @@
 # Default configuration for monarch. Consider changing these values after installation (~/.monarch/monarch.yaml)
 debug: false
-loglevel: 2
-certfile: monarch-cert.pem # cert file relative to monarch home dir
+loglevel: 2 # 1: debug 2: info 3: success 4: warn 5: error 6: fatal
+certfile: monarch-cert.pem # files are relative to monarch home directory (~/.monarch)
 keyfile: monarch-key.pem
 cacert: ca-cert.pem # signing cert and key
 cakey: ca-key.pem
 
-interface: 0.0.0.0
+interface: 0.0.0.0 # main interface monarch binds to for operations
 
 httpport: 8000
 httpsport: 4433
 multiplayerport: 1337
 
-loginendpoint: /login
-mainendpoint: /
-stageendpoint: /index/{file}
+loginendpoint: /login # default endpoint for registering agents
+mainendpoint: / # default endpoint for interacting with agents
+stageendpoint: /index/{file} # default endpoint for staging agents (secondary payload)
 
-session_timeout_minutes: 60
+session_timeout_minutes: 60 # time until re-registration
 
 installdir: agents
-# gitusername:
-# gitpat:
+# gitusername: # set me: used to install private repositories
+# gitpat: # set me: used to install private repositories
 ignoreconsolewarnings: false
 
 mysqladdress: 172.20.0.3 # default mysql container address

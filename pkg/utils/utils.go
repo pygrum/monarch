@@ -7,15 +7,8 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/pygrum/monarch/pkg/db"
 	"github.com/pygrum/monarch/pkg/docker"
-	"github.com/pygrum/monarch/pkg/log"
 	"github.com/pygrum/monarch/pkg/protobuf/rpcpb"
 )
-
-var cLogger log.Logger
-
-func init() {
-	cLogger, _ = log.NewLogger(log.ConsoleLogger, "")
-}
 
 // Cleanup is used to delete all data associated with a builder
 func Cleanup(builder *db.Builder, stream rpcpb.Monarch_UninstallServer) error {
