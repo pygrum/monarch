@@ -9,6 +9,7 @@ import (
 	"io"
 	"net"
 	"strconv"
+	"strings"
 
 	"github.com/pygrum/monarch/pkg/config"
 	"github.com/pygrum/monarch/pkg/consts"
@@ -45,6 +46,7 @@ func NamedMenu(name string, commands func() *cobra.Command) {
 
 // Run entrypoint for the entire application
 func Run(rootCmd func() *cobra.Command, isServer bool) error {
+	initCTX(isServer)
 	var err error
 	var clientConn *grpc.ClientConn
 	monarchServer = &server{
@@ -66,6 +68,7 @@ func Run(rootCmd func() *cobra.Command, isServer bool) error {
 	Rpc = rpcpb.NewMonarchClient(clientConn)
 
 	go getNotifications()
+	go getMessages()
 	return start(rootCmd)
 }
 
@@ -98,15 +101,8 @@ func testServerConnectivity() {
 }
 
 func getNotifications() {
-	var playerID, playerName string
-	playerID = config.ClientConfig.UUID
-	playerName = config.ClientConfig.Name
-
 	tl, _ := log.NewLogger(log.TransientLogger, "")
-	stream, err := Rpc.Notify(CTX, &clientpb.NotifyRequest{
-		PlayerId:   playerID,
-		PlayerName: playerName,
-	})
+	stream, err := Rpc.Notify(CTX, &clientpb.Empty{})
 	if err != nil {
 		tl.Fatal("can't receive notifications (%v)", err)
 	}
@@ -126,6 +122,29 @@ func getNotifications() {
 			_ = stream.CloseSend()
 			return
 		}
+	}
+}
+
+func getMessages() {
+	tl, _ := log.NewLogger(log.TransientLogger, "")
+	stream, err := Rpc.GetMessages(CTX, &clientpb.Empty{})
+	if err != nil {
+		tl.Error("can't receive messages (%v)", err)
+		return
+	}
+	for {
+		message, err := stream.Recv()
+		if errors.Is(err, io.EOF) {
+			tl.Error("server connection closed")
+			return
+		}
+		if err != nil {
+			tl.Error("messaging error: %v", err)
+			return
+		}
+		msgFmt := "%s (%s) says: \033[36m%s\033[0m"
+		msg := fmt.Sprintf(msgFmt, message.From, message.Role, message.Msg)
+		_, _ = monarchServer.App.TransientPrintf(strings.ReplaceAll(msg, "%", "%%"))
 	}
 }
 
@@ -155,7 +174,6 @@ func initMonarchServer() (*grpc.ClientConn, error) {
 }
 
 func initMonarchClient() (*grpc.ClientConn, error) {
-	initCTX()
 	http.ClientInitialize()
 	c, err := crypto.ClientTLSConfig(&config.ClientConfig)
 	if err != nil {
@@ -171,6 +189,8 @@ func initMonarchClient() (*grpc.ClientConn, error) {
 
 func newMonarchServer() (*grpc.Server, error) {
 	types.NotifQueues = make(map[string]types.Queue)
+	types.MessageQueues = make(map[string]types.Queue)
+
 	// TODO: fetch key pair and create credentials with credentials.NewTLS
 	grpcServer := grpc.NewServer()
 	srv, err := teamserver.New()
@@ -181,10 +201,14 @@ func newMonarchServer() (*grpc.Server, error) {
 	return grpcServer, nil
 }
 
-func initCTX() {
+func initCTX(isServer bool) {
 	m := make(map[string]string)
 	m["uid"] = config.ClientConfig.UUID
-
+	if isServer {
+		m["username"] = consts.UserConsole
+		CTX = metadata.NewOutgoingContext(CTX, metadata.New(m))
+		return
+	}
 	challenge, err := crypto.EncryptAES(config.ClientConfig.Secret, config.ClientConfig.Challenge)
 	if err != nil {
 		logrus.Fatalf("couldn't encrypt challenge for auth: %v", err)
