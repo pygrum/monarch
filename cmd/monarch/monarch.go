@@ -19,6 +19,7 @@ func main() {
 	config.ClientConfig.Name = "console"
 	db.Initialize()
 
+	commands.ConsoleInitCTX()
 	if err := console.Run(commands.ServerConsoleCommands, true); err != nil {
 		log.Fatal(err)
 	}

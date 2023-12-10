@@ -191,7 +191,7 @@ func initCTX() {
 	}
 	m["challenge"] = challenge
 	md := metadata.New(m)
-	CTX = metadata.NewIncomingContext(CTX, md)
+	CTX = metadata.NewOutgoingContext(CTX, md)
 }
 
 // MainMenu switches back to the main menu
