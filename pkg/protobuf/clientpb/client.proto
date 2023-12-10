@@ -24,6 +24,18 @@ message Builder {
 message Builders {
   repeated Builder builders = 1;
 }
+message PlayerRequest {
+  repeated string names = 1;
+}
+
+message Player {
+  string username = 1;
+  string role = 2;
+  string registered = 3;
+}
+message Players {
+  repeated Player players = 1;
+}
 
 message AgentRequest {
   repeated string agent_id = 1;
@@ -148,10 +160,6 @@ message Registration {
   string PID = 8;
   string home_dir = 9;
   string IP_address = 10;
-}
-message NotifyRequest {
-  string player_id = 1;
-  string player_name = 2;
 }
 message LockSessionRequest {
   string player_name = 1;

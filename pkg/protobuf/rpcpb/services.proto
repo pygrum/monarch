@@ -19,6 +19,12 @@ message Notification {
   LogLevel log_level = 1;
   string msg = 2;
 }
+message Message {
+  string role = 1;
+  string from = 2;
+  string to = 3;
+  string msg = 4;
+}
 
 service Builder {
   rpc GetCommands (builderpb.DescriptionsRequest) returns (builderpb.DescriptionsReply) {}
@@ -27,6 +33,7 @@ service Builder {
 }
 
 service Monarch {
+  rpc Players(clientpb.PlayerRequest) returns (clientpb.Players) {}
   rpc Agents(clientpb.AgentRequest) returns (clientpb.Agents) {}
   rpc NewAgent(clientpb.Agent) returns (clientpb.Empty) {}
   rpc RmAgents(clientpb.AgentRequest) returns (clientpb.Empty) {}
@@ -61,5 +68,7 @@ service Monarch {
   rpc Unstage(clientpb.UnstageRequest) returns (clientpb.Empty) {}
 
   // Notify used for general notifications - likely run from a goroutine
-  rpc Notify(clientpb.NotifyRequest) returns (stream Notification) {}
+  rpc Notify(clientpb.Empty) returns (stream Notification) {}
+  rpc GetMessages(clientpb.Empty) returns (stream Message) {}
+  rpc SendMessage(Message) returns (clientpb.Empty) {}
 }

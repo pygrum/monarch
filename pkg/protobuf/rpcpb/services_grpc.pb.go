@@ -182,6 +182,7 @@ var Builder_ServiceDesc = grpc.ServiceDesc{
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MonarchClient interface {
+	Players(ctx context.Context, in *clientpb.PlayerRequest, opts ...grpc.CallOption) (*clientpb.Players, error)
 	Agents(ctx context.Context, in *clientpb.AgentRequest, opts ...grpc.CallOption) (*clientpb.Agents, error)
 	NewAgent(ctx context.Context, in *clientpb.Agent, opts ...grpc.CallOption) (*clientpb.Empty, error)
 	RmAgents(ctx context.Context, in *clientpb.AgentRequest, opts ...grpc.CallOption) (*clientpb.Empty, error)
@@ -208,7 +209,9 @@ type MonarchClient interface {
 	StageAdd(ctx context.Context, in *clientpb.StageAddRequest, opts ...grpc.CallOption) (*Notification, error)
 	Unstage(ctx context.Context, in *clientpb.UnstageRequest, opts ...grpc.CallOption) (*clientpb.Empty, error)
 	// Notify used for general notifications - likely run from a goroutine
-	Notify(ctx context.Context, in *clientpb.NotifyRequest, opts ...grpc.CallOption) (Monarch_NotifyClient, error)
+	Notify(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (Monarch_NotifyClient, error)
+	GetMessages(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (Monarch_GetMessagesClient, error)
+	SendMessage(ctx context.Context, in *Message, opts ...grpc.CallOption) (*clientpb.Empty, error)
 }
 
 type monarchClient struct {
@@ -217,6 +220,15 @@ type monarchClient struct {
 
 func NewMonarchClient(cc grpc.ClientConnInterface) MonarchClient {
 	return &monarchClient{cc}
+}
+
+func (c *monarchClient) Players(ctx context.Context, in *clientpb.PlayerRequest, opts ...grpc.CallOption) (*clientpb.Players, error) {
+	out := new(clientpb.Players)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/Players", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *monarchClient) Agents(ctx context.Context, in *clientpb.AgentRequest, opts ...grpc.CallOption) (*clientpb.Agents, error) {
@@ -490,7 +502,7 @@ func (c *monarchClient) Unstage(ctx context.Context, in *clientpb.UnstageRequest
 	return out, nil
 }
 
-func (c *monarchClient) Notify(ctx context.Context, in *clientpb.NotifyRequest, opts ...grpc.CallOption) (Monarch_NotifyClient, error) {
+func (c *monarchClient) Notify(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (Monarch_NotifyClient, error) {
 	stream, err := c.cc.NewStream(ctx, &Monarch_ServiceDesc.Streams[2], "/rpcpb.Monarch/Notify", opts...)
 	if err != nil {
 		return nil, err
@@ -522,10 +534,52 @@ func (x *monarchNotifyClient) Recv() (*Notification, error) {
 	return m, nil
 }
 
+func (c *monarchClient) GetMessages(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (Monarch_GetMessagesClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Monarch_ServiceDesc.Streams[3], "/rpcpb.Monarch/GetMessages", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &monarchGetMessagesClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Monarch_GetMessagesClient interface {
+	Recv() (*Message, error)
+	grpc.ClientStream
+}
+
+type monarchGetMessagesClient struct {
+	grpc.ClientStream
+}
+
+func (x *monarchGetMessagesClient) Recv() (*Message, error) {
+	m := new(Message)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *monarchClient) SendMessage(ctx context.Context, in *Message, opts ...grpc.CallOption) (*clientpb.Empty, error) {
+	out := new(clientpb.Empty)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/SendMessage", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MonarchServer is the server API for Monarch service.
 // All implementations must embed UnimplementedMonarchServer
 // for forward compatibility
 type MonarchServer interface {
+	Players(context.Context, *clientpb.PlayerRequest) (*clientpb.Players, error)
 	Agents(context.Context, *clientpb.AgentRequest) (*clientpb.Agents, error)
 	NewAgent(context.Context, *clientpb.Agent) (*clientpb.Empty, error)
 	RmAgents(context.Context, *clientpb.AgentRequest) (*clientpb.Empty, error)
@@ -552,7 +606,9 @@ type MonarchServer interface {
 	StageAdd(context.Context, *clientpb.StageAddRequest) (*Notification, error)
 	Unstage(context.Context, *clientpb.UnstageRequest) (*clientpb.Empty, error)
 	// Notify used for general notifications - likely run from a goroutine
-	Notify(*clientpb.NotifyRequest, Monarch_NotifyServer) error
+	Notify(*clientpb.Empty, Monarch_NotifyServer) error
+	GetMessages(*clientpb.Empty, Monarch_GetMessagesServer) error
+	SendMessage(context.Context, *Message) (*clientpb.Empty, error)
 	mustEmbedUnimplementedMonarchServer()
 }
 
@@ -560,6 +616,9 @@ type MonarchServer interface {
 type UnimplementedMonarchServer struct {
 }
 
+func (UnimplementedMonarchServer) Players(context.Context, *clientpb.PlayerRequest) (*clientpb.Players, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Players not implemented")
+}
 func (UnimplementedMonarchServer) Agents(context.Context, *clientpb.AgentRequest) (*clientpb.Agents, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Agents not implemented")
 }
@@ -635,8 +694,14 @@ func (UnimplementedMonarchServer) StageAdd(context.Context, *clientpb.StageAddRe
 func (UnimplementedMonarchServer) Unstage(context.Context, *clientpb.UnstageRequest) (*clientpb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Unstage not implemented")
 }
-func (UnimplementedMonarchServer) Notify(*clientpb.NotifyRequest, Monarch_NotifyServer) error {
+func (UnimplementedMonarchServer) Notify(*clientpb.Empty, Monarch_NotifyServer) error {
 	return status.Errorf(codes.Unimplemented, "method Notify not implemented")
+}
+func (UnimplementedMonarchServer) GetMessages(*clientpb.Empty, Monarch_GetMessagesServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetMessages not implemented")
+}
+func (UnimplementedMonarchServer) SendMessage(context.Context, *Message) (*clientpb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendMessage not implemented")
 }
 func (UnimplementedMonarchServer) mustEmbedUnimplementedMonarchServer() {}
 
@@ -649,6 +714,24 @@ type UnsafeMonarchServer interface {
 
 func RegisterMonarchServer(s grpc.ServiceRegistrar, srv MonarchServer) {
 	s.RegisterService(&Monarch_ServiceDesc, srv)
+}
+
+func _Monarch_Players_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(clientpb.PlayerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MonarchServer).Players(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpcpb.Monarch/Players",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MonarchServer).Players(ctx, req.(*clientpb.PlayerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _Monarch_Agents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -1108,7 +1191,7 @@ func _Monarch_Unstage_Handler(srv interface{}, ctx context.Context, dec func(int
 }
 
 func _Monarch_Notify_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(clientpb.NotifyRequest)
+	m := new(clientpb.Empty)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
@@ -1128,6 +1211,45 @@ func (x *monarchNotifyServer) Send(m *Notification) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _Monarch_GetMessages_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(clientpb.Empty)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(MonarchServer).GetMessages(m, &monarchGetMessagesServer{stream})
+}
+
+type Monarch_GetMessagesServer interface {
+	Send(*Message) error
+	grpc.ServerStream
+}
+
+type monarchGetMessagesServer struct {
+	grpc.ServerStream
+}
+
+func (x *monarchGetMessagesServer) Send(m *Message) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _Monarch_SendMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Message)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MonarchServer).SendMessage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpcpb.Monarch/SendMessage",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MonarchServer).SendMessage(ctx, req.(*Message))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Monarch_ServiceDesc is the grpc.ServiceDesc for Monarch service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1135,6 +1257,10 @@ var Monarch_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "rpcpb.Monarch",
 	HandlerType: (*MonarchServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Players",
+			Handler:    _Monarch_Players_Handler,
+		},
 		{
 			MethodName: "Agents",
 			Handler:    _Monarch_Agents_Handler,
@@ -1227,6 +1353,10 @@ var Monarch_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "Unstage",
 			Handler:    _Monarch_Unstage_Handler,
 		},
+		{
+			MethodName: "SendMessage",
+			Handler:    _Monarch_SendMessage_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
@@ -1242,6 +1372,11 @@ var Monarch_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "Notify",
 			Handler:       _Monarch_Notify_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "GetMessages",
+			Handler:       _Monarch_GetMessages_Handler,
 			ServerStreams: true,
 		},
 	},

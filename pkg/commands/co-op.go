@@ -5,18 +5,18 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
+	"github.com/pygrum/monarch/pkg/config"
+	"github.com/pygrum/monarch/pkg/console"
 	"github.com/pygrum/monarch/pkg/consts"
+	"github.com/pygrum/monarch/pkg/crypto"
+	"github.com/pygrum/monarch/pkg/db"
+	"github.com/pygrum/monarch/pkg/protobuf/clientpb"
 	"github.com/pygrum/monarch/pkg/protobuf/rpcpb"
+	"github.com/pygrum/monarch/pkg/teamserver"
 	"github.com/pygrum/monarch/pkg/teamserver/roles"
 	"github.com/pygrum/monarch/pkg/types"
 	"os"
-	"time"
-
-	"github.com/google/uuid"
-	"github.com/pygrum/monarch/pkg/config"
-	"github.com/pygrum/monarch/pkg/crypto"
-	"github.com/pygrum/monarch/pkg/db"
-	"github.com/pygrum/monarch/pkg/teamserver"
 )
 
 func coopCmd(stop bool) {
@@ -35,26 +35,21 @@ func coopCmd(stop bool) {
 }
 
 func playersCmd(names []string) {
-	var players []db.Player
-	if len(names) > 0 {
-		if err := db.Where("username IN ?", names).Find(&players).Error; err != nil {
-			cLogger.Error("query failed: %v", err)
-			return
-		}
-	} else {
-		if err := db.Find(&players); err != nil {
-			cLogger.Error("query failed: %v", err)
-		}
+	players, err := console.Rpc.Players(ctx, &clientpb.PlayerRequest{Names: names})
+	if err != nil {
+		cLogger.Error("%v", err)
+		return
 	}
-	header := "USERNAME\tACCOUNT CREATION DATE\t"
+	header := "USERNAME\tROLE\tACCOUNT CREATION DATE\t"
 	_, _ = fmt.Fprintln(w, header)
-	for _, player := range players {
+	for _, player := range players.Players {
 		if player.Username == consts.UserConsole {
 			continue
 		}
-		line := fmt.Sprintf("%s\t%s\t",
+		line := fmt.Sprintf("%s\t%s\t%s\t",
 			player.Username,
-			player.CreatedAt.Format(time.RFC850),
+			player.Role,
+			player.Registered,
 		)
 		_, _ = fmt.Fprintln(w, line)
 	}
