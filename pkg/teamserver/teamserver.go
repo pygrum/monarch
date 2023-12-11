@@ -589,7 +589,10 @@ func (s *MonarchServer) StageAdd(ctx context.Context, r *clientpb.StageAddReques
 		return nil, ErrNoMetadata
 	}
 	player := md["uid"][0]
-	http.Stage.Add(r.Alias, agent.Name, agent.File, player)
+
+	if err := http.Stage.Add(r.Alias, agent.Name, agent.File, player); err != nil {
+		return nil, err
+	}
 	return &rpcpb.Notification{
 		LogLevel: rpcpb.LogLevel_LevelInfo,
 		Msg: fmt.Sprintf(

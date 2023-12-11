@@ -1,6 +1,7 @@
 package http
 
 import (
+	"errors"
 	"fmt"
 	"os"
 )
@@ -27,12 +28,19 @@ func init() {
 		fileNameMappings: make(map[string]StageItem),
 	}
 }
-func (s *stage) Add(name, agent, path, stagedBy string) {
+func (s *stage) Add(name, agent, path, stagedBy string) error {
+	item, ok := s.fileNameMappings[name]
+	if ok {
+		if item.StagedBy != stagedBy {
+			return errors.New("a player is already using this endpoint to stage an agent")
+		}
+	}
 	s.fileNameMappings[name] = StageItem{
 		Path:     path,
 		Agent:    agent,
 		StagedBy: stagedBy,
 	}
+	return nil
 }
 
 func (s *stage) Rm(name string) {
