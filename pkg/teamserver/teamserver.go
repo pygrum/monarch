@@ -478,7 +478,7 @@ func (s *MonarchServer) Sessions(_ context.Context, req *clientpb.SessionsReques
 			AgentOwner: ss.Agent.CreatedBy,
 			QueueSize:  int32(ss.RequestQueue.Size()),
 			LastActive: ss.LastActive.Format(time.RFC850),
-			Status:     ss.Status,
+			Status:     string(ss.Status),
 			BuilderId:  ss.Agent.Builder,
 			Info: &clientpb.Registration{
 				AgentId:   info.AgentID,
@@ -500,10 +500,14 @@ func (s *MonarchServer) Sessions(_ context.Context, req *clientpb.SessionsReques
 func (s *MonarchServer) LockSession(_ context.Context, r *clientpb.LockSessionRequest) (*clientpb.Empty, error) {
 	session := http.MainHandler.SessionByID(int(r.SessionId))
 	if session == nil {
-		return &clientpb.Empty{}, errors.New("session not found")
+		return nil, errors.New("session not found")
 	}
 	if session.UsedBy != "" {
-		return &clientpb.Empty{}, fmt.Errorf("session is in use by %s", session.UsedBy)
+		return nil, fmt.Errorf("session is in use by %s", session.UsedBy)
+	}
+	if session.Status == http.StatusKilled {
+		http.MainHandler.RmSession(session.ID)
+		return nil, errors.New("session previously died unexpectedly and has been removed")
 	}
 	session.UsedBy = r.PlayerName
 	return &clientpb.Empty{}, nil

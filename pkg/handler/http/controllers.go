@@ -3,6 +3,9 @@ package http
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/pygrum/monarch/pkg/protobuf/rpcpb"
+	"github.com/pygrum/monarch/pkg/types"
 	"io"
 	"net/http"
 	"os"
@@ -119,7 +122,7 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	session.Status = "active"
+	session.Status = StatusActive
 	// Refresh token if there's less than 2.5 minutes until expiry
 	if claims.ExpiresAt.Sub(time.Now()) < (150 * time.Second) {
 		expiresAt := time.Now().Add(10 * time.Minute)
@@ -137,7 +140,7 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 	// session is authenticated if JWT has been validated
 	if !session.Authenticated {
 		session.Authenticated = true
-		session.Status = "active"
+		session.Status = StatusActive
 		session.LastActive = time.Now()
 	} else {
 		if r.Body == http.NoBody {
@@ -154,22 +157,34 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 		_ = s.sessionMap[sessionID].ResponseQueue.Enqueue(response)
 	}
 	for {
-		// Keep checking for new request (blocking)
-		resp = session.RequestQueue.Dequeue().(*transport.GenericHTTPRequest)
-		if resp != nil {
-			// Then someone queued request, so send it
-			b, err := json.Marshal(resp)
-			if err != nil {
-				fl.Error("marshalling request %s failed: %v", ShortID(resp.RequestID), err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
+		select {
+		case <-r.Context().Done():
+			session.Status = StatusKilled
+			agent := session.Agent
+			queue, ok := types.NotifQueues[agent.CreatedBy]
+			if ok {
+				_ = queue.Enqueue(&rpcpb.Notification{
+					LogLevel: rpcpb.LogLevel_LevelWarn,
+					Msg:      fmt.Sprintf("session %d (%s) died unexpectedly", session.ID, session.Agent.Name),
+				})
 			}
-			w.WriteHeader(http.StatusOK)
-			w.Write(b)
-			// add to sent requests, the number doesn't matter
-			session.SentRequests[resp.RequestID] = 0
-			session.Status = "inactive" // will be active again after callback
-			return                      // exit so we can get a response
+			return
+		case resp = <-session.RequestQueue.(*RequestQueue).channel:
+			if resp != nil {
+				// Then someone queued request, so send it
+				b, err := json.Marshal(resp)
+				if err != nil {
+					fl.Error("marshalling request %s failed: %v", ShortID(resp.RequestID), err)
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				w.WriteHeader(http.StatusOK)
+				w.Write(b)
+				// add to sent requests, the number doesn't matter
+				session.SentRequests[resp.RequestID] = 0
+				session.Status = StatusInactive // will be active again after callback
+				return                          // exit so we can get a response
+			}
 		}
 	}
 }

@@ -15,10 +15,18 @@ import (
 	"github.com/pygrum/monarch/pkg/transport"
 )
 
+const (
+	StatusActive   SessionStatus = "active"
+	StatusInactive SessionStatus = "inactive"
+	StatusKilled   SessionStatus = "killed"
+)
+
 var (
 	// new secret each restart
 	key = []byte(uuid.New().String())
 )
+
+type SessionStatus string
 
 type HTTPSession struct {
 	ID            int
@@ -26,7 +34,7 @@ type HTTPSession struct {
 	ResponseQueue types.Queue
 	Agent         *db.Agent
 	LastActive    time.Time
-	Status        string
+	Status        SessionStatus
 	lock          sync.Mutex
 	Authenticated bool
 	Info          transport.Registration
@@ -51,7 +59,6 @@ func (s *sessions) newSession(agent *db.Agent, connectInfo *transport.Registrati
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	id := s.count
-	status := ""
 	// check if session with given agent exists anywhere
 	for i, sess := range s.sortedSessions {
 		if agent.AgentID == sess.Agent.AgentID {
@@ -60,7 +67,6 @@ func (s *sessions) newSession(agent *db.Agent, connectInfo *transport.Registrati
 			}
 			delete(s.sessionMap, sess.ID) // remove session from map
 			s.sortedSessions = append(s.sortedSessions[:i], s.sortedSessions[i+1:]...)
-			status = "renewed"
 		}
 	}
 	newSession := &HTTPSession{
@@ -69,7 +75,6 @@ func (s *sessions) newSession(agent *db.Agent, connectInfo *transport.Registrati
 		ResponseQueue: NewResponseQueue(),
 		Agent:         agent,
 		Info:          *connectInfo,
-		Status:        status,
 		SentRequests:  make(map[string]int),
 	}
 	expiresAt := time.Now().Add(time.Duration(config.MainConfig.SessionTimeout) * time.Minute)
@@ -123,4 +128,17 @@ func validateJwt(c *http.Cookie) (*Claims, error) {
 // SessionByID retrieves an active HTTP connection with an agent, if said agent has ever had an active session
 func (h *Handler) SessionByID(sessID int) *HTTPSession {
 	return h.sessions.sessionMap[sessID]
+}
+
+// RmSession removes a session in special cases, such as if it dies unexpectedly
+func (h *Handler) RmSession(sessID int) {
+	h.sessions.lock.Lock()
+	defer h.sessions.lock.Unlock()
+
+	for i, ss := range h.sessions.sortedSessions {
+		if ss.ID == sessID {
+			h.sessions.sortedSessions = append(h.sessions.sortedSessions[:i], h.sessions.sortedSessions[i+1:]...)
+		}
+	}
+	delete(h.sessions.sessionMap, sessID)
 }
