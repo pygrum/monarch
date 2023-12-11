@@ -21,6 +21,7 @@ rm -rf "$MONARCH_PATH"
 
 echo "removing binaries"
 rm -rf "${HOME}/.local/bin/monarch"
+rm -rf "${HOME}/.local/bin/monarch-client"
 rm -rf "${HOME}/.local/bin/royal-lint"
 
 echo "done"

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/pygrum/monarch/pkg/completion"
 	"github.com/pygrum/monarch/pkg/config"
+	"github.com/pygrum/monarch/pkg/consts"
 	"github.com/pygrum/monarch/pkg/crypto"
 	"github.com/pygrum/monarch/pkg/teamserver/roles"
 	"github.com/rsteube/carapace"
@@ -33,7 +34,6 @@ func init() {
 func InitCTX() {
 	m := make(map[string]string)
 	m["uid"] = config.ClientConfig.UUID
-
 	challenge, err := crypto.EncryptAES(config.ClientConfig.Secret, config.ClientConfig.Challenge)
 	if err != nil {
 		logrus.Fatalf("couldn't encrypt challenge for auth: %v", err)
@@ -46,6 +46,7 @@ func InitCTX() {
 func ConsoleInitCTX() {
 	m := make(map[string]string)
 	m["uid"] = config.ClientConfig.UUID
+	m["username"] = consts.ServerUser
 	m["role"] = string(roles.RoleAdmin)
 	md := metadata.New(m)
 	ctx = metadata.NewOutgoingContext(ctx, md)

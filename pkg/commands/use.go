@@ -99,6 +99,7 @@ func useCmd(id int) {
 						resp, err := console.Rpc.Send(ctx, req, maxSizeOption)
 						if err != nil {
 							http.TranLogger.Error("%v", err)
+							return
 						}
 						r := &transport.GenericHTTPResponse{
 							AgentID:   resp.AgentId,
