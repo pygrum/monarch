@@ -205,7 +205,7 @@ func initCTX(isServer bool) {
 	m := make(map[string]string)
 	m["uid"] = config.ClientConfig.UUID
 	if isServer {
-		m["username"] = consts.UserConsole
+		m["username"] = consts.ServerUser
 		CTX = metadata.NewOutgoingContext(CTX, metadata.New(m))
 		return
 	}

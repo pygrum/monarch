@@ -43,7 +43,7 @@ func playersCmd(names []string) {
 	header := "USERNAME\tROLE\tACCOUNT CREATION DATE\t"
 	_, _ = fmt.Fprintln(w, header)
 	for _, player := range players.Players {
-		if player.Username == consts.UserConsole {
+		if player.Username == consts.ServerUser {
 			continue
 		}
 		line := fmt.Sprintf("%s\t%s\t%s\t",
@@ -114,7 +114,7 @@ func playersNewCmd(name, lhost, role string) {
 }
 
 func playersKickCmd(name string) {
-	if name == consts.UserConsole {
+	if name == consts.ServerUser {
 		cLogger.Warn("you cannot kick yourself")
 		return
 	}
