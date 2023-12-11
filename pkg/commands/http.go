@@ -17,6 +17,7 @@ func httpCmd(stop bool) {
 	notif, err := console.Rpc.HttpOpen(ctx, &clientpb.Empty{})
 	if err != nil {
 		cLogger.Error("%v", err)
+		return
 	}
 	log.NumericalLevel(cLogger, uint16(notif.LogLevel), notif.Msg)
 }
@@ -32,6 +33,7 @@ func httpsCmd(stop bool) {
 	notif, err := console.Rpc.HttpsOpen(ctx, &clientpb.Empty{})
 	if err != nil {
 		cLogger.Error("%v", err)
+		return
 	}
 	log.NumericalLevel(cLogger, uint16(notif.LogLevel), notif.Msg)
 }
