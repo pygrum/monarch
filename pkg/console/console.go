@@ -142,7 +142,7 @@ func getMessages() {
 			tl.Error("messaging error: %v", err)
 			return
 		}
-		msgFmt := "%s (%s) says: \033[36m%s\033[0m"
+		msgFmt := "%s [%s] says: \033[36m%s\033[0m"
 		msg := fmt.Sprintf(msgFmt, message.From, message.Role, message.Msg)
 		_, _ = monarchServer.App.TransientPrintf(strings.ReplaceAll(msg, "%", "%%"))
 	}

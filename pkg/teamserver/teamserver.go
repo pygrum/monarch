@@ -625,7 +625,10 @@ func (s *MonarchServer) SendMessage(ctx context.Context, msg *rpcpb.Message) (*c
 	msg.From = username
 	msg.Role = role
 	if len(msg.To) == 0 {
-		msg.From = "(*) " + msg.From
+		if roles.Role(role) != roles.RoleAdmin {
+			return nil, errors.New("only administrators can broadcast messages")
+		}
+		msg.From = "(\033[36mALL\033[0m) " + msg.From
 		sendAll(msg, types.MessageQueues, uid)
 		return &clientpb.Empty{}, nil
 	}
