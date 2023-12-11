@@ -48,6 +48,6 @@ Feel free to contact me about wanting to contribute on the `#golang` channel on 
 
 This project was heavily inspired by the following projects:
 - [Mythic](https://github.com/its-a-feature/Mythic): @its-a-feature - Inspiration for Docker container usage
-- [Sliver](https://github.com/BishopFox/sliver): @moloch-- - Awesome CLI
+- [Sliver](https://github.com/BishopFox/sliver): @moloch-- - Awesome CLI and RPC implementations
 
 Go and check them out!

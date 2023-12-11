@@ -3,11 +3,13 @@ package commands
 import (
 	"context"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"github.com/pygrum/monarch/pkg/completion"
 	"github.com/pygrum/monarch/pkg/config"
 	"github.com/pygrum/monarch/pkg/console"
+	"github.com/pygrum/monarch/pkg/crypto"
 	"github.com/pygrum/monarch/pkg/log"
 	"github.com/pygrum/monarch/pkg/protobuf/builderpb"
 	"github.com/pygrum/monarch/pkg/protobuf/clientpb"
@@ -25,7 +27,7 @@ import (
 
 var (
 	l             log.Logger
-	immutables    = []string{"id"}
+	internals     = []string{"id", "ca_cert"}
 	ValidTypes    = []string{"bool", "int", "string", "float"}
 	builderConfig BuilderConfig
 )
@@ -67,7 +69,7 @@ func defaultOptions() []*builderpb.Option {
 	var options []*builderpb.Option
 	ID := &builderpb.Option{
 		Name:        "id",
-		Description: "[immutable] the agent ID assigned to the build",
+		Description: "[internal] the agent ID assigned to the build (immutable)",
 		Default:     builderConfig.ID,
 		Type:        "string",
 		Required:    true,
@@ -113,7 +115,14 @@ func defaultOptions() []*builderpb.Option {
 		Type:        "string",
 		Required:    false,
 	}
-	options = append(options, ID, name, OS, arch, host, port, out)
+	caCert := &builderpb.Option{
+		Name:        "ca_cert",
+		Description: "[internal] the certificate authority used to sign server certificates (immutable)",
+		Default:     "***",
+		Type:        "string",
+		Required:    true,
+	}
+	options = append(options, ID, name, OS, arch, host, port, caCert, out)
 	return options
 }
 
@@ -188,8 +197,8 @@ func setCmd(name, value string) {
 			}
 		}
 	}
-	if slices.Contains(immutables, name) {
-		l.Error("'%s' is enforced by the engine and cannot be changed", name)
+	if slices.Contains(internals, name) {
+		l.Error("'%s' is used internally by the engine and cannot be changed", name)
 		return
 	}
 	builderConfig.request.Options[name] = value
@@ -264,6 +273,19 @@ func build() {
 		}
 		return
 	}
+	// add internal option 'ca_cert'
+	var caCert []byte
+	var caErr error
+	// check with three as it is represented by three asterisks
+	if len(config.ClientConfig.CaCertPEM) <= 3 {
+		caCert, _, caErr = crypto.CaCertKeyPair()
+		if caErr != nil {
+			cLogger.Error("failed to set internal parameter ca_cert: %v", caErr)
+		}
+	} else {
+		caCert = config.ClientConfig.CaCertPEM
+	}
+	builderConfig.request.Options["ca_cert"] = base64.StdEncoding.EncodeToString(caCert)
 	buildCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
 	defer cancel()
 	// uses both agent id and builder id for unique identifier for each build session
@@ -326,7 +348,7 @@ func agentID() string {
 func allOptions() []string {
 	var options []string
 	for k := range builderConfig.request.Options {
-		if slices.Contains(immutables, k) {
+		if slices.Contains(internals, k) {
 			continue
 		}
 		options = append(options, k)

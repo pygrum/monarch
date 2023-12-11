@@ -41,7 +41,7 @@ func profilesLoadCmd(name string) {
 	profile, err := console.Rpc.LoadProfile(ctx, &clientpb.SaveProfileRequest{
 		Name:       name,
 		BuilderId:  builderConfig.builderID,
-		Immutables: immutables,
+		Immutables: internals,
 	})
 	if err != nil {
 		cLogger.Error("%v", err)
