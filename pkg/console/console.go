@@ -52,6 +52,9 @@ func Run(rootCmd func() *cobra.Command, isServer bool) error {
 	monarchServer = &server{
 		App: console.New("monarch"),
 	}
+	monarchServer.App.NewlineBefore = true
+	monarchServer.App.NewlineAfter = true
+
 	if isServer {
 		clientConn, err = initMonarchServer()
 		if err != nil {
