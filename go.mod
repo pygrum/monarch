@@ -61,7 +61,7 @@ require (
 	github.com/opencontainers/runc v1.1.10 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/reeflective/readline v1.0.10 // indirect
+	github.com/reeflective/readline v1.0.12 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/rsteube/carapace-shlex v0.1.1 // indirect
 	github.com/sergi/go-diff v1.1.0 // indirect

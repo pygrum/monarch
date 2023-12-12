@@ -147,6 +147,10 @@ github.com/reeflective/console v0.1.11-0.20231123144104-973f978d8495 h1:cWTj715y
 github.com/reeflective/console v0.1.11-0.20231123144104-973f978d8495/go.mod h1:duk21qTQHR4JZx4t5WtJvOZ7/uTYAyHFBZw50WHQL1Y=
 github.com/reeflective/readline v1.0.10 h1:neAdbArjB1f5LZ2JBh/9TZ9ibFUrjjvBS8xuhLbx5do=
 github.com/reeflective/readline v1.0.10/go.mod h1:mcD0HxNVJVteVwDm9caXKg52nQACVyfh8EyuBmgVlzY=
+github.com/reeflective/readline v1.0.11 h1:4+aiebj7a89hTRJOMM98H+md1Kxu+v1XkfdCs0n6odQ=
+github.com/reeflective/readline v1.0.11/go.mod h1:mcD0HxNVJVteVwDm9caXKg52nQACVyfh8EyuBmgVlzY=
+github.com/reeflective/readline v1.0.12 h1:QPhnlGCqWXR4iZvApU5RJ5Bo3vIaVAW6ICBJ8F8QZII=
+github.com/reeflective/readline v1.0.12/go.mod h1:3iOe/qyb2jEy0KqLrNlb/CojBVqxga9ACqz/VU22H6A=
 github.com/rivo/uniseg v0.4.4 h1:8TfxU8dW6PdqD27gjM8MVNuicgxIjxpm4K7x4jp8sis=
 github.com/rivo/uniseg v0.4.4/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUcx88=
 github.com/rogpeppe/go-internal v1.11.0 h1:cWPaGQEPrBb5/AsnsZesgZZ9yb1OQ+GOISoDNXVBh4M=

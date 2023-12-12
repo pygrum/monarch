@@ -351,7 +351,6 @@ func info(systemInfo *clientpb.Registration) *cobra.Command {
 			"yourself.",
 		Args: cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println()
 			fmt.Println("System Information")
 			fmt.Println("==================")
 			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "Agent ID:", systemInfo.AgentId))
@@ -365,7 +364,6 @@ func info(systemInfo *clientpb.Registration) *cobra.Command {
 			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "Home directory:", systemInfo.HomeDir))
 			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "Remote address:", systemInfo.IPAddress))
 			_ = w.Flush()
-			fmt.Println()
 		},
 	}
 	return cmd

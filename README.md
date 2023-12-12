@@ -18,16 +18,8 @@ from a central hub. This approach empowers administrators to effectively oversee
 remote implants, facilitating smooth command execution and data retrieval.
 
 ## Installing Monarch
-### System requirements
-Monarch was primarily developed and tested on Ubuntu. Monarch will work on most Unix-based systems. 
-For system requirements, see the requirements for Docker Desktop on Mac or Linux.
 
-### Steps
-
-1. Clone the repository
-2. Run `bash scripts/install-monarch.sh`
-
-Done! Monarch will be saved at `$HOME/.local/bin` for you to add to your `PATH`.
+[Follow the installation instructions here.](https://monarch.gitbook.io/monarch/installation)
 
 ## Empress
 Empress is the very first integration developed alongside Monarch, and as of version 0.0.1, the most mature.
@@ -37,6 +29,9 @@ The techniques used to develop the implant and build should be viewed as best pr
 
 
 ## Issues
+Issues I'm aware of:
+- Backslash replaced with null character on Windows client
+
 If you encounter issues of any sort, please raise a new issue in the 
 [issues page](https://github.com/pygrum/monarch/issues), especially as this project is in its early stages of development.
 I'll do my best to response and resolve the issue on time.
