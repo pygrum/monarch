@@ -94,10 +94,14 @@ func defaultOptions() []*builderpb.Option {
 		Type:        "string",
 		Required:    false,
 	}
+	def := config.MainConfig.Interface
+	if def == "" {
+		def = config.ClientConfig.RHost
+	}
 	host := &builderpb.Option{
 		Name:        "host",
 		Description: "the host that the agent calls back to",
-		Default:     config.MainConfig.Interface,
+		Default:     def,
 		Type:        "string",
 		Required:    false,
 	}
@@ -292,11 +296,12 @@ func build() {
 	// receive large bins
 	builderConfig.request.BuilderId = builderConfig.ID + builderConfig.builderID
 	maxSizeOption := grpc.MaxCallRecvMsgSize(32 * 10e6)
-	resp, err := console.Rpc.Build(buildCtx, builderConfig.request, maxSizeOption)
+	buildResponse, err := console.Rpc.Build(buildCtx, builderConfig.request, maxSizeOption)
 	if err != nil {
 		l.Error("[RPC] failed to build agent: %v", err)
 		return
 	}
+	resp := buildResponse.Reply
 	if resp.Status == builderpb.Status_FailedWithMessage {
 		l.Error("build failed: %s", resp.Error)
 		return
@@ -329,7 +334,7 @@ func build() {
 		Host:      builderConfig.request.Options["host"],
 		Port:      builderConfig.request.Options["port"],
 		Builder:   builderConfig.builderID,
-		File:      out.Name(),
+		File:      buildResponse.ServerFile,
 		CreatedBy: config.ClientConfig.UUID,
 	}
 	if _, err = console.Rpc.NewAgent(ctx, agent); err != nil {

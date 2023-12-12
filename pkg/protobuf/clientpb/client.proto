@@ -184,4 +184,9 @@ message StageAddRequest {
 message UnstageRequest {
   string alias = 1;
 }
+message BuildReply {
+  builderpb.BuildReply reply = 1;
+  string server_file = 2;
+}
+
 message Empty {}
