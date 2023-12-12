@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/pygrum/monarch/pkg/teamserver/roles"
@@ -153,6 +154,7 @@ func (s *MonarchServer) RmAgents(ctx context.Context, req *clientpb.AgentRequest
 		return nil, fmt.Errorf("no agents with the provided names exist")
 	}
 	for _, agent := range agents {
+		_ = os.Remove(agent.File)
 		if agent.CreatedBy != player[0] && roles.Role(role[0]) != roles.RoleAdmin {
 			return nil, fmt.Errorf("you are not authorized to delete %s", agent.Name)
 		}
@@ -360,13 +362,25 @@ func (s *MonarchServer) Options(ctx context.Context, o *builderpb.OptionsRequest
 
 // Build returns a reply for a build request issued by a client.
 // A builder client MUST be sent via ctx otherwise an error is returned.
-func (s *MonarchServer) Build(ctx context.Context, req *builderpb.BuildRequest) (*builderpb.BuildReply, error) {
+func (s *MonarchServer) Build(ctx context.Context, req *builderpb.BuildRequest) (*clientpb.BuildReply, error) {
 	client, err := s.newBuilderClient(req.BuilderId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get builder client: %v", err)
 	}
 	maxSizeOption := grpc.MaxCallRecvMsgSize(32 * 10e6)
-	return client.BuildAgent(ctx, req, maxSizeOption)
+	reply, err := client.BuildAgent(ctx, req, maxSizeOption)
+	serverFile := filepath.Join(os.TempDir(), hex.EncodeToString(crypto.RandomBytes(16)))
+	if err == nil {
+		if len(reply.Build) > 0 {
+			if err = os.WriteFile(
+				filepath.Join(serverFile),
+				reply.Build,
+				0777); err != nil {
+				return nil, fmt.Errorf("failed to save build on server side: %v", err)
+			}
+		}
+	}
+	return &clientpb.BuildReply{Reply: reply, ServerFile: serverFile}, err
 }
 
 func (s *MonarchServer) EndBuild(_ context.Context, req *builderpb.BuildRequest) (*clientpb.Empty, error) {

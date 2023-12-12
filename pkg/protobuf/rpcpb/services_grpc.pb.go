@@ -192,7 +192,7 @@ type MonarchClient interface {
 	LoadProfile(ctx context.Context, in *clientpb.SaveProfileRequest, opts ...grpc.CallOption) (*clientpb.ProfileData, error)
 	RmProfiles(ctx context.Context, in *clientpb.ProfileRequest, opts ...grpc.CallOption) (*clientpb.Empty, error)
 	Options(ctx context.Context, in *builderpb.OptionsRequest, opts ...grpc.CallOption) (*builderpb.OptionsReply, error)
-	Build(ctx context.Context, in *builderpb.BuildRequest, opts ...grpc.CallOption) (*builderpb.BuildReply, error)
+	Build(ctx context.Context, in *builderpb.BuildRequest, opts ...grpc.CallOption) (*clientpb.BuildReply, error)
 	EndBuild(ctx context.Context, in *builderpb.BuildRequest, opts ...grpc.CallOption) (*clientpb.Empty, error)
 	Install(ctx context.Context, in *clientpb.InstallRequest, opts ...grpc.CallOption) (Monarch_InstallClient, error)
 	Uninstall(ctx context.Context, in *clientpb.UninstallRequest, opts ...grpc.CallOption) (Monarch_UninstallClient, error)
@@ -312,8 +312,8 @@ func (c *monarchClient) Options(ctx context.Context, in *builderpb.OptionsReques
 	return out, nil
 }
 
-func (c *monarchClient) Build(ctx context.Context, in *builderpb.BuildRequest, opts ...grpc.CallOption) (*builderpb.BuildReply, error) {
-	out := new(builderpb.BuildReply)
+func (c *monarchClient) Build(ctx context.Context, in *builderpb.BuildRequest, opts ...grpc.CallOption) (*clientpb.BuildReply, error) {
+	out := new(clientpb.BuildReply)
 	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/Build", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -589,7 +589,7 @@ type MonarchServer interface {
 	LoadProfile(context.Context, *clientpb.SaveProfileRequest) (*clientpb.ProfileData, error)
 	RmProfiles(context.Context, *clientpb.ProfileRequest) (*clientpb.Empty, error)
 	Options(context.Context, *builderpb.OptionsRequest) (*builderpb.OptionsReply, error)
-	Build(context.Context, *builderpb.BuildRequest) (*builderpb.BuildReply, error)
+	Build(context.Context, *builderpb.BuildRequest) (*clientpb.BuildReply, error)
 	EndBuild(context.Context, *builderpb.BuildRequest) (*clientpb.Empty, error)
 	Install(*clientpb.InstallRequest, Monarch_InstallServer) error
 	Uninstall(*clientpb.UninstallRequest, Monarch_UninstallServer) error
@@ -646,7 +646,7 @@ func (UnimplementedMonarchServer) RmProfiles(context.Context, *clientpb.ProfileR
 func (UnimplementedMonarchServer) Options(context.Context, *builderpb.OptionsRequest) (*builderpb.OptionsReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Options not implemented")
 }
-func (UnimplementedMonarchServer) Build(context.Context, *builderpb.BuildRequest) (*builderpb.BuildReply, error) {
+func (UnimplementedMonarchServer) Build(context.Context, *builderpb.BuildRequest) (*clientpb.BuildReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Build not implemented")
 }
 func (UnimplementedMonarchServer) EndBuild(context.Context, *builderpb.BuildRequest) (*clientpb.Empty, error) {
