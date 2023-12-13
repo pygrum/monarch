@@ -17,13 +17,15 @@ These endpoints serve as a conduit, enabling efficient communication and control
 from a central hub. This approach empowers administrators to effectively oversee, direct, and interact with 
 remote implants, facilitating smooth command execution and data retrieval.
 
+See the [docs](https://monarch.gitbook.io/monarch) to learn more about Monarch and integrating your own projects with the framework.
+
 ## Installing Monarch
 
 [Follow the installation instructions here.](https://monarch.gitbook.io/monarch/installation)
 
 ## Empress
-Empress is the very first integration developed alongside Monarch, and as of version 0.0.1, the most mature.
-The techniques used to develop the implant and build should be viewed as best practice.
+Empress is the very first integration developed alongside Monarch as a proof of concept.
+The techniques used to develop the implant and builder service should be viewed as best practice, along with recommendations and examples provided in the [documentation](https://monarch.gitbook.io/monarch/integration).
 
 [Find Empress here.](https://github.com/pygrum/Empress)
 
