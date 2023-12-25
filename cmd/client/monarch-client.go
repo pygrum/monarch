@@ -43,7 +43,12 @@ func init() {
 				logrus.Fatalf("could not read supplied configuration file: %v", err)
 			}
 			home, _ := os.UserHomeDir()
-			configPath := filepath.Join(home, ".monarch", "monarch-client.config")
+			configDir := filepath.Join(home, ".monarch")
+			if err = os.MkdirAll(configDir, 700); err != nil {
+				logrus.Fatalf("couldn't create monarch folder: %v", err)
+			}
+
+			configPath := filepath.Join(configDir, "monarch-client.config")
 			if err = os.WriteFile(configPath, data, 0600); err != nil {
 				logrus.Fatalf("import failed: %v", err)
 			}
