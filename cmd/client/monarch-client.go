@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"github.com/sirupsen/logrus"
 	"log"
 	"os"
 	"path/filepath"
@@ -15,23 +17,41 @@ import (
 var rootCmd *cobra.Command
 
 func init() {
-	var configFile string
 	rootCmd = &cobra.Command{
-		Use: os.Args[0],
+		Use: "monarch-client",
 		Run: func(cmd *cobra.Command, args []string) {
-			if len(configFile) == 0 {
-				home, _ := os.UserHomeDir()
-				// default config
-				configFile = filepath.Join(home, ".monarch", "monarch-client.config")
-			}
-			if err := config.JsonConfig(configFile, &config.ClientConfig); err != nil {
-				log.Fatalf("couldn't load client config (%s): %v", configFile, err)
+			home, _ := os.UserHomeDir()
+			// default config
+			configPath := filepath.Join(home, ".monarch", "monarch-client.config")
+
+			if err := config.JsonConfig(configPath, &config.ClientConfig); err != nil {
+				fmt.Println("couldn't load configuration file:", err)
+				os.Exit(1)
 			}
 			commands.InitCTX()
 			console.Run(false, commands.ConsoleCommands, commands.BuildCommands)
 		},
 	}
-	rootCmd.Flags().StringVarP(&configFile, "config", "c", "", "monarch client configuration file")
+
+	importCmd := &cobra.Command{
+		Use:   "import </path/to/config>",
+		Short: "import a configuration file",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			data, err := os.ReadFile(args[0])
+			if err != nil {
+				logrus.Fatalf("could not read supplied configuration file: %v", err)
+			}
+			home, _ := os.UserHomeDir()
+			configPath := filepath.Join(home, ".monarch", "monarch-client.config")
+			if err = os.WriteFile(configPath, data, 0600); err != nil {
+				logrus.Fatalf("import failed: %v", err)
+			}
+			fmt.Println("successfully imported", args[0])
+		},
+	}
+
+	rootCmd.AddCommand(importCmd)
 }
 
 func main() {
