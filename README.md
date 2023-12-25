@@ -38,6 +38,14 @@ I'll do my best to response and resolve the issue on time.
 ## Contributing
 Feel free to contact me about wanting to contribute on the `#golang` channel on the BloodHoundGang slack (@Pygrum).
 
+## Disclaimer
+This Command and Control (C2) framework is intended for authorized and lawful use only. 
+Any unauthorized or illegal activities facilitated by this software are strictly prohibited. 
+The developers are not liable for any misuse or illegal actions performed with this framework.
+Users must comply with all applicable laws and ethical standards when using this software. 
+The developers disclaim responsibility for any damages or legal consequences resulting from its misuse.
+By using this software, you agree to use it responsibly and strictly for lawful purposes.
+
 ## Credits
 
 This project was heavily inspired by the following projects:
