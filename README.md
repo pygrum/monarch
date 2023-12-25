@@ -31,9 +31,6 @@ The techniques used to develop the implant and builder service should be viewed 
 
 
 ## Issues
-Issues I'm aware of:
-- Backslash replaced with null character on Windows client
-
 If you encounter issues of any sort, please raise a new issue in the 
 [issues page](https://github.com/pygrum/monarch/issues), especially as this project is in its early stages of development.
 I'll do my best to response and resolve the issue on time.
@@ -41,10 +38,14 @@ I'll do my best to response and resolve the issue on time.
 ## Contributing
 Feel free to contact me about wanting to contribute on the `#golang` channel on the BloodHoundGang slack (@Pygrum).
 
-## Inspirations
+## Credits
 
 This project was heavily inspired by the following projects:
 - [Mythic](https://github.com/its-a-feature/Mythic): @its-a-feature - Inspiration for Docker container usage
 - [Sliver](https://github.com/BishopFox/sliver): @moloch-- - Awesome CLI and RPC implementations
+
+Here are some cool packages I tried out:
+- [Console](https://github.com/reeflective/console): @maxlandon - Great CLI
+- [Grumble](https://github.com/desertbit/grumble): @desertbit - Another great CLI
 
 Go and check them out!
