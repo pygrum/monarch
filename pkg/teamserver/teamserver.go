@@ -64,10 +64,15 @@ func (s *MonarchServer) Players(_ context.Context, r *clientpb.PlayerRequest) (*
 		}
 	}
 	for _, p := range players {
+		status := "online"
+		if _, ok := types.MessageQueues[p.UUID]; !ok {
+			status = "offline"
+		}
 		pbPlayers = append(pbPlayers, &clientpb.Player{
 			Username:   p.Username,
 			Role:       string(p.Role),
 			Registered: p.CreatedAt.Format(time.RFC850),
+			Status:     status,
 		})
 	}
 	return &clientpb.Players{Players: pbPlayers}, nil
@@ -517,7 +522,13 @@ func (s *MonarchServer) LockSession(_ context.Context, r *clientpb.LockSessionRe
 		return nil, errors.New("session not found")
 	}
 	if session.UsedBy != "" {
-		return nil, fmt.Errorf("session is in use by %s", session.UsedBy)
+		id, err := db.GetIDByUsername(session.UsedBy)
+		if err == nil {
+			_, ok := types.MessageQueues[id]
+			if ok {
+				return nil, fmt.Errorf("session is in use by %s", session.UsedBy)
+			}
+		}
 	}
 	if session.Status == http.StatusKilled {
 		http.MainHandler.RmSession(session.ID)

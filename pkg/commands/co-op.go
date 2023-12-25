@@ -40,16 +40,17 @@ func playersCmd(names []string) {
 		cLogger.Error("%v", err)
 		return
 	}
-	header := "USERNAME\tROLE\tACCOUNT CREATION DATE\t"
+	header := "USERNAME\tROLE\tACCOUNT CREATION DATE\tSTATUS\t"
 	_, _ = fmt.Fprintln(w, header)
 	for _, player := range players.Players {
 		if player.Username == consts.ServerUser {
 			continue
 		}
-		line := fmt.Sprintf("%s\t%s\t%s\t",
+		line := fmt.Sprintf("%s\t%s\t%s\t%s\t",
 			player.Username,
 			player.Role,
 			player.Registered,
+			player.Status,
 		)
 		_, _ = fmt.Fprintln(w, line)
 	}

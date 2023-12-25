@@ -32,6 +32,7 @@ message Player {
   string username = 1;
   string role = 2;
   string registered = 3;
+  string status = 4; // online or offline
 }
 message Players {
   repeated Player players = 1;
