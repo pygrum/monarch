@@ -8,8 +8,8 @@ import (
 	"strings"
 )
 
-func stageCmd(args []string, as string) {
-	if len(args) == 0 {
+func stageCmd(arg string, as string) {
+	if len(arg) == 0 {
 		s, err := console.Rpc.StageView(ctx, &clientpb.Empty{})
 		if err != nil {
 			cLogger.Error("%v", err)
@@ -23,8 +23,7 @@ func stageCmd(args []string, as string) {
 		w.Flush()
 		return
 	}
-	name := args[0]
-	notif, err := console.Rpc.StageAdd(ctx, &clientpb.StageAddRequest{Agent: name, Alias: as})
+	notif, err := console.Rpc.StageAdd(ctx, &clientpb.StageAddRequest{Agent: arg, Alias: as})
 	if err != nil {
 		cLogger.Error("%v", err)
 		return

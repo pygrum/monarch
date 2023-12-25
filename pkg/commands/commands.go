@@ -121,15 +121,6 @@ func ServerConsoleCommands() []*grumble.Command {
 func ConsoleCommands() []*grumble.Command {
 	var root []*grumble.Command
 
-	cmdExit := &grumble.Command{
-		Name:      "exit",
-		HelpGroup: consts.ServerHelpGroup,
-		Help:      "shutdown the monarch server",
-		Run: func(c *grumble.Context) error {
-			return nil
-		},
-	}
-
 	cmdBuild := &grumble.Command{
 		Name:      "build",
 		Help:      "start the interactive session with an installed builder",
@@ -322,13 +313,13 @@ func ConsoleCommands() []*grumble.Command {
 		Help:      "stage an agent on the configured staging endpoint, or view currently staged agents",
 		HelpGroup: consts.GeneralHelpGroup,
 		Args: func(a *grumble.Args) {
-			a.StringList("agent", "the name of the agent to stage")
+			a.String("agent", "the name of the agent to stage", grumble.Default(""))
 		},
 		Flags: func(f *grumble.Flags) {
-			f.String("a", "as", "", "the file to stage your agent as (e.g. index.php)")
+			f.StringL("as", "", "the file to stage your agent as (e.g. index.php)")
 		},
 		Run: func(c *grumble.Context) error {
-			stageCmd(c.Args.StringList("agent"), c.Flags.String("as"))
+			stageCmd(c.Args.String("agent"), c.Flags.String("as"))
 			return nil
 		},
 		Completer: func(prefix string, args []string) []string {
@@ -386,7 +377,7 @@ func ConsoleCommands() []*grumble.Command {
 	}
 
 	root = append(root, cmdSessions, cmdUse, cmdHttp, cmdHttps, cmdAgents, cmdBuilders, cmdBuild, cmdInstall, cmdUninstall,
-		cmdStage, cmdUnstage, cmdVersion, cmdPlayers, cmdSend, cmdExit)
+		cmdStage, cmdUnstage, cmdVersion, cmdPlayers, cmdSend)
 	return root
 }
 
