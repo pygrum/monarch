@@ -37,20 +37,21 @@ func Initialize() string {
 		l.Fatal("failed to migrate schema: %v. Monarch cannot continue to operate", err)
 	}
 	uid := uuid.New().String()
-	consoleUser := &Player{}
-	if db.Where("username = ?", consts.ServerUser).First(consoleUser); len(consoleUser.UUID) == 0 {
-		consoleUser = &Player{
+	serverPlayer := &Player{}
+	if db.Where("username = ?", consts.ServerUser).First(serverPlayer); len(serverPlayer.UUID) == 0 {
+		serverPlayer = &Player{
 			UUID:     uid,
 			Username: consts.ServerUser,
 			Role:     roles.RoleAdmin,
 		}
-		if result := db.Create(consoleUser); result.Error != nil {
+		if result := db.Create(serverPlayer); result.Error != nil {
 			l.Fatal("could not create default server user: %v", result.Error)
 		}
 		config.ClientConfig.UUID = uid
 	} else {
-		config.ClientConfig.UUID = consoleUser.UUID
-		return consoleUser.UUID
+		config.ClientConfig.Name = consts.ServerUser
+		config.ClientConfig.UUID = serverPlayer.UUID
+		return serverPlayer.UUID
 	}
 	return uid
 }
