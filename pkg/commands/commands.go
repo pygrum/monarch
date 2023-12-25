@@ -327,6 +327,24 @@ func ConsoleCommands() []*grumble.Command {
 		},
 	}
 
+	cmdStage.AddCommand(&grumble.Command{
+		Name: "local",
+		Help: "stage a file on disk on an endpoint",
+		Args: func(a *grumble.Args) {
+			a.String("file", "name of file to stage")
+		},
+		Flags: func(f *grumble.Flags) {
+			f.StringL("as", "", "the alias used to stage your file")
+		},
+		Run: func(c *grumble.Context) error {
+			stageLocalCmd(c.Args.String("file"), c.Flags.String("as"))
+			return nil
+		},
+		Completer: func(prefix string, args []string) []string {
+			return completion.LocalPathCompleter(prefix)
+		},
+	})
+
 	cmdUnstage := &grumble.Command{
 		Name:      "unstage",
 		Help:      "unstage a staged agent, by specifying its stage alias (e.g. index.php)",

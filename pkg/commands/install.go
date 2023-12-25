@@ -30,3 +30,26 @@ func installCmd(repoUrl, branch string, useCreds bool) {
 		log.NumericalLevel(cLogger, uint16(notif.LogLevel), notif.Msg)
 	}
 }
+
+// installs local repositories / folders
+func localCmd(path string) {
+	stream, err := console.Rpc.Install(ctx, &clientpb.InstallRequest{
+		Path:   path,
+		Source: clientpb.InstallRequest_Local,
+	})
+	if err != nil {
+		cLogger.Error("%v", err)
+		return
+	}
+	for {
+		notif, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			cLogger.Error("install failed: %v", err)
+			return
+		}
+		log.NumericalLevel(cLogger, uint16(notif.LogLevel), notif.Msg)
+	}
+}
