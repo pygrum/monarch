@@ -43,8 +43,12 @@ func (s *stage) Add(name, agent, path, stagedBy string) error {
 	return nil
 }
 
-func (s *stage) Rm(name string) {
+func (s *stage) Rm(name string) bool {
+	if _, ok := s.fileNameMappings[name]; !ok {
+		return ok
+	}
 	delete(s.fileNameMappings, name)
+	return true
 }
 
 func (s *stage) get(name string) ([]byte, error) {

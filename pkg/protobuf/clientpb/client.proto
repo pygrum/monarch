@@ -182,6 +182,12 @@ message StageAddRequest {
   string agent = 1;
   string alias = 2;
 }
+message StageLocalRequest {
+  string filename = 1;
+  bytes data = 2;
+  string alias = 3;
+}
+
 message UnstageRequest {
   string alias = 1;
 }

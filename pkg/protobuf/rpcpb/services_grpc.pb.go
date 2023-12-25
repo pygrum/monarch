@@ -207,6 +207,7 @@ type MonarchClient interface {
 	Send(ctx context.Context, in *clientpb.HTTPRequest, opts ...grpc.CallOption) (*clientpb.HTTPResponse, error)
 	StageView(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*clientpb.Stage, error)
 	StageAdd(ctx context.Context, in *clientpb.StageAddRequest, opts ...grpc.CallOption) (*Notification, error)
+	StageLocal(ctx context.Context, in *clientpb.StageLocalRequest, opts ...grpc.CallOption) (*Notification, error)
 	Unstage(ctx context.Context, in *clientpb.UnstageRequest, opts ...grpc.CallOption) (*clientpb.Empty, error)
 	// Notify used for general notifications - likely run from a goroutine
 	Notify(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (Monarch_NotifyClient, error)
@@ -493,6 +494,15 @@ func (c *monarchClient) StageAdd(ctx context.Context, in *clientpb.StageAddReque
 	return out, nil
 }
 
+func (c *monarchClient) StageLocal(ctx context.Context, in *clientpb.StageLocalRequest, opts ...grpc.CallOption) (*Notification, error) {
+	out := new(Notification)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/StageLocal", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *monarchClient) Unstage(ctx context.Context, in *clientpb.UnstageRequest, opts ...grpc.CallOption) (*clientpb.Empty, error) {
 	out := new(clientpb.Empty)
 	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/Unstage", in, out, opts...)
@@ -604,6 +614,7 @@ type MonarchServer interface {
 	Send(context.Context, *clientpb.HTTPRequest) (*clientpb.HTTPResponse, error)
 	StageView(context.Context, *clientpb.Empty) (*clientpb.Stage, error)
 	StageAdd(context.Context, *clientpb.StageAddRequest) (*Notification, error)
+	StageLocal(context.Context, *clientpb.StageLocalRequest) (*Notification, error)
 	Unstage(context.Context, *clientpb.UnstageRequest) (*clientpb.Empty, error)
 	// Notify used for general notifications - likely run from a goroutine
 	Notify(*clientpb.Empty, Monarch_NotifyServer) error
@@ -690,6 +701,9 @@ func (UnimplementedMonarchServer) StageView(context.Context, *clientpb.Empty) (*
 }
 func (UnimplementedMonarchServer) StageAdd(context.Context, *clientpb.StageAddRequest) (*Notification, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method StageAdd not implemented")
+}
+func (UnimplementedMonarchServer) StageLocal(context.Context, *clientpb.StageLocalRequest) (*Notification, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method StageLocal not implemented")
 }
 func (UnimplementedMonarchServer) Unstage(context.Context, *clientpb.UnstageRequest) (*clientpb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Unstage not implemented")
@@ -1172,6 +1186,24 @@ func _Monarch_StageAdd_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Monarch_StageLocal_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(clientpb.StageLocalRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MonarchServer).StageLocal(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpcpb.Monarch/StageLocal",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MonarchServer).StageLocal(ctx, req.(*clientpb.StageLocalRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Monarch_Unstage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(clientpb.UnstageRequest)
 	if err := dec(in); err != nil {
@@ -1348,6 +1380,10 @@ var Monarch_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "StageAdd",
 			Handler:    _Monarch_StageAdd_Handler,
+		},
+		{
+			MethodName: "StageLocal",
+			Handler:    _Monarch_StageLocal_Handler,
 		},
 		{
 			MethodName: "Unstage",

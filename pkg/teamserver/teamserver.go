@@ -627,6 +627,32 @@ func (s *MonarchServer) StageAdd(ctx context.Context, r *clientpb.StageAddReques
 	}, nil
 }
 
+func (s *MonarchServer) StageLocal(ctx context.Context, r *clientpb.StageLocalRequest) (*rpcpb.Notification, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, ErrNoMetadata
+	}
+	player := md["uid"][0]
+	randName := hex.EncodeToString(crypto.RandomBytes(16))
+	path := filepath.Join(os.TempDir(), randName)
+	if err := os.WriteFile(path, r.Data, 0700); err != nil {
+		return nil, err
+	}
+	if len(r.Alias) == 0 {
+		r.Alias = randName
+	}
+	if err := http.Stage.Add(r.Alias, filepath.Base(r.Filename), path, player); err != nil {
+		return nil, err
+	}
+	return &rpcpb.Notification{
+		LogLevel: rpcpb.LogLevel_LevelInfo,
+		Msg: fmt.Sprintf(
+			"staged %s on %s",
+			filepath.Base(r.Filename),
+			strings.ReplaceAll(config.MainConfig.StageEndpoint, "{file}", r.Alias)),
+	}, nil
+}
+
 func (s *MonarchServer) Unstage(ctx context.Context, r *clientpb.UnstageRequest) (*clientpb.Empty, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
@@ -641,7 +667,9 @@ func (s *MonarchServer) Unstage(ctx context.Context, r *clientpb.UnstageRequest)
 			}
 		}
 	}
-	http.Stage.Rm(r.Alias)
+	if !http.Stage.Rm(r.Alias) {
+		return nil, errors.New("")
+	}
 	return &clientpb.Empty{}, nil
 }
 
