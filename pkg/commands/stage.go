@@ -16,6 +16,10 @@ func stageCmd(arg string, as string) {
 			return
 		}
 		stagefmt := "%s (%s)\tstaged as %s\t"
+		if len(s.Stage) == 0 {
+			cLogger.Info("nothing staged")
+			return
+		}
 		for k, v := range s.Stage {
 			_, _ = fmt.Fprintln(w, fmt.Sprintf(stagefmt, v.Path, v.Agent,
 				strings.ReplaceAll(s.Endpoint, "{file}", k)))
