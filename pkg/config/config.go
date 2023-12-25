@@ -129,6 +129,11 @@ func Initialize() {
 	MainConfig.InstallDir = norm(MainConfig.InstallDir)
 }
 
+func Home() string {
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".monarch")
+}
+
 func norm(s string) string {
 	home, _ := os.UserHomeDir()
 	return filepath.Join(home, ".monarch", s)

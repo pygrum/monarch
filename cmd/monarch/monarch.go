@@ -1,11 +1,9 @@
 package main
 
 import (
+	"github.com/pygrum/monarch/pkg/commands"
 	"github.com/pygrum/monarch/pkg/config"
 	"github.com/pygrum/monarch/pkg/db"
-	"log"
-
-	"github.com/pygrum/monarch/pkg/commands"
 
 	"github.com/pygrum/monarch/pkg/console"
 )
@@ -20,7 +18,5 @@ func main() {
 	db.Initialize()
 
 	commands.ConsoleInitCTX()
-	if err := console.Run(commands.ServerConsoleCommands, true); err != nil {
-		log.Fatal(err)
-	}
+	console.Run(true, commands.ServerConsoleCommands, commands.BuildCommands)
 }

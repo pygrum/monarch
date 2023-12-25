@@ -5,16 +5,17 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"github.com/desertbit/grumble"
 	"github.com/pygrum/monarch/pkg/completion"
 	"github.com/pygrum/monarch/pkg/config"
 	"github.com/pygrum/monarch/pkg/console"
+	"github.com/pygrum/monarch/pkg/consts"
 	"github.com/pygrum/monarch/pkg/crypto"
 	"github.com/pygrum/monarch/pkg/log"
 	"github.com/pygrum/monarch/pkg/protobuf/builderpb"
 	"github.com/pygrum/monarch/pkg/protobuf/clientpb"
-	"github.com/rsteube/carapace"
-	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 	"os"
 	"path/filepath"
@@ -29,8 +30,12 @@ var (
 	l             log.Logger
 	internals     = []string{"id", "ca_cert"}
 	ValidTypes    = []string{"bool", "int", "string", "float"}
-	builderConfig BuilderConfig
+	builderConfig *BuilderConfig
 )
+
+func init() {
+	l, _ = log.NewLogger(log.ConsoleLogger, "")
+}
 
 type BuilderConfig struct {
 	builderID string // ID of builder
@@ -41,8 +46,11 @@ type BuilderConfig struct {
 	options   []*builderpb.Option
 }
 
-func init() {
-	l, _ = log.NewLogger(log.ConsoleLogger, "")
+func buildCheck() error {
+	if builderConfig == nil {
+		return errors.New("no builder has been loaded yet")
+	}
+	return nil
 }
 
 // buildCmd to start the interactive agent builder
@@ -61,7 +69,8 @@ func buildCmd(builderName string) {
 		l.Error("failed to load build options for %s: %v", builderName, err)
 		return
 	}
-	console.NamedMenu(builder.Name, consoleCommands)
+	prompt := "monarch " + "(" + builderName + ") > "
+	console.App.SetPrompt(prompt)
 }
 
 // Returns default builder options
@@ -133,7 +142,7 @@ func defaultOptions() []*builderpb.Option {
 // loadBuildOptions loads the build options into the BuildRequest in the builderConfig variable
 func loadBuildOptions(b *clientpb.Builder) error {
 	// initialize pointer
-	builderConfig = BuilderConfig{
+	builderConfig = &BuilderConfig{
 		ID: agentID(),
 		request: &builderpb.BuildRequest{
 			Options: make(map[string]string),
@@ -271,7 +280,7 @@ func build() {
 		}
 	}
 	if len(required) != 0 {
-		l.Error("the following required options have not been set:")
+		l.Error("the following requiredFlag options have not been set:")
 		for _, o := range required {
 			fmt.Println(o)
 		}
@@ -361,46 +370,99 @@ func allOptions() []string {
 	return options
 }
 
-func consoleCommands() *cobra.Command {
-	rootCmd := &cobra.Command{}
-	cmdOptions := &cobra.Command{
-		Use:   "options",
-		Args:  cobra.NoArgs,
-		Short: "view all modifiable build configuration options",
-		Run: func(cmd *cobra.Command, args []string) {
+func BuildCommands() []*grumble.Command {
+	var rootCmd []*grumble.Command
+	cmdOptions := &grumble.Command{
+		Name:      "options",
+		Help:      "view all modifiable build configuration options",
+		HelpGroup: consts.BuildHelpGroup,
+		Run: func(c *grumble.Context) error {
+			if err := buildCheck(); err != nil {
+				return err
+			}
 			optionsCmd()
+			return nil
 		},
 	}
-	cmdSet := &cobra.Command{
-		Use:   "set OPTION VALUE",
-		Args:  cobra.ExactArgs(2),
-		Short: "set a build option to the provided value",
-		Run: func(cmd *cobra.Command, args []string) {
-			setCmd(args[0], args[1])
+	cmdSet := &grumble.Command{
+		Name: "set",
+		Args: func(a *grumble.Args) {
+			a.String("option", "the build option to change")
+			a.String("value", "the value to set the option to")
+		},
+		Help:      "set a build option to the provided value",
+		HelpGroup: consts.BuildHelpGroup,
+		Run: func(c *grumble.Context) error {
+			if err := buildCheck(); err != nil {
+				return err
+			}
+			setCmd(c.Args.String("option"), c.Args.String("value"))
+			return nil
+		},
+		Completer: func(prefix string, args []string) []string {
+			if err := buildCheck(); err != nil {
+				return nil
+			}
+			if len(args) == 0 {
+				return completion.Options(prefix, allOptions())
+			}
+			return nil
 		},
 	}
-	carapace.Gen(cmdSet).PositionalCompletion(completion.Options(allOptions()))
 
-	cmdUnset := &cobra.Command{
-		Use:   "unset [option]",
-		Args:  cobra.ExactArgs(1),
-		Short: "unsets the provided option",
-		Run: func(cmd *cobra.Command, args []string) {
-			unsetCmd(args[0])
+	cmdUnset := &grumble.Command{
+		Name: "unset",
+		Args: func(a *grumble.Args) {
+			a.String("option", "the build option to unset")
+		},
+		Help:      "unset a build option",
+		HelpGroup: consts.BuildHelpGroup,
+		Run: func(c *grumble.Context) error {
+			if err := buildCheck(); err != nil {
+				return err
+			}
+			unsetCmd(c.Args.String("option"))
+			return nil
+		},
+		Completer: func(prefix string, args []string) []string {
+			if err := buildCheck(); err != nil {
+				return nil
+			}
+			return completion.Options(prefix, allOptions())
 		},
 	}
-	carapace.Gen(cmdUnset).PositionalCompletion(completion.Options(allOptions()))
 
-	cmdBuild := &cobra.Command{
-		Use:   "build",
-		Args:  cobra.NoArgs,
-		Short: "builds the agent using the provided configuration options",
-		Run: func(cmd *cobra.Command, args []string) {
+	cmdBuild := &grumble.Command{
+		Name:      "compile",
+		Help:      "builds the agent using the provided configuration options",
+		HelpGroup: consts.BuildHelpGroup,
+		Run: func(c *grumble.Context) error {
+			if err := buildCheck(); err != nil {
+				return err
+			}
 			build()
+			return nil
 		},
 	}
-	rootCmd.AddCommand(cmdBuild, cobraProfilesCmd(), cmdOptions, cmdSet, cmdUnset,
-		exit("exit the interactive builder", "build"))
-	rootCmd.CompletionOptions.HiddenDefaultCmd = true
+	cmdEndBuild := &grumble.Command{
+		Name:      "end-build",
+		Help:      "exit the interactive builder",
+		HelpGroup: consts.BuildHelpGroup,
+		Run: func(c *grumble.Context) error {
+			if err := buildCheck(); err != nil {
+				return err
+			}
+			if _, err := console.Rpc.EndBuild(ctx, &builderpb.BuildRequest{
+				BuilderId: builderConfig.ID + builderConfig.builderID,
+			}); err != nil {
+				cLogger.Error("failed to delete builder client for %s: %v", builderConfig.builderID, err)
+			}
+			builderConfig = nil
+			console.App.SetDefaultPrompt()
+			return nil
+		},
+	}
+	rootCmd = append(rootCmd, cmdBuild, cobraProfilesCmd(), cmdOptions, cmdSet, cmdUnset,
+		cmdEndBuild)
 	return rootCmd
 }

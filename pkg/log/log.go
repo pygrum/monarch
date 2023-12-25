@@ -3,11 +3,11 @@ package log
 import (
 	"errors"
 	"fmt"
+	"github.com/desertbit/grumble"
 	"github.com/pygrum/monarch/pkg/config"
 	"github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 )
 
@@ -33,7 +33,10 @@ const (
 	TransientLogger
 )
 
-var logLevel uint16
+var (
+	logLevel uint16
+	app      *grumble.App
+)
 
 // Logger interface declares methods used by both console loggers and file loggers.
 // Console loggers display their output to the user, while file loggers
@@ -85,12 +88,9 @@ type fileLogger struct {
 	mu      sync.Mutex
 }
 
-func Initialize(printFunc func(string, ...any) (int, error)) {
+func Initialize(myApp *grumble.App) {
 	logLevel = config.MainConfig.LogLevel
-	Print = func(format string, v ...any) (int, error) {
-		format = strings.ReplaceAll(format, "%", "%%")
-		return printFunc(format, v...)
-	}
+	app = myApp
 }
 
 // NewLogger creates either a file or console logger.

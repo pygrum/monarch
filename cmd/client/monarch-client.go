@@ -28,9 +28,7 @@ func init() {
 				log.Fatalf("couldn't load client config (%s): %v", configFile, err)
 			}
 			commands.InitCTX()
-			if err := console.Run(commands.ConsoleCommands, false); err != nil {
-				log.Fatal(err)
-			}
+			console.Run(false, commands.ConsoleCommands, commands.BuildCommands)
 		},
 	}
 	rootCmd.Flags().StringVarP(&configFile, "config", "c", "", "monarch client configuration file")

@@ -7,7 +7,6 @@ import (
 )
 
 var (
-	Print        func(string, ...any) (int, error)
 	colorReset   = "\033[0m"
 	colorError   = "\033[31m" // Red
 	colorFatal   = "\033[37m" // Gray
@@ -23,6 +22,10 @@ var (
 	consoleSuccessPrefix = "[+]"
 	consoleDebugPrefix   = "[-]"
 )
+
+func Print(args ...interface{}) {
+	_, _ = app.Println(args...)
+}
 
 func (c *consoleLogger) Fatal(format string, v ...interface{}) {
 	// ignore returned error
@@ -83,33 +86,33 @@ func (c *transientLogger) Fatal(format string, v ...interface{}) {
 
 func (c *transientLogger) Error(format string, v ...interface{}) {
 	if c.logLevel <= LevelError {
-		_, _ = Print(colorError + consoleErrorPrefix + " " + fmt.Sprintf(format, v...) +
+		_, _ = fmt.Fprintln(app.Stderr(), colorError+consoleErrorPrefix+" "+fmt.Sprintf(format, v...)+
 			colorReset)
 	}
 }
 
 func (c *transientLogger) Warn(format string, v ...interface{}) {
 	if c.logLevel <= LevelWarn {
-		_, _ = Print(colorWarning + consoleWarningPrefix + " " + fmt.Sprintf(format, v...) +
+		_, _ = app.Println(colorWarning + consoleWarningPrefix + " " + fmt.Sprintf(format, v...) +
 			colorReset)
 	}
 }
 
 func (c *transientLogger) Success(format string, v ...interface{}) {
 	if c.logLevel <= LevelSuccess {
-		_, _ = Print(colorSuccess + consoleSuccessPrefix + " " + fmt.Sprintf(format, v...) + colorReset)
+		_, _ = app.Println(colorSuccess + consoleSuccessPrefix + " " + fmt.Sprintf(format, v...) + colorReset)
 	}
 }
 
 func (c *transientLogger) Info(format string, v ...interface{}) {
 	if c.logLevel <= LevelInfo {
-		_, _ = Print(colorInfo + consoleInfoPrefix + " " + fmt.Sprintf(format, v...) + colorReset)
+		_, _ = app.Println(colorInfo + consoleInfoPrefix + " " + fmt.Sprintf(format, v...) + colorReset)
 	}
 }
 
 func (c *transientLogger) Debug(format string, v ...interface{}) {
 	if c.logLevel <= LevelDebug {
-		_, _ = Print(colorDebug + consoleDebugPrefix + " " + fmt.Sprintf(format, v...) +
+		_, _ = app.Println(colorDebug + consoleDebugPrefix + " " + fmt.Sprintf(format, v...) +
 			colorReset)
 	}
 }

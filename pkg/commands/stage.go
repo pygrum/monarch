@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func stageCmd(args []string, format, as string) {
+func stageCmd(args []string, as string) {
 	if len(args) == 0 {
 		s, err := console.Rpc.StageView(ctx, &clientpb.Empty{})
 		if err != nil {

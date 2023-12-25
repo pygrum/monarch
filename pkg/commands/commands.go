@@ -3,32 +3,33 @@ package commands
 import (
 	"context"
 	"fmt"
+	"github.com/desertbit/grumble"
 	"github.com/pygrum/monarch/pkg/completion"
 	"github.com/pygrum/monarch/pkg/config"
 	"github.com/pygrum/monarch/pkg/consts"
 	"github.com/pygrum/monarch/pkg/crypto"
 	"github.com/pygrum/monarch/pkg/teamserver/roles"
-	"github.com/rsteube/carapace"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/metadata"
-	"strconv"
 	"strings"
 
 	"github.com/pygrum/monarch/pkg/console"
 	"github.com/pygrum/monarch/pkg/log"
-	"github.com/pygrum/monarch/pkg/protobuf/builderpb"
 	"github.com/pygrum/monarch/pkg/protobuf/clientpb"
-	"github.com/spf13/cobra"
 )
 
 var (
 	ctx        = context.Background()
 	cLogger    log.Logger
-	cmdPlayers *cobra.Command
+	cmdPlayers *grumble.Command
 )
 
 func init() {
 	cLogger, _ = log.NewLogger(log.ConsoleLogger, "")
+}
+
+func requiredFlag(flag string) {
+	_, _ = fmt.Fprintln(console.App.Stderr(), fmt.Sprintf("'%s' is a required flag", flag))
 }
 
 func InitCTX() {
@@ -52,305 +53,353 @@ func ConsoleInitCTX() {
 	ctx = metadata.NewOutgoingContext(ctx, md)
 }
 
-func ServerConsoleCommands() *cobra.Command {
+func ServerConsoleCommands() []*grumble.Command {
 	root := ConsoleCommands()
-	var stop bool
-	cmdCoop := &cobra.Command{
-		Use:   "co-op",
-		Short: "start / stop co-op mode",
-		Run: func(cmd *cobra.Command, args []string) {
-			coopCmd(stop)
+	cmdCoop := &grumble.Command{
+		Name: "co-op",
+		Help: "start / stop co-op mode",
+		Flags: func(f *grumble.Flags) {
+			f.Bool("s", "stop", false, "turn off co-op mode")
 		},
+		Run: func(c *grumble.Context) error {
+			coopCmd(c.Flags.Bool("stop"))
+			return nil
+		},
+		HelpGroup: consts.CoopHelpGroup,
 	}
-	cmdCoop.Flags().BoolVarP(&stop, "stop", "s", false, "turn off co-op mode")
 
-	var name, lhost, role string
-	cmdPlayersNew := &cobra.Command{
-		Use:   "new",
-		Short: "generate a configuration file for a new player",
-		Run: func(cmd *cobra.Command, args []string) {
-			playersNewCmd(name, lhost, role)
+	cmdPlayers.AddCommand(&grumble.Command{
+		Name: "new",
+		Help: "generate a configuration file for a new player",
+		Flags: func(f *grumble.Flags) {
+			f.String("u", "username", "", "username of the new player")
+			f.String("l", "lhost", "", "the hostname the player connects to")
+			f.String("r", "role", "player", "the player role (see autocomplete options)")
 		},
-	}
-	cmdPlayersNew.Flags().StringVarP(&name, "username", "u", "", "username of the new player")
-	cmdPlayersNew.Flags().StringVarP(&lhost, "lhost", "l", "",
-		"the hostname the player authenticates to this server using")
-	cmdPlayersNew.Flags().StringVarP(&role, "role", "r", "player",
-		"the player role (see autocomplete options)")
-	carapace.Gen(cmdPlayersNew).FlagCompletion(carapace.ActionMap{
-		"role": carapace.ActionValues(roles.All().String()...),
+		Run: func(c *grumble.Context) error {
+			uname, lhost, role := c.Flags.String("username"), c.Flags.String("lhost"), c.Flags.String("role")
+			if len(lhost) == 0 {
+				requiredFlag("lhost")
+				return nil
+			}
+			if len(uname) == 0 {
+				requiredFlag("uname")
+				return nil
+			}
+			playersNewCmd(
+				uname,
+				lhost,
+				role,
+			)
+			return nil
+		},
+		Completer: func(prefix string, args []string) []string {
+			return completion.Players(prefix, ctx)
+		},
 	})
 
-	_ = cmdPlayersNew.MarkFlagRequired("username")
-	_ = cmdPlayersNew.MarkFlagRequired("lhost")
-
-	cmdPlayersKick := &cobra.Command{
-		Use:   "kick [flags] NAME",
-		Short: "kick a player from the server",
-		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			playersKickCmd(args[0])
+	cmdPlayers.AddCommand(&grumble.Command{
+		Name: "kick",
+		Help: "kick a player from the server",
+		Args: func(a *grumble.Args) {
+			a.String("name", "the name of the player to kick")
 		},
-	}
-	carapace.Gen(cmdPlayersKick).PositionalCompletion(completion.Players(ctx))
+		Run: func(c *grumble.Context) error {
+			playersKickCmd(c.Args.String("name"))
+			return nil
+		},
+		Completer: func(prefix string, args []string) []string {
+			return completion.Players(prefix, ctx)
+		},
+	})
 
-	cmdPlayers.AddCommand(cmdPlayersNew, cmdPlayersKick)
-	root.AddCommand(cmdCoop)
+	root = append(root, cmdCoop)
 	return root
 }
 
 // ConsoleCommands returns all commands used by the console
-func ConsoleCommands() *cobra.Command {
-	root := &cobra.Command{}
+func ConsoleCommands() []*grumble.Command {
+	var root []*grumble.Command
 
-	cmdExit := &cobra.Command{
-		Use:   "exit",
-		Short: "shutdown the monarch server",
-		Args:  cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
-			exitCmd()
+	cmdExit := &grumble.Command{
+		Name:      "exit",
+		HelpGroup: consts.ServerHelpGroup,
+		Help:      "shutdown the monarch server",
+		Run: func(c *grumble.Context) error {
+			return nil
 		},
 	}
 
-	cmdBuild := &cobra.Command{
-		Use:   "build [agent-type]",
-		Short: "start the interactive session with an installed builder",
-		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			buildCmd(args[0])
+	cmdBuild := &grumble.Command{
+		Name:      "build",
+		Help:      "start the interactive session with an installed builder",
+		HelpGroup: consts.GeneralHelpGroup,
+		Args: func(a *grumble.Args) {
+			a.String("agent-type", "the type of agent to build")
+		},
+		Run: func(c *grumble.Context) error {
+			buildCmd(c.Args.String("agent-type"))
+			return nil
+		},
+		Completer: func(prefix string, args []string) []string {
+			return completion.Builders(prefix, ctx)
 		},
 	}
-	carapace.Gen(cmdBuild).PositionalCompletion(completion.Builders(ctx))
 
-	cmdBuilders := &cobra.Command{
-		Use:   "builders [names...]",
-		Short: "list installed builders",
-		Run: func(cmd *cobra.Command, args []string) {
-			buildersCmd(args)
+	cmdBuilders := &grumble.Command{
+		Name:      "builders",
+		Help:      "list installed builders",
+		HelpGroup: consts.GeneralHelpGroup,
+		Args: func(a *grumble.Args) {
+			a.StringList("names", "list of builder names")
+		},
+		Run: func(c *grumble.Context) error {
+			buildersCmd(c.Args.StringList("names"))
+			return nil
+		},
+		Completer: func(prefix string, args []string) []string {
+			return completion.Builders(prefix, ctx)
 		},
 	}
-	carapace.Gen(cmdBuilders).PositionalAnyCompletion(completion.Builders(ctx))
 
-	cmdAgents := &cobra.Command{
-		Use:   "agents [flags] AGENTS...",
-		Short: "list compiled agents",
-		Run: func(cmd *cobra.Command, args []string) {
-			agentsCmd(args)
+	cmdAgents := &grumble.Command{
+		Name:      "agents",
+		Help:      "list compiled agents",
+		HelpGroup: consts.GeneralHelpGroup,
+		Args: func(a *grumble.Args) {
+			a.StringList("agents", "list of compiled agents")
+		},
+		Run: func(c *grumble.Context) error {
+			agentsCmd(c.Args.StringList("agents"))
+			return nil
+		},
+		Completer: func(prefix string, args []string) []string {
+			return completion.Agents(prefix, ctx)
 		},
 	}
-	carapace.Gen(cmdAgents).PositionalAnyCompletion(completion.Agents(ctx))
 
-	cmdAgentsRm := &cobra.Command{
-		Use:   "rm [flags] AGENTS...",
-		Short: "remove compiled agents from listing",
-		Args:  cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			cmdRm(args)
+	cmdAgentsRm := &grumble.Command{
+		Name:      "rm",
+		Help:      "remove compiled agents from listing",
+		HelpGroup: consts.GeneralHelpGroup,
+		Args: func(a *grumble.Args) {
+			a.StringList("agents", "list of compiled agents to delete", grumble.Min(1))
+		},
+		Completer: func(prefix string, args []string) []string {
+			return completion.Agents(prefix, ctx)
+		},
+		Run: func(c *grumble.Context) error {
+			cmdRm(c.Args.StringList("agents"))
+			return nil
 		},
 	}
-	carapace.Gen(cmdAgentsRm).PositionalAnyCompletion(completion.Agents(ctx))
 	cmdAgents.AddCommand(cmdAgentsRm)
 
-	cmdSessions := &cobra.Command{
-		Use:   "sessions [ids...]",
-		Short: "list established agent connections",
-		Run: func(cmd *cobra.Command, args []string) {
-			sessionsCmd(args)
+	cmdSessions := &grumble.Command{
+		Name:      "sessions",
+		Help:      "list established agent connections",
+		HelpGroup: consts.GeneralHelpGroup,
+		Completer: func(prefix string, args []string) []string {
+			return completion.Sessions(prefix, ctx)
+		},
+		Args: func(a *grumble.Args) {
+			a.StringList("ids", "list of session ids")
+		},
+		Run: func(c *grumble.Context) error {
+			sessionsCmd(c.Args.StringList("ids"))
+			return nil
 		},
 	}
-	carapace.Gen(cmdSessions).PositionalAnyCompletion(completion.Sessions(ctx))
 
-	cmdUse := &cobra.Command{
-		Use:   "use [id]",
-		Short: "initiate an interactive session with an agent",
-		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			id, err := strconv.Atoi(args[0])
-			if err != nil {
-				cLogger.Error("%s is not a valid session ID", args[0])
-				return
-			}
-			useCmd(id)
+	cmdUse := &grumble.Command{
+		Name:      "use",
+		Help:      "initiate an interactive session with an agent",
+		HelpGroup: consts.GeneralHelpGroup,
+		Args: func(a *grumble.Args) {
+			a.Int("id", "the ID of the session to use")
+		},
+		Run: func(c *grumble.Context) error {
+			useCmd(c.Args.Int("id"))
+			return nil
+		},
+		Completer: func(prefix string, args []string) []string {
+			return completion.Sessions(prefix, ctx)
 		},
 	}
-	carapace.Gen(cmdUse).PositionalCompletion(completion.Sessions(ctx))
 
-	var httpStop bool
-	cmdHttp := &cobra.Command{
-		Use:   "http",
-		Short: "start an http listener",
-		Args:  cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
-			httpCmd(httpStop)
+	cmdHttp := &grumble.Command{
+		Name:      "http",
+		Help:      "start an http listener",
+		HelpGroup: consts.AdminHelpGroup,
+		Flags: func(f *grumble.Flags) {
+			f.Bool("s", "stop", false, "stop the http listener")
+		},
+		Run: func(c *grumble.Context) error {
+			httpCmd(c.Flags.Bool("stop"))
+			return nil
 		},
 	}
-	cmdHttp.Flags().BoolVarP(&httpStop, "stop", "s", false, "stop the http listener")
 
-	var httpsStop bool
-	cmdHttps := &cobra.Command{
-		Use:   "https",
-		Short: "start an https listener",
-		Args:  cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
-			httpsCmd(httpsStop)
+	cmdHttps := &grumble.Command{
+		Name:      "https",
+		Help:      "start an https listener",
+		HelpGroup: consts.AdminHelpGroup,
+		Flags: func(f *grumble.Flags) {
+			f.Bool("s", "stop", false, "stop the https listener")
+		},
+		Run: func(c *grumble.Context) error {
+			httpsCmd(c.Flags.Bool("stop"))
+			return nil
 		},
 	}
-	cmdHttps.Flags().BoolVarP(&httpsStop, "stop", "s", false, "stop the https listener")
 
-	var installPrivate bool
-	var branch string
-	cmdInstall := &cobra.Command{
-		Use:   "install [flags] REPO",
-		Short: "install a builder from a Git repository",
-		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			installCmd(args[0], branch, installPrivate)
+	cmdInstall := &grumble.Command{
+		Name:      "install",
+		Help:      "install a builder from a Git repository",
+		HelpGroup: consts.AdminHelpGroup,
+		Args: func(a *grumble.Args) {
+			a.String("repo", "github repo to install")
+		},
+		Flags: func(f *grumble.Flags) {
+			f.Bool("c", "use-creds", false, "use GitHub credentials for installation")
+			f.String("b", "branch", "", "target a specific branch to install")
+		},
+		Run: func(c *grumble.Context) error {
+			installCmd(c.Args.String("repo"), c.Flags.String("branch"), c.Flags.Bool("use-creds"))
+			return nil
 		},
 	}
-	cmdInstall.Flags().BoolVarP(&installPrivate, "use-creds", "c", false,
-		"use GitHub credentials for installation")
-	cmdInstall.Flags().StringVarP(&branch, "branch", "b", "", "the branch you wish to "+
-		"install")
 
-	cmdLocal := &cobra.Command{
-		Use:   "local [flags] FOLDER",
-		Short: "install a builder from a local folder",
-		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			localCmd(args[0])
+	cmdLocal := &grumble.Command{
+		Name:      "local",
+		Help:      "install a builder from a local folder",
+		HelpGroup: consts.AdminHelpGroup,
+		Args: func(a *grumble.Args) {
+			a.String("project", "local project folder")
+		},
+		Completer: func(prefix string, args []string) []string {
+			return completion.LocalPathCompleter(prefix)
+		},
+		Run: func(c *grumble.Context) error {
+			localCmd(c.Args.String("project"))
+			return nil
 		},
 	}
-	carapace.Gen(cmdLocal).PositionalCompletion(carapace.ActionFiles())
-
 	// it's a subcommand of the 'install' command
 	cmdInstall.AddCommand(cmdLocal)
 
-	var purge bool
-	cmdUninstall := &cobra.Command{
-		Use:   "uninstall [flags] BUILDERS...",
-		Short: "uninstall builder(s) by name or ID",
-		Args:  cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			uninstallCmd(args, purge)
+	cmdUninstall := &grumble.Command{
+		Name:      "uninstall",
+		Help:      "uninstall builder(s) by name or ID",
+		HelpGroup: consts.AdminHelpGroup,
+		Args: func(a *grumble.Args) {
+			a.StringList("builders", "list of builders to uninstall")
+		},
+		Flags: func(f *grumble.Flags) {
+			f.Bool("p", "purge", false, "remove local folder")
+		},
+		Run: func(c *grumble.Context) error {
+			uninstallCmd(c.Args.StringList("builders"), c.Flags.Bool("purge"))
+			return nil
+		},
+		Completer: func(prefix string, args []string) []string {
+			return completion.Builders(prefix, ctx)
 		},
 	}
-	carapace.Gen(cmdUninstall).PositionalAnyCompletion(completion.Builders(ctx))
 
-	cmdUninstall.Flags().BoolVarP(&purge, "delete-data", "p", false, "delete the source"+
-		" folder that was saved to disk when installed")
-	cmdVersion := &cobra.Command{
-		Use:   "version",
-		Short: "view installed monarch version",
-		Run: func(cmd *cobra.Command, args []string) {
+	cmdVersion := &grumble.Command{
+		Name:      "version",
+		Help:      "view installed monarch version",
+		HelpGroup: consts.GeneralHelpGroup,
+		Run: func(c *grumble.Context) error {
 			versionCmd()
+			return nil
 		},
 	}
-	var stageAs string
-	var format string
-	cmdStage := &cobra.Command{
-		Use:   "stage [agent]",
-		Short: "stage an agent on the configured staging endpoint, or view currently staged agents",
-		Args:  cobra.RangeArgs(0, 1),
-		Run: func(cmd *cobra.Command, args []string) {
-			stageCmd(args, format, stageAs)
+
+	cmdStage := &grumble.Command{
+		Name:      "stage",
+		Help:      "stage an agent on the configured staging endpoint, or view currently staged agents",
+		HelpGroup: consts.GeneralHelpGroup,
+		Args: func(a *grumble.Args) {
+			a.StringList("agent", "the name of the agent to stage")
+		},
+		Flags: func(f *grumble.Flags) {
+			f.String("a", "as", "", "the file to stage your agent as (e.g. index.php)")
+		},
+		Run: func(c *grumble.Context) error {
+			stageCmd(c.Args.StringList("agent"), c.Flags.String("as"))
+			return nil
+		},
+		Completer: func(prefix string, args []string) []string {
+			return completion.Agents(prefix, ctx)
 		},
 	}
-	carapace.Gen(cmdStage).PositionalCompletion(completion.Agents(ctx))
 
-	cmdStage.Flags().StringVar(&stageAs, "as", "", "the file to stage your agent as (e.g. index.php)")
-	cmdStage.Flags().StringVarP(&format, "format", "f", "",
-		"the format of the staged file - shellcode")
-
-	cmdUnstage := &cobra.Command{
-		Use:   "unstage [agent-alias]",
-		Short: "unstage a staged agent, by specifying its stage alias (e.g. index.php)",
-		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			unstageCmd(args[0])
+	cmdUnstage := &grumble.Command{
+		Name:      "unstage",
+		Help:      "unstage a staged agent, by specifying its stage alias (e.g. index.php)",
+		HelpGroup: consts.GeneralHelpGroup,
+		Args: func(a *grumble.Args) {
+			a.String("alias", "the alias of a staged agent")
+		},
+		Run: func(c *grumble.Context) error {
+			unstageCmd(c.Args.String("alias"))
+			return nil
+		},
+		Completer: func(prefix string, args []string) []string {
+			return completion.UnStage(prefix, ctx)
 		},
 	}
-	carapace.Gen(cmdUnstage).PositionalCompletion(completion.UnStage(ctx))
 
-	cmdClear := &cobra.Command{
-		Use:   "clear",
-		Short: "clear the terminal screen",
-		Args:  cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Print("\033[H\033[2J")
+	cmdPlayers = &grumble.Command{
+		Name: "players",
+		Help: "list registered players",
+		Args: func(a *grumble.Args) {
+			a.StringList("usernames", "player usernames")
 		},
-	}
-	cmdPlayers = &cobra.Command{
-		Use:   "players [USERNAMES...]",
-		Short: "list registered players",
-		Run: func(cmd *cobra.Command, args []string) {
-			playersCmd(args)
+		Run: func(c *grumble.Context) error {
+			playersCmd(c.Args.StringList("usernames"))
+			return nil
 		},
-	}
-	carapace.Gen(cmdPlayers).PositionalCompletion(completion.Players(ctx))
-
-	var to string
-	var all bool
-	cmdSend := &cobra.Command{
-		Use:   "send",
-		Short: "send a message to another online player",
-		Run: func(cmd *cobra.Command, args []string) {
-			sendCmd(to, strings.Join(args, " "), all)
+		Completer: func(prefix string, args []string) []string {
+			return completion.Players(prefix, ctx)
 		},
+		HelpGroup: consts.CoopHelpGroup,
 	}
-	cmdSend.Flags().StringVarP(&to, "to", "t", "", "player to message")
-	cmdSend.Flags().BoolVarP(&all, "all", "a", false, "message all players")
 
-	carapace.Gen(cmdSend).FlagCompletion(carapace.ActionMap{
-		"to": completion.Players(ctx),
-	})
+	cmdSend := &grumble.Command{
+		Name: "send",
+		Help: "send a message to another online player",
+		Flags: func(f *grumble.Flags) {
+			f.String("t", "to", "", "player to message")
+			f.Bool("a", "all", false, "message all players")
+		},
+		Args: func(a *grumble.Args) {
+			a.StringList("message", "message to send the player")
+		},
+		Run: func(c *grumble.Context) error {
+			sendCmd(c.Flags.String("to"), strings.Join(c.Args.StringList("message"), " "), c.Flags.Bool("all"))
+			return nil
+		},
+		HelpGroup: consts.CoopHelpGroup,
+	}
 
-	root.AddCommand(cmdSessions, cmdUse, cmdHttp, cmdHttps, cmdAgents, cmdBuilders, cmdBuild, cmdInstall, cmdUninstall,
-		cmdStage, cmdUnstage, cmdVersion, cmdClear, cmdPlayers, cmdSend, cmdExit)
-	root.CompletionOptions.HiddenDefaultCmd = true
+	root = append(root, cmdSessions, cmdUse, cmdHttp, cmdHttps, cmdAgents, cmdBuilders, cmdBuild, cmdInstall, cmdUninstall,
+		cmdStage, cmdUnstage, cmdVersion, cmdPlayers, cmdSend, cmdExit)
 	return root
 }
 
-// exits any named menus spawned by any commands
-func exit(short string, menuType string, v ...any) *cobra.Command {
-	if len(short) == 0 {
-		short = "exit the interactive menu"
-	}
-	mt := menuType
-	cmd := &cobra.Command{
-		Use:   "exit",
-		Short: short,
-		Args:  cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
-			switch mt {
-			case "build":
-				if _, err := console.Rpc.EndBuild(ctx, &builderpb.BuildRequest{
-					BuilderId: builderConfig.ID + builderConfig.builderID,
-				}); err != nil {
-					cLogger.Error("failed to delete builder client for %s: %v", builderConfig.builderID, err)
-				}
-			case "use":
-				if _, err := console.Rpc.FreeSession(ctx, &clientpb.FreeSessionRequest{
-					SessionId: v[0].(int32), PlayerName: config.ClientConfig.Name,
-				}); err != nil {
-					cLogger.Error("couldn't free session: %v", err)
-				}
-			}
-			console.MainMenu()
-		},
-	}
-	return cmd
-}
-
-func info(systemInfo *clientpb.Registration) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "info",
-		Short: "view information about the agent's host",
-		Long: "Information is typically compiled and sent by an agent when it first connects to the teamserver. " +
+func info(systemInfo *clientpb.Registration) *grumble.Command {
+	cmd := &grumble.Command{
+		Name:      "info",
+		Help:      "view information about the agent's host",
+		HelpGroup: consts.GeneralHelpGroup,
+		LongHelp: "Information is typically compiled and sent by an agent when it first connects to the teamserver. " +
 			"This information includes details such as the user running the process, the process ID, UID, GID, " +
 			"IP address, and more; however if an agent doesn't transmit this information, you'd have to find out " +
 			"yourself.",
-		Args: cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(*grumble.Context) error {
 			fmt.Println("System Information")
 			fmt.Println("==================")
 			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "Agent ID:", systemInfo.AgentId))
@@ -363,7 +412,7 @@ func info(systemInfo *clientpb.Registration) *cobra.Command {
 			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "PID:", systemInfo.PID))
 			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "Home directory:", systemInfo.HomeDir))
 			_, _ = fmt.Fprintln(w, fmt.Sprintf("%v\t%v\t", "Remote address:", systemInfo.IPAddress))
-			_ = w.Flush()
+			return w.Flush()
 		},
 	}
 	return cmd

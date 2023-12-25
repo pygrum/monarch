@@ -4,10 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/desertbit/grumble"
+	"github.com/fatih/color"
 	"github.com/pygrum/monarch/pkg/types"
 	"google.golang.org/grpc/metadata"
 	"io"
 	"net"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -19,66 +22,61 @@ import (
 	"github.com/pygrum/monarch/pkg/protobuf/clientpb"
 	"github.com/pygrum/monarch/pkg/protobuf/rpcpb"
 	"github.com/pygrum/monarch/pkg/teamserver"
-	"github.com/reeflective/console"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-type server struct {
-	App *console.Console
-}
-
 var (
-	Rpc           rpcpb.MonarchClient
-	CTX           = context.Background()
-	monarchServer *server
+	App *grumble.App
+	Rpc rpcpb.MonarchClient
+	CTX = context.Background()
 )
 
-// NamedMenu switches the console to a new menu with the provided name.
-func NamedMenu(name string, commands func() *cobra.Command) {
-	namedMenu := monarchServer.App.NewMenu(name)
-	namedMenu.SetCommands(commands)
-	monarchServer.App.SwitchMenu(name)
-}
-
 // Run entrypoint for the entire application
-func Run(rootCmd func() *cobra.Command, isServer bool) error {
+func Run(isServer bool, rootCmds ...func() []*grumble.Command) {
 	initCTX(isServer)
 	var err error
 	var clientConn *grpc.ClientConn
-	monarchServer = &server{
-		App: console.New("monarch"),
-	}
-	monarchServer.App.NewlineBefore = true
-	monarchServer.App.NewlineAfter = true
+	App = grumble.New(&grumble.Config{
+		Name:                  "Monarch",
+		Prompt:                consts.DefaultPrompt,
+		ASCIILogoColor:        color.New(color.FgHiWhite),
+		PromptColor:           color.New(color.FgHiWhite),
+		HistoryFile:           filepath.Join(config.Home(), ".monarch_history"),
+		HelpHeadlineUnderline: true,
+		HelpSubCommands:       true,
+	})
 
 	if isServer {
 		clientConn, err = initMonarchServer()
 		if err != nil {
-			return err
+			logrus.Fatal(err)
 		}
 	} else {
 		clientConn, err = initMonarchClient()
 		testServerConnectivity()
 		if err != nil {
-			return err
+			logrus.Fatal(err)
 		}
 	}
-	log.Initialize(monarchServer.App.TransientPrintf)
+	log.Initialize(App)
 	Rpc = rpcpb.NewMonarchClient(clientConn)
 
 	go getNotifications()
 	go getMessages()
-	return start(rootCmd)
+	start(rootCmds)
+
 }
 
-func start(rootCmd func() *cobra.Command) error {
-	srvMenu := monarchServer.App.ActiveMenu()
-	srvMenu.SetCommands(rootCmd)
-	monarchServer.App.SetPrintLogo(func(_ *console.Console) {
+func start(rootCmds []func() []*grumble.Command) {
+	for _, rootCmd := range rootCmds {
+		for _, cmd := range rootCmd() {
+			App.AddCommand(cmd)
+		}
+	}
+	App.SetPrintASCIILogo(func(_ *grumble.App) {
 		fmt.Print("\033[H\033[2J")
 		fmt.Printf(`                  o 
                o^/|\^o
@@ -93,7 +91,7 @@ func start(rootCmd func() *cobra.Command) error {
 
 		`, consts.Version)
 	})
-	return monarchServer.App.Start()
+	grumble.Main(App)
 }
 
 func testServerConnectivity() {
@@ -121,7 +119,6 @@ func getNotifications() {
 		}
 		log.NumericalLevel(tl, uint16(notif.LogLevel), notif.Msg)
 		if notif.Msg == types.NotificationKickPlayer {
-			_, _ = monarchServer.App.TransientPrintf("")
 			_ = stream.CloseSend()
 			return
 		}
@@ -147,7 +144,7 @@ func getMessages() {
 		}
 		msgFmt := "%s [%s] says: \033[36m%s\033[0m"
 		msg := fmt.Sprintf(msgFmt, message.From, message.Role, message.Msg)
-		_, _ = monarchServer.App.TransientPrintf(strings.ReplaceAll(msg, "%", "%%"))
+		_, _ = fmt.Fprintln(App.Stdout(), strings.ReplaceAll(msg, "%", "%%"))
 	}
 }
 
@@ -219,9 +216,4 @@ func initCTX(isServer bool) {
 	m["challenge"] = challenge
 	md := metadata.New(m)
 	CTX = metadata.NewOutgoingContext(CTX, md)
-}
-
-// MainMenu switches back to the main menu
-func MainMenu() {
-	monarchServer.App.SwitchMenu("")
 }
