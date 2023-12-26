@@ -533,7 +533,13 @@ func (s *MonarchServer) Sessions(_ context.Context, req *clientpb.SessionsReques
 	return pbSessions, nil
 }
 
-func (s *MonarchServer) LockSession(_ context.Context, r *clientpb.LockSessionRequest) (*clientpb.Empty, error) {
+func (s *MonarchServer) LockSession(ctx context.Context, r *clientpb.LockSessionRequest) (*clientpb.Empty, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, ErrNoMetadata
+	}
+	uid := md["uid"][0]
+	username := md["username"][0]
 	session := http.MainHandler.SessionByID(int(r.SessionId))
 	if session == nil {
 		return nil, errors.New("session not found")
@@ -541,9 +547,12 @@ func (s *MonarchServer) LockSession(_ context.Context, r *clientpb.LockSessionRe
 	if session.UsedBy != "" {
 		id, err := db.GetIDByUsername(session.UsedBy)
 		if err == nil {
-			_, ok := types.MessageQueues[id]
+			_, ok = types.MessageQueues[id]
+			// if player went offline without ending, then we can take over the session
 			if ok {
-				return nil, fmt.Errorf("session is in use by %s", session.UsedBy)
+				if id != uid {
+					return nil, fmt.Errorf("session is in use by %s", session.UsedBy)
+				}
 			}
 		}
 	}
@@ -551,17 +560,22 @@ func (s *MonarchServer) LockSession(_ context.Context, r *clientpb.LockSessionRe
 		http.MainHandler.RmSession(session.ID)
 		return nil, errors.New("session previously died unexpectedly and has been removed")
 	}
-	session.UsedBy = r.PlayerName
+	session.UsedBy = username
 	return &clientpb.Empty{}, nil
 }
 
-func (s *MonarchServer) FreeSession(_ context.Context, r *clientpb.FreeSessionRequest) (*clientpb.Empty, error) {
+func (s *MonarchServer) FreeSession(ctx context.Context, r *clientpb.FreeSessionRequest) (*clientpb.Empty, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, ErrNoMetadata
+	}
+	username := md["username"][0]
 	session := http.MainHandler.SessionByID(int(r.SessionId))
 	if session == nil {
 		return &clientpb.Empty{}, errors.New("session not found")
 	}
-	if session.UsedBy != r.PlayerName {
-		return &clientpb.Empty{}, fmt.Errorf("unauthorized free (%s != %s)", session.UsedBy, r.PlayerName)
+	if session.UsedBy != username {
+		return &clientpb.Empty{}, fmt.Errorf("unauthorized free (%s != %s)", session.UsedBy, username)
 	}
 	session.UsedBy = ""
 	return &clientpb.Empty{}, nil

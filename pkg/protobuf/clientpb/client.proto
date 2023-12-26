@@ -163,12 +163,10 @@ message Registration {
   string IP_address = 10;
 }
 message LockSessionRequest {
-  string player_name = 1;
-  int32 session_id = 3;
+  int32 session_id = 1;
 }
 message FreeSessionRequest {
-  string player_name = 1;
-  int32 session_id = 3;
+  int32 session_id = 1;
 }
 message StageItem {
   string path = 1;
