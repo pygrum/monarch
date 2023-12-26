@@ -11,6 +11,7 @@ interface: 0.0.0.0 # main interface monarch binds to for operations
 httpport: 8000
 httpsport: 4433
 multiplayerport: 1337
+tcpport: 8888
 
 loginendpoint: /login # default endpoint for registering agents
 mainendpoint: / # default endpoint for interacting with agents
