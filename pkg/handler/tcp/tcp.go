@@ -10,7 +10,9 @@ import (
 	"github.com/pygrum/monarch/pkg/db"
 	mhttp "github.com/pygrum/monarch/pkg/handler/http"
 	"github.com/pygrum/monarch/pkg/log"
+	"github.com/pygrum/monarch/pkg/protobuf/rpcpb"
 	"github.com/pygrum/monarch/pkg/transport"
+	"github.com/pygrum/monarch/pkg/types"
 	"io"
 	"net"
 	"strconv"
@@ -18,12 +20,9 @@ import (
 )
 
 var (
-	ErrClosed            = []byte{2}
-	ErrServerError       = []byte{1}
-	ErrRegistrationError = []byte{0}
-	tl, fl               log.Logger
-	MainHandler          *Handler
-	ErrConnClosed        = errors.New("connection closed by client")
+	tl, fl        log.Logger
+	MainHandler   *Handler
+	ErrConnClosed = errors.New("tcp connection closed by client")
 )
 
 func Initialize() {
@@ -73,6 +72,7 @@ func NewHandler() (*Handler, error) {
 		addr:     addr,
 		shutdown: make(chan struct{}),
 		conn:     make(chan net.Conn),
+		sids:     make(map[*net.Conn]*Conn),
 	}
 	return h, nil
 }
@@ -141,7 +141,6 @@ func (h *Handler) handleConn(conn net.Conn) {
 			return
 		}
 		fl.Error("couldn't read from connection with %s: %v", conn.RemoteAddr().String(), err)
-		conn.Write(ErrServerError)
 		conn.Close()
 		return
 	}
@@ -149,7 +148,6 @@ func (h *Handler) handleConn(conn net.Conn) {
 	r, agent, err := ParseRegistration(buf)
 	if err != nil {
 		fl.Error("failed to parse registration: %v", err)
-		conn.Write(ErrRegistrationError)
 		conn.Close()
 		return
 	}
@@ -160,7 +158,6 @@ func (h *Handler) handleConn(conn net.Conn) {
 	_, _, id, err := mhttp.MainHandler.NewSession(agent, true, r)
 	if err != nil {
 		fl.Error("couldn't create new session: %v", err)
-		conn.Write(ErrRegistrationError)
 		conn.Close()
 		return
 	}
@@ -169,7 +166,6 @@ func (h *Handler) handleConn(conn net.Conn) {
 		// something went horribly wrong during session creation
 		// prevent a null deref
 		fl.Error("nil session after creation")
-		conn.Write(ErrRegistrationError)
 		conn.Close()
 		return
 	}
@@ -200,6 +196,22 @@ func (h *Handler) handleConn(conn net.Conn) {
 		// blocking
 		buf, err = h.readPacket(conn)
 		if err != nil {
+			if IsConnClosedError(err) {
+				uid, err := db.GetIDByUsername(ss.UsedBy)
+				if err == nil {
+					queue, ok := types.NotifQueues[uid]
+					if ok {
+						queue.Enqueue(&rpcpb.Notification{
+							LogLevel: rpcpb.LogLevel_LevelInfo,
+							Msg:      ErrConnClosed.Error(),
+						})
+					}
+				}
+				// closure steps
+				delete(h.sids, &conn)
+				mhttp.MainHandler.RmSession(c.sid)
+				_ = conn.Close()
+			}
 			fl.Error("couldn't read response from remote (%s): %v", conn.RemoteAddr().String(), err)
 			continue
 		}
