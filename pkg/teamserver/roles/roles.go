@@ -23,6 +23,9 @@ var (
 
 		"/HttpClose",
 		"/HttpsClose",
+
+		"/TcpOpen",
+		"/TcpClose",
 	}
 )
 
