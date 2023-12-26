@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/desertbit/grumble"
 	"github.com/fatih/color"
+	"github.com/pygrum/monarch/pkg/handler/tcp"
 	"github.com/pygrum/monarch/pkg/types"
 	"google.golang.org/grpc/metadata"
 	"io"
@@ -150,6 +151,7 @@ func getMessages() {
 
 func initMonarchServer() (*grpc.ClientConn, error) {
 	http.Initialize()
+	tcp.Initialize()
 	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:9999"))
 	if err != nil {
 		logrus.Fatalf("couldn't listen on localhost: %v", err)
@@ -191,7 +193,6 @@ func newMonarchServer() (*grpc.Server, error) {
 	types.NotifQueues = make(map[string]types.Queue)
 	types.MessageQueues = make(map[string]types.Queue)
 
-	// TODO: fetch key pair and create credentials with credentials.NewTLS
 	grpcServer := grpc.NewServer()
 	srv, err := teamserver.New()
 	if err != nil {

@@ -231,6 +231,19 @@ func ConsoleCommands() []*grumble.Command {
 		},
 	}
 
+	cmdTcp := &grumble.Command{
+		Name:      "tcp",
+		Help:      "start a raw tcp + tls listener",
+		HelpGroup: consts.AdminHelpGroup,
+		Flags: func(f *grumble.Flags) {
+			f.Bool("s", "stop", false, "stop the tcp listener")
+		},
+		Run: func(c *grumble.Context) error {
+			tcpCmd(c.Flags.Bool("stop"))
+			return nil
+		},
+	}
+
 	cmdHttps := &grumble.Command{
 		Name:      "https",
 		Help:      "start an https listener",
@@ -394,8 +407,8 @@ func ConsoleCommands() []*grumble.Command {
 		HelpGroup: consts.CoopHelpGroup,
 	}
 
-	root = append(root, cmdSessions, cmdUse, cmdHttp, cmdHttps, cmdAgents, cmdBuilders, cmdBuild, cmdInstall, cmdUninstall,
-		cmdStage, cmdUnstage, cmdVersion, cmdPlayers, cmdSend)
+	root = append(root, cmdSessions, cmdUse, cmdHttp, cmdHttps, cmdTcp,
+		cmdAgents, cmdBuilders, cmdBuild, cmdInstall, cmdUninstall, cmdStage, cmdUnstage, cmdVersion, cmdPlayers, cmdSend)
 	return root
 }
 
