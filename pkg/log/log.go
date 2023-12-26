@@ -114,7 +114,8 @@ func NewLogger(loggerType uint16, name string) (Logger, error) {
 		}
 	case FileLogger:
 		// create logfile to write to
-		f, err := os.Create(filepath.Join(os.TempDir(), fmt.Sprintf("%s_%s", name, logFile)))
+		f, err := os.OpenFile(filepath.Join(os.TempDir(), fmt.Sprintf("%s_%s", name, logFile)),
+			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create log file: %v", err)
 		}
