@@ -3,10 +3,13 @@ package http
 import (
 	"errors"
 	"fmt"
+	"github.com/pygrum/monarch/pkg/crypto"
+	"github.com/pygrum/monarch/pkg/db"
 	"net"
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/pygrum/monarch/pkg/config"
@@ -29,8 +32,8 @@ type Handler struct {
 	KeyFile     string
 	httpServer  *http.Server
 	httpsServer *http.Server
-	httpsLock   bool
-	httpLock    bool
+	isActiveTLS bool
+	isActive    bool
 	sessions    *sessions
 }
 
@@ -118,7 +121,7 @@ func (h *Handler) Stop() error {
 		Handler: h.httpServer.Handler,
 		Addr:    h.httpServer.Addr,
 	}
-	h.httpLock = false
+	h.isActive = false
 	return nil
 }
 
@@ -130,16 +133,16 @@ func (h *Handler) StopTLS() error {
 		Handler: h.httpsServer.Handler,
 		Addr:    h.httpsServer.Addr,
 	}
-	h.httpsLock = false
+	h.isActiveTLS = false
 	return nil
 }
 
 func (h *Handler) IsActive() bool {
-	return h.httpLock
+	return h.isActive
 }
 
 func (h *Handler) IsActiveTLS() bool {
-	return h.httpsLock
+	return h.isActiveTLS
 }
 
 func (h *Handler) QueueRequest(sessionID int, req *transport.GenericHTTPRequest) error {
@@ -154,6 +157,10 @@ func (h *Handler) QueueRequest(sessionID int, req *transport.GenericHTTPRequest)
 func (h *Handler) AwaitResponse(sessionID int) *transport.GenericHTTPResponse {
 	// returns error if queue is full
 	return h.sessions.sessionMap[sessionID].ResponseQueue.Dequeue().(*transport.GenericHTTPResponse)
+}
+
+func (h *Handler) NewSession(agent *db.Agent, isTCP bool, connectInfo *transport.Registration) (string, time.Time, int, error) {
+	return h.sessions.newSession(agent, isTCP, connectInfo)
 }
 
 func (h *Handler) Sessions(sessIDs []int) []*HTTPSession {
@@ -204,9 +211,14 @@ func NewHandler() *Handler {
 		Handler: router,
 		Addr:    net.JoinHostPort(config.MainConfig.Interface, strconv.Itoa(config.MainConfig.HttpPort)),
 	}
+	tlsConfig, err := crypto.ServerTLSConfig()
+	if err != nil {
+		fl.Fatal("couldn't get server TLS config: %v", err)
+	}
 	h.httpsServer = &http.Server{
-		Handler: sRouter,
-		Addr:    net.JoinHostPort(config.MainConfig.Interface, strconv.Itoa(config.MainConfig.HttpsPort)),
+		Handler:   sRouter,
+		TLSConfig: tlsConfig,
+		Addr:      net.JoinHostPort(config.MainConfig.Interface, strconv.Itoa(config.MainConfig.HttpsPort)),
 	}
 	return h
 }
@@ -214,14 +226,14 @@ func NewHandler() *Handler {
 func (h *Handler) Serve() {
 	lh, err := net.Listen("tcp", h.httpServer.Addr)
 	if err != nil {
-		TranLogger.Error("failed to initialise listening socket: %v", err)
+		fl.Error("failed to initialise listening socket: %v", err)
 		return
 	}
 	// ensures can only be started once the TeamServer is available
-	h.httpLock = true
+	h.isActive = true
 	if err = h.httpServer.Serve(lh); err != nil &&
 		!errors.Is(err, http.ErrServerClosed) {
-		TranLogger.Error("listener failed: %v", err)
+		fl.Error("listener failed: %v", err)
 		return
 	}
 }
@@ -229,13 +241,13 @@ func (h *Handler) Serve() {
 func (h *Handler) ServeTLS() {
 	lh, err := net.Listen("tcp", h.httpsServer.Addr)
 	if err != nil {
-		TranLogger.Error("failed to initialise listening socket: %v", err)
+		fl.Error("failed to initialise listening socket: %v", err)
 		return
 	}
 	// ensures can only be started once the server is available
-	h.httpsLock = true
+	h.isActiveTLS = true
 	if err = h.httpsServer.ServeTLS(lh, h.CertFile, h.KeyFile); err != nil &&
 		!errors.Is(err, http.ErrServerClosed) {
-		TranLogger.Error("listener failed: %v", err)
+		fl.Error("listener failed: %v", err)
 	}
 }

@@ -62,7 +62,7 @@ func (s *sessions) loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	connectInfo.IPAddress = r.RemoteAddr
-	token, expiresAt, _, err := s.newSession(agent, connectInfo)
+	token, expiresAt, _, err := s.newSession(agent, false, connectInfo)
 	if err != nil {
 		fl.Error("failed to create new session: %v", err)
 		w.WriteHeader(http.StatusUnauthorized)
@@ -192,11 +192,11 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 func HandleResponse(session *clientpb.Session, resp *transport.GenericHTTPResponse) {
 	session.LastActive = time.Now().Format(time.RFC850)
 	for _, response := range resp.Responses {
-		handleResponse(session, response, ShortID(resp.RequestID))
+		handleResponse(response, ShortID(resp.RequestID))
 	}
 }
 
-func handleResponse(session *clientpb.Session, response transport.ResponseDetail, rid string) {
+func handleResponse(response transport.ResponseDetail, rid string) {
 	if response.Status == builderpb.Status_FailedWithMessage {
 		if len(response.Data) == 0 {
 			TranLogger.Error("request %s failed but no message was returned", rid)
