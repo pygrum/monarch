@@ -200,6 +200,8 @@ type MonarchClient interface {
 	HttpClose(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*clientpb.Empty, error)
 	HttpsOpen(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*Notification, error)
 	HttpsClose(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*clientpb.Empty, error)
+	TcpOpen(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*Notification, error)
+	TcpClose(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*clientpb.Empty, error)
 	Sessions(ctx context.Context, in *clientpb.SessionsRequest, opts ...grpc.CallOption) (*clientpb.Sessions, error)
 	LockSession(ctx context.Context, in *clientpb.LockSessionRequest, opts ...grpc.CallOption) (*clientpb.Empty, error)
 	FreeSession(ctx context.Context, in *clientpb.FreeSessionRequest, opts ...grpc.CallOption) (*clientpb.Empty, error)
@@ -431,6 +433,24 @@ func (c *monarchClient) HttpsClose(ctx context.Context, in *clientpb.Empty, opts
 	return out, nil
 }
 
+func (c *monarchClient) TcpOpen(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*Notification, error) {
+	out := new(Notification)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/TcpOpen", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *monarchClient) TcpClose(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*clientpb.Empty, error) {
+	out := new(clientpb.Empty)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/TcpClose", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *monarchClient) Sessions(ctx context.Context, in *clientpb.SessionsRequest, opts ...grpc.CallOption) (*clientpb.Sessions, error) {
 	out := new(clientpb.Sessions)
 	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/Sessions", in, out, opts...)
@@ -607,6 +627,8 @@ type MonarchServer interface {
 	HttpClose(context.Context, *clientpb.Empty) (*clientpb.Empty, error)
 	HttpsOpen(context.Context, *clientpb.Empty) (*Notification, error)
 	HttpsClose(context.Context, *clientpb.Empty) (*clientpb.Empty, error)
+	TcpOpen(context.Context, *clientpb.Empty) (*Notification, error)
+	TcpClose(context.Context, *clientpb.Empty) (*clientpb.Empty, error)
 	Sessions(context.Context, *clientpb.SessionsRequest) (*clientpb.Sessions, error)
 	LockSession(context.Context, *clientpb.LockSessionRequest) (*clientpb.Empty, error)
 	FreeSession(context.Context, *clientpb.FreeSessionRequest) (*clientpb.Empty, error)
@@ -680,6 +702,12 @@ func (UnimplementedMonarchServer) HttpsOpen(context.Context, *clientpb.Empty) (*
 }
 func (UnimplementedMonarchServer) HttpsClose(context.Context, *clientpb.Empty) (*clientpb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method HttpsClose not implemented")
+}
+func (UnimplementedMonarchServer) TcpOpen(context.Context, *clientpb.Empty) (*Notification, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TcpOpen not implemented")
+}
+func (UnimplementedMonarchServer) TcpClose(context.Context, *clientpb.Empty) (*clientpb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TcpClose not implemented")
 }
 func (UnimplementedMonarchServer) Sessions(context.Context, *clientpb.SessionsRequest) (*clientpb.Sessions, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Sessions not implemented")
@@ -1060,6 +1088,42 @@ func _Monarch_HttpsClose_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Monarch_TcpOpen_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(clientpb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MonarchServer).TcpOpen(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpcpb.Monarch/TcpOpen",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MonarchServer).TcpOpen(ctx, req.(*clientpb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Monarch_TcpClose_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(clientpb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MonarchServer).TcpClose(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpcpb.Monarch/TcpClose",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MonarchServer).TcpClose(ctx, req.(*clientpb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Monarch_Sessions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(clientpb.SessionsRequest)
 	if err := dec(in); err != nil {
@@ -1352,6 +1416,14 @@ var Monarch_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "HttpsClose",
 			Handler:    _Monarch_HttpsClose_Handler,
+		},
+		{
+			MethodName: "TcpOpen",
+			Handler:    _Monarch_TcpOpen_Handler,
+		},
+		{
+			MethodName: "TcpClose",
+			Handler:    _Monarch_TcpClose_Handler,
 		},
 		{
 			MethodName: "Sessions",

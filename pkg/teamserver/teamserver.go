@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/pygrum/monarch/pkg/handler/tcp"
 	"github.com/pygrum/monarch/pkg/teamserver/roles"
 	"github.com/pygrum/monarch/pkg/types"
 	"google.golang.org/grpc/metadata"
@@ -479,6 +480,22 @@ func (s *MonarchServer) HttpClose(context.Context, *clientpb.Empty) (*clientpb.E
 
 func (s *MonarchServer) HttpsClose(context.Context, *clientpb.Empty) (*clientpb.Empty, error) {
 	return &clientpb.Empty{}, http.MainHandler.StopTLS()
+}
+
+func (s *MonarchServer) TcpOpen(context.Context, *clientpb.Empty) (*rpcpb.Notification, error) {
+	if tcp.MainHandler.IsActive() {
+		return &rpcpb.Notification{LogLevel: rpcpb.LogLevel_LevelWarn, Msg: "tcp listener is already active"}, nil
+	}
+	tcp.MainHandler.Serve()
+	return &rpcpb.Notification{
+		LogLevel: rpcpb.LogLevel_LevelInfo,
+		Msg: fmt.Sprintf("started tcp listener on %s:%d",
+			config.MainConfig.Interface, config.MainConfig.TcpPort),
+	}, nil
+}
+
+func (s *MonarchServer) TcpClose(context.Context, *clientpb.Empty) (*clientpb.Empty, error) {
+	return &clientpb.Empty{}, tcp.MainHandler.Stop()
 }
 
 func (s *MonarchServer) Sessions(_ context.Context, req *clientpb.SessionsRequest) (*clientpb.Sessions, error) {
