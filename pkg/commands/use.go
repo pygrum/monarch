@@ -2,9 +2,9 @@ package commands
 
 import (
 	"encoding/binary"
+	"errors"
 	"github.com/desertbit/grumble"
 	"github.com/google/uuid"
-	"github.com/pygrum/monarch/pkg/config"
 	"github.com/pygrum/monarch/pkg/console"
 	"github.com/pygrum/monarch/pkg/consts"
 	"github.com/pygrum/monarch/pkg/handler/http"
@@ -34,12 +34,8 @@ func endSessionCmd(id int32) *grumble.Command {
 		Name:      "end-session",
 		Help:      "end an interactive agent session",
 		HelpGroup: consts.GeneralHelpGroup,
-		Run: func(c *grumble.Context) error {
-			if _, err := console.Rpc.FreeSession(ctx, &clientpb.FreeSessionRequest{
-				SessionId: id, PlayerName: config.ClientConfig.Name,
-			}); err != nil {
-				cLogger.Error("couldn't end session: %v", err)
-			}
+		Run: func(*grumble.Context) error {
+			_, _ = console.Rpc.FreeSession(ctx, &clientpb.FreeSessionRequest{SessionId: id})
 			removeSessionCommands()
 			console.App.SetDefaultPrompt()
 			return nil
@@ -53,6 +49,11 @@ func useHelpGroup(s string) string {
 }
 
 func useCmd(id int) {
+	// check if a session is currently active
+	if c := console.App.Commands().Get("end-session"); c != nil {
+		// if so, kill it.
+		_ = c.Run(nil)
+	}
 	ss, err := console.Rpc.Sessions(ctx, &clientpb.SessionsRequest{IDs: []int32{int32(id)}})
 	if err != nil {
 		cLogger.Error("%v", err)
@@ -70,7 +71,7 @@ func useCmd(id int) {
 		return
 	}
 	if _, err = console.Rpc.LockSession(ctx, &clientpb.LockSessionRequest{
-		SessionId: sessionInfo.Id, PlayerName: config.ClientConfig.Name}); err != nil {
+		SessionId: sessionInfo.Id}); err != nil {
 		cLogger.Error("couldn't acquire session: %v", err)
 		return
 	}
@@ -86,6 +87,9 @@ func useCmd(id int) {
 			cLogger.Error("cannot load commands for %s: duplicate command %s",
 				sessionInfo.AgentName,
 				description.Name)
+			if _, err = console.Rpc.FreeSession(ctx, &clientpb.FreeSessionRequest{SessionId: sessionInfo.Id}); err != nil {
+				cLogger.Error("failed to free session: %v", err)
+			}
 			return
 		}
 		cmds = append(cmds, description.Name)
@@ -114,6 +118,15 @@ func useCmd(id int) {
 				}
 			},
 			Run: func(c *grumble.Context) error {
+				check, err := console.Rpc.Sessions(ctx, &clientpb.SessionsRequest{IDs: []int32{int32(id)}})
+				if err == nil {
+					if len(check.Sessions) == 0 {
+						if c := console.App.Commands().Get("end-session"); c != nil {
+							_ = c.Run(nil)
+						}
+						return errors.New("session no longer exists")
+					}
+				}
 				args := c.Args.StringList("args")
 				byteArgs := make([][]byte, len(args))
 				for i, arg := range args {
@@ -149,7 +162,12 @@ func useCmd(id int) {
 					maxSizeOption := grpc.MaxCallRecvMsgSize(32 * 10e6)
 					resp, err := console.Rpc.Send(ctx, req, maxSizeOption)
 					if err != nil {
+						// can only fail if session isn't found
 						http.TranLogger.Error("%v", err)
+						// end session on client side manually
+						if c := console.App.Commands().Get("end-session"); c != nil {
+							_ = c.Run(nil)
+						}
 						return
 					}
 					r := &transport.GenericHTTPResponse{
