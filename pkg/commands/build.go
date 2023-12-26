@@ -269,7 +269,6 @@ func optionsCmd() {
 
 // build actually builds. duh
 func build() {
-	//TODO:Implement build (RPC, requirement checks etc.)
 	var required []string
 	for _, option := range builderConfig.options {
 		// if unset, enforce requirement
@@ -310,6 +309,8 @@ func build() {
 		l.Error("[RPC] failed to build agent: %v", err)
 		return
 	}
+	// reset CA cert to default
+	builderConfig.request.Options["ca_cert"] = "***"
 	resp := buildResponse.Reply
 	if resp.Status == builderpb.Status_FailedWithMessage {
 		l.Error("build failed: %s", resp.Error)
@@ -332,7 +333,6 @@ func build() {
 		l.Error("failed to save build to %s: %v", out.Name(), err)
 		return
 	}
-	l.Success("build complete. saved to %s", out.Name())
 	// save to agents table
 	agent := &clientpb.Agent{
 		AgentId:   builderConfig.ID,
@@ -350,6 +350,7 @@ func build() {
 		l.Error("%v", err)
 		return
 	}
+	l.Success("build complete. saved to %s", out.Name())
 }
 
 // agentID generates an ID for an agent.
