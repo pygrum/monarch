@@ -1,5 +1,5 @@
 # Monarch
-### The Adversary Emulation Framework
+### The Adversary Emulation Toolkit
 
 Monarch is a C2 Framework designed to give implant developers the convenience of integrating with an existing 
 backend, so that more time can be spent creating cutting-edge features and enhancing overall efficiency. 
@@ -25,7 +25,7 @@ See the [docs](https://monarch.gitbook.io/monarch) to learn more about Monarch a
 - Cross-platform client
 - Install builders from Git repositories or local folders
 - Docker used to set up builder containers
-- HTTP / HTTPS callback handlers
+- HTTP / HTTPS / raw TCP+TLS callback handlers
 - Multiplayer and role-based access control
 - Easy 3rd party implant integration (documentation)
 - Client-server connections secured by mTLS
