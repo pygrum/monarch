@@ -120,6 +120,21 @@ func CertificateAuthority() (*x509.Certificate, *rsa.PrivateKey, error) {
 	return cert, key.(*rsa.PrivateKey), nil
 }
 
+func ServerTLSConfig() (*tls.Config, error) {
+	certPEM, keyPEM, err := ServerCertKeyPair()
+	if err != nil {
+		return nil, err
+	}
+	cert, err := tls.X509KeyPair(certPEM, keyPEM)
+	if err != nil {
+		return nil, err
+	}
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+	}
+	return tlsConfig, nil
+}
+
 func ClientTLSConfig(c *config.MonarchClientConfig) (*tls.Config, error) {
 	cert, err := tls.X509KeyPair(c.CertPEM, c.KeyPEM)
 	if err != nil {
@@ -134,6 +149,18 @@ func ClientTLSConfig(c *config.MonarchClientConfig) (*tls.Config, error) {
 		VerifyPeerCertificate: PeerCertificateVerifier(c.CaCertPEM),
 	}
 	return tlsConfig, nil
+}
+
+func ServerCertKeyPair() ([]byte, []byte, error) {
+	cert, err := os.ReadFile(config.MainConfig.CertFile)
+	if err != nil {
+		return nil, nil, err
+	}
+	key, err := os.ReadFile(config.MainConfig.KeyFile)
+	if err != nil {
+		return nil, nil, err
+	}
+	return cert, key, nil
 }
 
 // CaCertKeyPair returns pem encoded certificate and key for monarchCA
