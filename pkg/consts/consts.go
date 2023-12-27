@@ -5,7 +5,7 @@ const (
 	BuilderDockerfile = "builder/Dockerfile"
 
 	MonarchNet = "monarch-net"
-	Version    = "0.0.3" // track with container
+	Version    = "0.1.0" // track with container
 	ServerUser = "server"
 
 	CoopHelpGroup    = "Co-op / Multiplayer"
