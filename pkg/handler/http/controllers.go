@@ -169,7 +169,10 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 				})
 			}
 			return
-		case resp = <-session.RequestQueue.(*RequestQueue).channel:
+		case <-session.Killer:
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		case resp = <-session.RequestQueue.(*RequestQueue).Channel:
 			if resp != nil {
 				// Then someone queued request, so send it
 				b, err := json.Marshal(resp)

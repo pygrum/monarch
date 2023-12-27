@@ -40,7 +40,8 @@ type Handler struct {
 // RequestQueue holds up to queueCapacity responses for a callback.
 // If full, an error is raised.
 type RequestQueue struct {
-	channel chan *transport.GenericHTTPRequest
+	// expose for TCP
+	Channel chan *transport.GenericHTTPRequest
 }
 
 type ResponseQueue struct {
@@ -64,7 +65,7 @@ func ClientInitialize() {
 
 func (r *RequestQueue) Enqueue(req interface{}) error {
 	select {
-	case r.channel <- req.(*transport.GenericHTTPRequest):
+	case r.Channel <- req.(*transport.GenericHTTPRequest):
 		return nil
 	default:
 		return fmt.Errorf("queue is full - max capacity of %d\n", queueCapacity)
@@ -74,13 +75,13 @@ func (r *RequestQueue) Enqueue(req interface{}) error {
 func (r *RequestQueue) Dequeue() interface{} {
 	// Must block, as we wait for a request to queue
 	select {
-	case req := <-r.channel:
+	case req := <-r.Channel:
 		return req
 	}
 }
 
 func (r *RequestQueue) Size() int {
-	return len(r.channel)
+	return len(r.Channel)
 }
 
 func (r *ResponseQueue) Enqueue(req interface{}) error {
@@ -105,7 +106,7 @@ func (r *ResponseQueue) Size() int {
 }
 
 func NewRequestQueue() *RequestQueue {
-	return &RequestQueue{channel: make(chan *transport.GenericHTTPRequest, queueCapacity)}
+	return &RequestQueue{Channel: make(chan *transport.GenericHTTPRequest, queueCapacity)}
 }
 
 func NewResponseQueue() *ResponseQueue {

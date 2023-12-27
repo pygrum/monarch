@@ -203,6 +203,7 @@ type MonarchClient interface {
 	TcpOpen(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*Notification, error)
 	TcpClose(ctx context.Context, in *clientpb.Empty, opts ...grpc.CallOption) (*clientpb.Empty, error)
 	Sessions(ctx context.Context, in *clientpb.SessionsRequest, opts ...grpc.CallOption) (*clientpb.Sessions, error)
+	RmSession(ctx context.Context, in *clientpb.SessionsRequest, opts ...grpc.CallOption) (*clientpb.Empty, error)
 	LockSession(ctx context.Context, in *clientpb.LockSessionRequest, opts ...grpc.CallOption) (*clientpb.Empty, error)
 	FreeSession(ctx context.Context, in *clientpb.FreeSessionRequest, opts ...grpc.CallOption) (*clientpb.Empty, error)
 	Commands(ctx context.Context, in *builderpb.DescriptionsRequest, opts ...grpc.CallOption) (*builderpb.DescriptionsReply, error)
@@ -460,6 +461,15 @@ func (c *monarchClient) Sessions(ctx context.Context, in *clientpb.SessionsReque
 	return out, nil
 }
 
+func (c *monarchClient) RmSession(ctx context.Context, in *clientpb.SessionsRequest, opts ...grpc.CallOption) (*clientpb.Empty, error) {
+	out := new(clientpb.Empty)
+	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/RmSession", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *monarchClient) LockSession(ctx context.Context, in *clientpb.LockSessionRequest, opts ...grpc.CallOption) (*clientpb.Empty, error) {
 	out := new(clientpb.Empty)
 	err := c.cc.Invoke(ctx, "/rpcpb.Monarch/LockSession", in, out, opts...)
@@ -630,6 +640,7 @@ type MonarchServer interface {
 	TcpOpen(context.Context, *clientpb.Empty) (*Notification, error)
 	TcpClose(context.Context, *clientpb.Empty) (*clientpb.Empty, error)
 	Sessions(context.Context, *clientpb.SessionsRequest) (*clientpb.Sessions, error)
+	RmSession(context.Context, *clientpb.SessionsRequest) (*clientpb.Empty, error)
 	LockSession(context.Context, *clientpb.LockSessionRequest) (*clientpb.Empty, error)
 	FreeSession(context.Context, *clientpb.FreeSessionRequest) (*clientpb.Empty, error)
 	Commands(context.Context, *builderpb.DescriptionsRequest) (*builderpb.DescriptionsReply, error)
@@ -711,6 +722,9 @@ func (UnimplementedMonarchServer) TcpClose(context.Context, *clientpb.Empty) (*c
 }
 func (UnimplementedMonarchServer) Sessions(context.Context, *clientpb.SessionsRequest) (*clientpb.Sessions, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Sessions not implemented")
+}
+func (UnimplementedMonarchServer) RmSession(context.Context, *clientpb.SessionsRequest) (*clientpb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RmSession not implemented")
 }
 func (UnimplementedMonarchServer) LockSession(context.Context, *clientpb.LockSessionRequest) (*clientpb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method LockSession not implemented")
@@ -1142,6 +1156,24 @@ func _Monarch_Sessions_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Monarch_RmSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(clientpb.SessionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MonarchServer).RmSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpcpb.Monarch/RmSession",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MonarchServer).RmSession(ctx, req.(*clientpb.SessionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Monarch_LockSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(clientpb.LockSessionRequest)
 	if err := dec(in); err != nil {
@@ -1428,6 +1460,10 @@ var Monarch_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Sessions",
 			Handler:    _Monarch_Sessions_Handler,
+		},
+		{
+			MethodName: "RmSession",
+			Handler:    _Monarch_RmSession_Handler,
 		},
 		{
 			MethodName: "LockSession",

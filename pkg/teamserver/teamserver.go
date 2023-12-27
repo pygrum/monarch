@@ -533,6 +533,32 @@ func (s *MonarchServer) Sessions(_ context.Context, req *clientpb.SessionsReques
 	return pbSessions, nil
 }
 
+// RmSession allows admins (or users who own the associated agent) to explicitly kill a session
+func (s *MonarchServer) RmSession(ctx context.Context, r *clientpb.SessionsRequest) (*clientpb.Empty, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, ErrNoMetadata
+	}
+	player := md["uid"][0]
+	role := md["role"][0]
+	if len(r.IDs) == 0 {
+		return nil, errors.New("no ID specified")
+	}
+	for _, id := range r.IDs {
+		ss := http.MainHandler.SessionByID(int(id))
+		if ss == nil {
+			return nil, fmt.Errorf("no session with id %d found", id)
+		}
+		agent := ss.Agent
+		if agent.CreatedBy != player && roles.Role(role) != roles.RoleAdmin {
+			return nil, fmt.Errorf("you are not authorized to remove session %d", id)
+		}
+		close(ss.Killer)
+		http.MainHandler.RmSession(int(id))
+	}
+	return &clientpb.Empty{}, nil
+}
+
 func (s *MonarchServer) LockSession(ctx context.Context, r *clientpb.LockSessionRequest) (*clientpb.Empty, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {

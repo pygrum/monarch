@@ -37,6 +37,7 @@ type HTTPSession struct {
 	Status        SessionStatus
 	lock          sync.Mutex
 	Authenticated bool
+	Killer        chan struct{}
 	Info          transport.Registration
 	SentRequests  map[string]int
 	UsedBy        string
@@ -76,6 +77,7 @@ func (s *sessions) newSession(agent *db.Agent, isTCP bool, connectInfo *transpor
 		RequestQueue:  NewRequestQueue(),
 		ResponseQueue: NewResponseQueue(),
 		Agent:         agent,
+		Killer:        make(chan struct{}),
 		Info:          *connectInfo,
 		SentRequests:  make(map[string]int),
 	}

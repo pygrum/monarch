@@ -7,6 +7,23 @@ import (
 	"strconv"
 )
 
+func sessionsRmCmd(sessionIDs []string) {
+	var sessIDs = make([]int32, len(sessionIDs))
+	for i, id := range sessionIDs {
+		intID, err := strconv.Atoi(id)
+		if err != nil {
+			cLogger.Error("'%v' is not a valid session ID", id)
+			return
+		}
+		sessIDs[i] = int32(intID)
+	}
+	if _, err := console.Rpc.RmSession(ctx, &clientpb.SessionsRequest{IDs: sessIDs}); err != nil {
+		cLogger.Error("%v", err)
+		return
+	}
+	cLogger.Info("removed session(s) successfully")
+}
+
 func sessionsCmd(sessionIDs []string) {
 	var sessIDs = make([]int32, len(sessionIDs))
 	for i, id := range sessionIDs {

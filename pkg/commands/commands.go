@@ -201,7 +201,21 @@ func ConsoleCommands() []*grumble.Command {
 			return nil
 		},
 	}
-
+	cmdSessions.AddCommand(&grumble.Command{
+		Name:      "kill",
+		Help:      "kill a session",
+		HelpGroup: consts.GeneralHelpGroup,
+		Completer: func(prefix string, args []string) []string {
+			return completion.Sessions(prefix, ctx)
+		},
+		Args: func(a *grumble.Args) {
+			a.StringList("ids", "list of session ids")
+		},
+		Run: func(c *grumble.Context) error {
+			sessionsRmCmd(c.Args.StringList("ids"))
+			return nil
+		},
+	})
 	cmdUse := &grumble.Command{
 		Name:      "use",
 		Help:      "initiate an interactive session with an agent",

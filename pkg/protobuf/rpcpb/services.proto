@@ -61,6 +61,7 @@ service Monarch {
   rpc TcpClose(clientpb.Empty) returns (clientpb.Empty) {}
 
   rpc Sessions(clientpb.SessionsRequest) returns (clientpb.Sessions) {}
+  rpc RmSession(clientpb.SessionsRequest) returns (clientpb.Empty) {}
   rpc LockSession(clientpb.LockSessionRequest) returns (clientpb.Empty) {}
   rpc FreeSession(clientpb.FreeSessionRequest) returns (clientpb.Empty) {}
 

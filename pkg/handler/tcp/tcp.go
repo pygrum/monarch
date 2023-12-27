@@ -11,12 +11,12 @@ import (
 	mhttp "github.com/pygrum/monarch/pkg/handler/http"
 	"github.com/pygrum/monarch/pkg/log"
 	"github.com/pygrum/monarch/pkg/protobuf/rpcpb"
-	"github.com/pygrum/monarch/pkg/transport"
 	"github.com/pygrum/monarch/pkg/types"
 	"io"
 	"net"
 	"strconv"
 	"syscall"
+	"time"
 )
 
 var (
@@ -169,6 +169,8 @@ func (h *Handler) handleConn(conn net.Conn) {
 		conn.Close()
 		return
 	}
+	ss.LastActive = time.Now()
+	ss.Status = mhttp.StatusActive
 	c := &Conn{
 		sid:     id,
 		agent:   agent,
@@ -177,51 +179,61 @@ func (h *Handler) handleConn(conn net.Conn) {
 	h.sids[&conn] = c
 	for {
 		// blocking
-		req := ss.RequestQueue.Dequeue().(*transport.GenericHTTPRequest)
-		bytes, err := MarshalRequest(req)
-		if err != nil {
-			fl.Error("couldn't marshal request: %v", err)
-			continue
-		}
-		// send request
-		if _, err = conn.Write(bytes); err != nil {
-			if IsConnClosedError(err) {
-				delete(h.sids, &conn)
-				mhttp.MainHandler.RmSession(c.sid)
-				fl.Info(err.Error())
-				conn.Close()
-				return
+		select {
+		case <-ss.Killer:
+			// send close if killed deliberately
+			conn.Close()
+			return
+		case req := <-ss.RequestQueue.(*mhttp.RequestQueue).Channel:
+			bytes, err := MarshalRequest(req)
+			if err != nil {
+				fl.Error("couldn't marshal request: %v", err)
+				continue
 			}
-		}
-		// blocking
-		buf, err = h.readPacket(conn)
-		if err != nil {
-			if IsConnClosedError(err) {
-				uid, err := db.GetIDByUsername(ss.UsedBy)
-				if err == nil {
-					queue, ok := types.NotifQueues[uid]
-					if ok {
-						queue.Enqueue(&rpcpb.Notification{
-							LogLevel: rpcpb.LogLevel_LevelInfo,
-							Msg:      ErrConnClosed.Error(),
-						})
-					}
+			// send request
+			if _, err = conn.Write(bytes); err != nil {
+				if IsConnClosedError(err) {
+					delete(h.sids, &conn)
+					mhttp.MainHandler.RmSession(c.sid)
+					fl.Info(err.Error())
+					conn.Close()
+					return
 				}
-				// closure steps
-				delete(h.sids, &conn)
-				mhttp.MainHandler.RmSession(c.sid)
-				_ = conn.Close()
 			}
-			fl.Error("couldn't read response from remote (%s): %v", conn.RemoteAddr().String(), err)
-			continue
+			// inactive until we get a response
+			ss.Status = mhttp.StatusInactive
+			// blocking
+			buf, err = h.readPacket(conn)
+			if err != nil {
+				if IsConnClosedError(err) {
+					uid, err := db.GetIDByUsername(ss.UsedBy)
+					if err == nil {
+						queue, ok := types.NotifQueues[uid]
+						if ok {
+							queue.Enqueue(&rpcpb.Notification{
+								LogLevel: rpcpb.LogLevel_LevelInfo,
+								Msg:      ErrConnClosed.Error(),
+							})
+						}
+					}
+					// closure steps
+					delete(h.sids, &conn)
+					mhttp.MainHandler.RmSession(c.sid)
+					_ = conn.Close()
+				}
+				fl.Error("couldn't read response from remote (%s): %v", conn.RemoteAddr().String(), err)
+				continue
+			}
+			ss.Status = mhttp.StatusActive
+			ss.LastActive = time.Now()
+			r, err := ParseResponse(buf)
+			if err != nil {
+				fl.Error("couldn't parse response from remote: (%s): %v", conn.RemoteAddr().String(), err)
+				continue
+			}
+			// queue for operator
+			_ = ss.ResponseQueue.Enqueue(r)
 		}
-		r, err := ParseResponse(buf)
-		if err != nil {
-			fl.Error("couldn't parse response from remote: (%s): %v", conn.RemoteAddr().String(), err)
-			continue
-		}
-		// queue for operator
-		_ = ss.ResponseQueue.Enqueue(r)
 	}
 }
 
