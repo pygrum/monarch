@@ -11,10 +11,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            sources:
+              - 'pkg/**'
+              - 'cmd/**'
+              - 'scripts/**'
       - uses: actions/setup-go@v4
+        if: steps.filter.outputs.sources == 'true'
         with:
           go-version: 1.21
       - name: Build all Monarch clients
+        if: steps.filter.outputs.sources == 'true'
         run: make linux macos windows
 
   build-test-monarch:
@@ -26,19 +36,32 @@ jobs:
           - "./scripts/docker-install-monarch.sh"
     steps:
       - uses: actions/checkout@v3
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            sources:
+              - 'pkg/**'
+              - 'cmd/**'
+              - 'scripts/**'
+              - 'docker/monarch/**'
       - uses: actions/setup-go@v4
         with:
           go-version: 1.21
 
       - name: Install Monarch
+        if: steps.filter.outputs.sources == 'true'
         continue-on-error: false
         run: bash ${{ matrix.install_script }}
 
       - name: Setup Monarch Container
+        if: steps.filter.outputs.sources == 'true'
         continue-on-error: false
         run: docker build -t monarch -f docker/builder/Dockerfile .
 
       - name: Run Monarch tests
+        if: steps.filter.outputs.sources == 'true'
         run: go test ./...
       - name: Cleanup
+        if: steps.filter.outputs.sources == 'true'
         run: bash ./scripts/uninstall-monarch.sh
