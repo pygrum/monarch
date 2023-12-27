@@ -54,6 +54,7 @@ docker run -dit --network ${MONARCH_NET} --ip 172.20.0.3 -e "MYSQL_ROOT_PASSWORD
   -e "MYSQL_DATABASE=monarch" --restart unless-stopped --name monarch-sql mysql:latest
 
 cp ../configs/monarch.yaml "${MONARCH_PATH}"
+cp ../configs/monarch_http.json "${MONARCH_PATH}"
 
 echo "generating self-signed CA certificate ca-cert.pem ca-key.pem"
 

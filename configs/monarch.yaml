@@ -13,9 +13,8 @@ httpsport: 4433
 multiplayerport: 1337
 tcpport: 8888
 
-loginendpoint: /login # default endpoint for registering agents
-mainendpoint: / # default endpoint for interacting with agents
-stageendpoint: /index/{file} # default endpoint for staging agents (secondary payload)
+# configuration for HTTP(S) c2 endpoints
+httpconfig: monarch_http.json
 
 session_timeout_minutes: 60 # time until re-registration
 
