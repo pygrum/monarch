@@ -7,6 +7,16 @@ on:
     branches:
       - main
 jobs:
+  build-all-monarch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: 1.21
+      - name: Build all Monarch clients
+        run: make linux macos windows
+
   build-test-monarch:
     runs-on: ubuntu-latest
     strategy:
