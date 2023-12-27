@@ -157,15 +157,9 @@ func ConsoleCommands() []*grumble.Command {
 		Name:      "agents",
 		Help:      "list compiled agents",
 		HelpGroup: consts.GeneralHelpGroup,
-		Args: func(a *grumble.Args) {
-			a.StringList("agents", "list of compiled agents")
-		},
 		Run: func(c *grumble.Context) error {
-			agentsCmd(c.Args.StringList("agents"))
+			agentsCmd()
 			return nil
-		},
-		Completer: func(prefix string, args []string) []string {
-			return completion.Agents(prefix, ctx)
 		},
 	}
 
@@ -337,8 +331,13 @@ func ConsoleCommands() []*grumble.Command {
 
 	cmdStage := &grumble.Command{
 		Name:      "stage",
-		Help:      "stage an agent on the configured staging endpoint, or view currently staged agents",
+		Help:      "use to manage agents on the configured stage listener(s)",
 		HelpGroup: consts.GeneralHelpGroup,
+	}
+
+	cmdStage.AddCommand(&grumble.Command{
+		Name: "add",
+		Help: "stage an existing agent",
 		Args: func(a *grumble.Args) {
 			a.String("agent", "the name of the agent to stage", grumble.Default(""))
 		},
@@ -346,17 +345,26 @@ func ConsoleCommands() []*grumble.Command {
 			f.StringL("as", "", "the file to stage your agent as (e.g. index.php)")
 		},
 		Run: func(c *grumble.Context) error {
-			stageCmd(c.Args.String("agent"), c.Flags.String("as"))
+			stageAddCmd(c.Args.String("agent"), c.Flags.String("as"))
 			return nil
 		},
 		Completer: func(prefix string, args []string) []string {
 			return completion.Agents(prefix, ctx)
 		},
-	}
+	})
+
+	cmdStage.AddCommand(&grumble.Command{
+		Name: "view",
+		Help: "view all currently staged agents",
+		Run: func(c *grumble.Context) error {
+			stageViewCmd()
+			return nil
+		},
+	})
 
 	cmdStage.AddCommand(&grumble.Command{
 		Name: "local",
-		Help: "stage a file on disk on an endpoint",
+		Help: "stage a file on disk",
 		Args: func(a *grumble.Args) {
 			a.String("file", "name of file to stage")
 		},
@@ -372,8 +380,8 @@ func ConsoleCommands() []*grumble.Command {
 		},
 	})
 
-	cmdUnstage := &grumble.Command{
-		Name:      "unstage",
+	cmdStage.AddCommand(&grumble.Command{
+		Name:      "rm",
 		Help:      "unstage a staged agent, by specifying its stage alias (e.g. index.php)",
 		HelpGroup: consts.GeneralHelpGroup,
 		Args: func(a *grumble.Args) {
@@ -386,7 +394,7 @@ func ConsoleCommands() []*grumble.Command {
 		Completer: func(prefix string, args []string) []string {
 			return completion.UnStage(prefix, ctx)
 		},
-	}
+	})
 
 	cmdPlayers = &grumble.Command{
 		Name: "players",
@@ -422,7 +430,7 @@ func ConsoleCommands() []*grumble.Command {
 	}
 
 	root = append(root, cmdSessions, cmdUse, cmdHttp, cmdHttps, cmdTcp,
-		cmdAgents, cmdBuilders, cmdBuild, cmdInstall, cmdUninstall, cmdStage, cmdUnstage, cmdVersion, cmdPlayers, cmdSend)
+		cmdAgents, cmdBuilders, cmdBuild, cmdInstall, cmdUninstall, cmdStage, cmdVersion, cmdPlayers, cmdSend)
 	return root
 }
 

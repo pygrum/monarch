@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/pygrum/monarch/pkg/config"
 	"github.com/pygrum/monarch/pkg/log"
 	"github.com/pygrum/monarch/pkg/protobuf/rpcpb"
 	"github.com/pygrum/monarch/pkg/types"
@@ -25,8 +26,9 @@ const (
 	cookieName = "token"
 )
 
-// http://host:port/index/{file}
-func stageHandler(w http.ResponseWriter, r *http.Request) {
+// e.g. http://host:port/index/{file}
+func (s *sessions) stageHandler(w http.ResponseWriter, r *http.Request) {
+	setDefaultHeaders(config.C2Config.StageEndpoint, w)
 	w.WriteHeader(http.StatusOK)
 	params := mux.Vars(r)
 	file, ok := params["file"]
@@ -40,8 +42,8 @@ func stageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// http://host:port/login
 func (s *sessions) loginHandler(w http.ResponseWriter, r *http.Request) {
+	setDefaultHeaders(config.C2Config.LoginEndpoint, w)
 	connectInfo := &transport.Registration{}
 	defer r.Body.Close()
 	connectInfoBytes, err := io.ReadAll(r.Body)
@@ -80,8 +82,8 @@ func (s *sessions) loginHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// http://host:port/
 func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
+	setDefaultHeaders(config.C2Config.MainEndpoint, w)
 	var sessionID int
 	c, err := r.Cookie(cookieName)
 	if err != nil || c == nil {
@@ -230,6 +232,12 @@ func loggingMiddleware(next http.Handler) http.Handler {
 			r.Method, r.URL.String(), r.ContentLength)
 		next.ServeHTTP(w, r)
 	})
+}
+
+func setDefaultHeaders(cfg *config.EndpointConfig, w http.ResponseWriter) {
+	for k, v := range cfg.Headers {
+		w.Header().Set(k, v)
+	}
 }
 
 func ShortID(uuid string) string {

@@ -1,0 +1,51 @@
+{
+  "login_endpoint": {
+    "paths": [
+      {
+        "path": "/login",
+        "methods": [
+          "POST"
+        ]
+      }
+    ],
+    "headers": {
+      "content-type": "text/html; charset=UTF-8",
+      "cache-control": "max-age=0, no-cache, no-store"
+    }
+  },
+  "stage_endpoint": {
+    "paths": [
+      {
+        "path": "/index/{file}",
+        "methods": [
+          "GET"
+        ]
+      },
+      {
+        "path": "/{file}",
+        "methods": [
+          "GET"
+        ]
+      }
+    ],
+    "headers": {
+      "content-type": "text/html; charset=UTF-8",
+      "cache-control": "max-age=0, no-cache, no-store"
+    }
+  },
+  "main_endpoint": {
+    "paths": [
+      {
+        "path": "/",
+        "methods": [
+          "GET",
+          "POST"
+        ]
+      }
+    ],
+    "headers": {
+      "content-type": "text/html; charset=UTF-8",
+      "cache-control": "max-age=0, no-cache, no-store"
+    }
+  }
+}

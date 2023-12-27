@@ -10,25 +10,27 @@ import (
 	"strings"
 )
 
-func stageCmd(agent string, as string) {
-	if len(agent) == 0 {
-		s, err := console.Rpc.StageView(ctx, &clientpb.Empty{})
-		if err != nil {
-			cLogger.Error("%v", err)
-			return
-		}
-		stagefmt := "%s (%s)\tstaged as %s\t"
-		if len(s.Stage) == 0 {
-			cLogger.Info("nothing staged")
-			return
-		}
-		for k, v := range s.Stage {
-			_, _ = fmt.Fprintln(w, fmt.Sprintf(stagefmt, v.Path, v.Agent,
-				strings.ReplaceAll(s.Endpoint, "{file}", k)))
-		}
-		w.Flush()
+func stageViewCmd() {
+	s, err := console.Rpc.StageView(ctx, &clientpb.Empty{})
+	if err != nil {
+		cLogger.Error("%v", err)
 		return
 	}
+	stagefmt := "%s (%s)\tstaged as \n%s\t"
+	if len(s.Stage) == 0 {
+		cLogger.Info("nothing staged")
+		return
+	}
+	fmt.Printf("\n=====\n")
+	for k, v := range s.Stage {
+		_, _ = fmt.Fprintln(w, fmt.Sprintf(stagefmt, v.Path, v.Agent,
+			strings.ReplaceAll(s.Endpoint, "{file}", k)))
+	}
+	w.Flush()
+	fmt.Printf("=====\n\n")
+}
+
+func stageAddCmd(agent string, as string) {
 	notif, err := console.Rpc.StageAdd(ctx, &clientpb.StageAddRequest{Agent: agent, Alias: as})
 	if err != nil {
 		cLogger.Error("%v", err)

@@ -194,19 +194,9 @@ func NewHandler() *Handler {
 	}
 	router := mux.NewRouter()
 	sRouter := mux.NewRouter()
-	mEp := config.MainConfig.MainEndpoint
-	lEp := config.MainConfig.LoginEndpoint
-	sEp := config.MainConfig.StageEndpoint
-	router.HandleFunc(lEp, ssns.loginHandler)
-	router.HandleFunc(sEp, stageHandler)
-	// Handles all requests
-	router.PathPrefix(mEp).HandlerFunc(ssns.defaultHandler)
-	router.Use(loggingMiddleware)
 
-	sRouter.HandleFunc(lEp, ssns.loginHandler)
-	sRouter.HandleFunc(sEp, stageHandler)
-	sRouter.PathPrefix(mEp).HandlerFunc(ssns.defaultHandler)
-	sRouter.Use(loggingMiddleware)
+	h.setupRouter(router)
+	h.setupRouter(sRouter)
 
 	h.httpServer = &http.Server{
 		Handler: router,
@@ -222,6 +212,19 @@ func NewHandler() *Handler {
 		Addr:      net.JoinHostPort(config.MainConfig.Interface, strconv.Itoa(config.MainConfig.HttpsPort)),
 	}
 	return h
+}
+
+func (h *Handler) setupRouter(router *mux.Router) {
+	for _, path := range config.C2Config.LoginEndpoint.Paths {
+		router.HandleFunc(path.Path, h.sessions.loginHandler).Methods(path.Methods...)
+	}
+	for _, path := range config.C2Config.StageEndpoint.Paths {
+		router.HandleFunc(path.Path, h.sessions.stageHandler).Methods(path.Methods...)
+	}
+	for _, path := range config.C2Config.MainEndpoint.Paths {
+		router.PathPrefix(path.Path).HandlerFunc(h.sessions.defaultHandler).Methods(path.Methods...)
+	}
+	router.Use(loggingMiddleware)
 }
 
 func (h *Handler) Serve() {
