@@ -1,8 +1,8 @@
 package tcp
 
 import (
+	"bytes"
 	"crypto/tls"
-	"encoding/binary"
 	"errors"
 	"flag"
 	"github.com/pygrum/monarch/pkg/config"
@@ -14,6 +14,7 @@ import (
 	"github.com/pygrum/monarch/pkg/types"
 	"io"
 	"net"
+	"os"
 	"strconv"
 	"syscall"
 	"time"
@@ -101,7 +102,7 @@ func (h *Handler) Serve() {
 		return
 	}
 	h.ln = ln
-
+	h.shutdown = make(chan struct{})
 	go h.Handle()
 	go h.Accept()
 }
@@ -203,7 +204,7 @@ func (h *Handler) handleConn(conn net.Conn) {
 			// inactive until we get a response
 			ss.Status = mhttp.StatusInactive
 			// blocking
-			buf, err = h.readPacket(conn)
+			buf, err := h.readPacket(conn)
 			if err != nil {
 				if IsConnClosedError(err) {
 					uid, err := db.GetIDByUsername(ss.UsedBy)
@@ -250,12 +251,36 @@ func (h *Handler) readPacket(conn net.Conn) ([]byte, error) {
 		}
 		return nil, err
 	}
-	size := uint(binary.BigEndian.Uint32(s))
-	buf := make([]byte, size)
-	if _, err := conn.Read(buf); err != nil {
-		return nil, err
+	//size := binary.BigEndian.Uint32(s)
+	length := 0
+	var b bytes.Buffer
+	tmp := make([]byte, 1024)
+	for {
+		if config.MainConfig.TcpDeadline < 0 {
+			// reset to default if invalid
+			config.MainConfig.LogLevel = 20
+		}
+		// assume all data is lined up for reading, hence the tiny deadline
+		_ = conn.SetReadDeadline(time.Now().Add(time.Duration(config.MainConfig.TcpDeadline) * time.Millisecond))
+		// read to the tmp var
+		n, err := conn.Read(tmp)
+		if err != nil {
+			// log if not normal error
+			if err != io.EOF && !errors.Is(err, os.ErrDeadlineExceeded) {
+				fl.Error("Read error while reading from %s - %s\n", conn.RemoteAddr().String(), err)
+			}
+			break
+		}
+		fl.Info("read chunk of size %d", n)
+		// append read data to full data
+		b.Write(tmp[:n])
+		// update total read var
+		length += n
 	}
-	return buf, nil
+	// reset deadline
+	_ = conn.SetReadDeadline(time.Time{})
+	fl.Info("read %d bytes from %s", length, conn.RemoteAddr().String())
+	return b.Bytes(), nil
 }
 
 func IsConnClosedError(err error) bool {
