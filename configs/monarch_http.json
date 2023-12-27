@@ -22,7 +22,7 @@
         ]
       },
       {
-        "path": "/{file}",
+        "path": "/home/{file}",
         "methods": [
           "GET"
         ]
