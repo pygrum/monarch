@@ -10,8 +10,8 @@ import (
 	"strings"
 )
 
-func profilesCmd(names []string) {
-	profiles, err := console.Rpc.Profiles(ctx, &clientpb.ProfileRequest{Name: names, BuilderId: builderConfig.builderID})
+func profilesCmd() {
+	profiles, err := console.Rpc.Profiles(ctx, &clientpb.ProfileRequest{BuilderId: builderConfig.builderID})
 	if err != nil {
 		cLogger.Error("%v", err.Error())
 		return
@@ -63,24 +63,15 @@ func profilesRmCmd(names []string) {
 
 func cobraProfilesCmd() *grumble.Command {
 	cmd := &grumble.Command{
-		Name: "profiles",
-		Help: "list all created profiles",
-		Args: func(a *grumble.Args) {
-			a.StringList("names", "names of created profiles")
-		},
+		Name:      "profiles",
+		Help:      "list all created profiles",
 		HelpGroup: consts.BuildHelpGroup,
 		Run: func(c *grumble.Context) error {
 			if err := buildCheck(); err != nil {
 				return err
 			}
-			profilesCmd(c.Args.StringList("names"))
+			profilesCmd()
 			return nil
-		},
-		Completer: func(prefix string, args []string) []string {
-			if err := buildCheck(); err != nil {
-				return nil
-			}
-			return completion.Profiles(ctx, prefix, builderConfig.builderID)
 		},
 	}
 

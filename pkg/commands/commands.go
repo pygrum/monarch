@@ -184,14 +184,8 @@ func ConsoleCommands() []*grumble.Command {
 		Name:      "sessions",
 		Help:      "list established agent connections",
 		HelpGroup: consts.GeneralHelpGroup,
-		Completer: func(prefix string, args []string) []string {
-			return completion.Sessions(prefix, ctx)
-		},
-		Args: func(a *grumble.Args) {
-			a.StringList("ids", "list of session ids")
-		},
 		Run: func(c *grumble.Context) error {
-			sessionsCmd(c.Args.StringList("ids"))
+			sessionsCmd()
 			return nil
 		},
 	}

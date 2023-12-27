@@ -124,6 +124,7 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	session.LastActive = time.Now()
 	session.Status = StatusActive
 	// Refresh token if there's less than 2.5 minutes until expiry
 	if claims.ExpiresAt.Sub(time.Now()) < (150 * time.Second) {
@@ -139,29 +140,30 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 			http.SetCookie(w, c)
 		}
 	}
-	// session is authenticated if JWT has been validated
-	if !session.Authenticated {
-		session.Authenticated = true
-		session.Status = StatusActive
-		session.LastActive = time.Now()
+	// session.Authenticated is redundant
+	//// session is authenticated if JWT has been validated
+	//if !session.Authenticated {
+	//	session.Authenticated = true
+	//	session.Status = StatusActive
+	//	session.LastActive = time.Now()
+	//} else {
+	//	if r.Body == http.NoBody {
+	//		fl.Error("received empty body during authenticated session")
+	//		w.WriteHeader(http.StatusOK)
+	//		return
+	//	}
+	if err = json.NewDecoder(r.Body).Decode(response); err != nil {
+		// do nothing if empty
+		if err != io.EOF {
+			fl.Error("received malformed response body from agent %s", session.Agent.AgentID)
+			return
+		}
 	} else {
-		if r.Body == http.NoBody {
-			fl.Error("received empty body during authenticated session")
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		if err = json.NewDecoder(r.Body).Decode(response); err != nil {
-			fl.Error("failed to parse response from %s: %v", r.RemoteAddr, err)
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		// Queue the message as a response since this is not the first authenticated message
 		_ = s.sessionMap[sessionID].ResponseQueue.Enqueue(response)
 	}
 	for {
 		select {
 		case <-r.Context().Done():
-			session.Status = StatusKilled
 			agent := session.Agent
 			queue, ok := types.NotifQueues[agent.CreatedBy]
 			if ok {
@@ -170,6 +172,7 @@ func (s *sessions) defaultHandler(w http.ResponseWriter, r *http.Request) {
 					Msg:      fmt.Sprintf("session %d (%s) died unexpectedly", session.ID, session.Agent.Name),
 				})
 			}
+			MainHandler.RmSession(sessionID)
 			return
 		case <-session.Killer:
 			w.WriteHeader(http.StatusServiceUnavailable)

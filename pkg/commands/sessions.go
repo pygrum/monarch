@@ -24,17 +24,9 @@ func sessionsRmCmd(sessionIDs []string) {
 	cLogger.Info("removed session(s) successfully")
 }
 
-func sessionsCmd(sessionIDs []string) {
-	var sessIDs = make([]int32, len(sessionIDs))
-	for i, id := range sessionIDs {
-		intID, err := strconv.Atoi(id)
-		if err != nil {
-			cLogger.Error("'%v' is not a valid session ID", id)
-			return
-		}
-		sessIDs[i] = int32(intID)
-	}
-	sessions, err := console.Rpc.Sessions(ctx, &clientpb.SessionsRequest{IDs: sessIDs})
+func sessionsCmd() {
+	// no longer list specific sessions, send empty request
+	sessions, err := console.Rpc.Sessions(ctx, &clientpb.SessionsRequest{})
 	if err != nil {
 		cLogger.Error("%v", err)
 		return
