@@ -60,18 +60,21 @@ func (s *sessions) newSession(agent *db.Agent, isTCP bool, connectInfo *transpor
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	id := s.count
-	// check if session with given agent exists anywhere
-	for i, sess := range s.sortedSessions {
-		if agent.AgentID == sess.Agent.AgentID {
-			if !isTCP {
-				if !sess.Authenticated {
-					return "", time.Time{}, 0, fmt.Errorf("agent %s was not previously authenticated", agent.AgentID)
-				}
-			}
-			delete(s.sessionMap, sess.ID) // remove session from map
-			s.sortedSessions = append(s.sortedSessions[:i], s.sortedSessions[i+1:]...)
-		}
-	}
+	// Don't check for existing session before connect anymore = people can spam the server with new sessions
+	// To stop spamming, delete the agent that is being used.
+
+	//// check if session with given agent exists anywhere
+	//for i, sess := range s.sortedSessions {
+	//	if agent.AgentID == sess.Agent.AgentID {
+	//		if !isTCP {
+	//			if !sess.Authenticated {
+	//				return "", time.Time{}, 0, fmt.Errorf("agent %s was not previously authenticated", agent.AgentID)
+	//			}
+	//		}
+	//		delete(s.sessionMap, sess.ID) // remove session from map
+	//		s.sortedSessions = append(s.sortedSessions[:i], s.sortedSessions[i+1:]...)
+	//	}
+	//}
 	newSession := &HTTPSession{
 		ID:            id,
 		RequestQueue:  NewRequestQueue(),
