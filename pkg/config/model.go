@@ -21,6 +21,9 @@ type MonarchConfig struct {
 	MultiplayerPort int
 	// Port to use for the Monarch TCP listener.
 	TcpPort int
+	// the deadline for socket reads in milliseconds.
+	// This must be set as data sent through sockets is received in chunks
+	TcpDeadline int
 	// A customisable configuration file for each HTTP endpoint
 	HttpConfig string
 	// The folder where agent and c2 repositories are installed to.

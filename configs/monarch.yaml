@@ -12,6 +12,8 @@ httpport: 8000
 httpsport: 4433
 multiplayerport: 1337
 tcpport: 8888
+# the deadline for socket reads in milliseconds. This must be set as data sent through sockets is received in chunks
+tcpdeadline: 20
 
 # configuration for HTTP(S) c2 endpoints
 httpconfig: monarch_http.json
