@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/pygrum/monarch/pkg/handler/tcp"
@@ -643,7 +644,7 @@ func (s *MonarchServer) Send(_ context.Context, req *clientpb.HTTPRequest) (*cli
 
 func (s *MonarchServer) StageView(context.Context, *clientpb.Empty) (*clientpb.Stage, error) {
 	stage := &clientpb.Stage{
-		Endpoint: config.MainConfig.StageEndpoint,
+		Endpoint: allPaths(),
 		Stage:    make(map[string]*clientpb.StageItem),
 	}
 	for k, v := range *http.Stage.View() {
@@ -678,12 +679,20 @@ func (s *MonarchServer) StageAdd(ctx context.Context, r *clientpb.StageAddReques
 	return &rpcpb.Notification{
 		LogLevel: rpcpb.LogLevel_LevelInfo,
 		Msg: fmt.Sprintf(
-			"staged %s on %s",
+			"staged %s on \n%s",
 			agent.File,
-			strings.ReplaceAll(config.MainConfig.StageEndpoint, "{file}", r.Alias)),
+			strings.ReplaceAll(allPaths(), "{file}", r.Alias)),
 	}, nil
 }
 
+func allPaths() string {
+	var ap []string
+	for _, p := range config.C2Config.StageEndpoint.Paths {
+		ap = append(ap, p.Path)
+	}
+	b, _ := json.MarshalIndent(ap, "", "    ")
+	return string(b)
+}
 func (s *MonarchServer) StageLocal(ctx context.Context, r *clientpb.StageLocalRequest) (*rpcpb.Notification, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
@@ -704,9 +713,9 @@ func (s *MonarchServer) StageLocal(ctx context.Context, r *clientpb.StageLocalRe
 	return &rpcpb.Notification{
 		LogLevel: rpcpb.LogLevel_LevelInfo,
 		Msg: fmt.Sprintf(
-			"staged %s on %s",
+			"staged %s on \n%s",
 			filepath.Base(r.Filename),
-			strings.ReplaceAll(config.MainConfig.StageEndpoint, "{file}", r.Alias)),
+			strings.ReplaceAll(allPaths(), "{file}", r.Alias)),
 	}, nil
 }
 

@@ -7,8 +7,8 @@ import (
 )
 
 // agentsCmd lists compiled agents
-func agentsCmd(names []string) {
-	agents, err := console.Rpc.Agents(ctx, &clientpb.AgentRequest{AgentId: names})
+func agentsCmd() {
+	agents, err := console.Rpc.Agents(ctx, &clientpb.AgentRequest{})
 	if err != nil {
 		cLogger.Error("failed to get agents: %v", err)
 		return

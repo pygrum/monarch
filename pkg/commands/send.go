@@ -8,7 +8,7 @@ import (
 func sendCmd(to, msg string, all bool) {
 	if len(to) == 0 {
 		if !all {
-			cLogger.Error("player not specified with -to, please specify a player name or --all")
+			cLogger.Error("player not specified with --to, please specify a player name or --all if admin")
 			return
 		}
 	}
