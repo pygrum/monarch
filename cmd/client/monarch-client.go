@@ -27,7 +27,7 @@ func init() {
 			if err := config.JsonConfig(configPath, &config.ClientConfig); err != nil {
 				if os.IsNotExist(err) {
 					fmt.Println("\n[!] no configuration file was found")
-					fmt.Println("[+] make sure that you have imported a client configuration with the `import` command\n")
+					fmt.Printf("[+] make sure that you have imported a client configuration with the `import` command\n\n")
 					os.Exit(1)
 				}
 				fmt.Println("couldn't load configuration file:", err)
