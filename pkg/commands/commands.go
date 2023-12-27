@@ -393,15 +393,9 @@ func ConsoleCommands() []*grumble.Command {
 	cmdPlayers = &grumble.Command{
 		Name: "players",
 		Help: "list registered players",
-		Args: func(a *grumble.Args) {
-			a.StringList("usernames", "player usernames")
-		},
 		Run: func(c *grumble.Context) error {
-			playersCmd(c.Args.StringList("usernames"))
+			playersCmd()
 			return nil
-		},
-		Completer: func(prefix string, args []string) []string {
-			return completion.Players(prefix, ctx)
 		},
 		HelpGroup: consts.CoopHelpGroup,
 	}

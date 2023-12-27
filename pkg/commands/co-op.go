@@ -34,8 +34,8 @@ func coopCmd(stop bool) {
 	cLogger.Info("co-op mode activated (%s:%d)", config.MainConfig.Interface, config.MainConfig.MultiplayerPort)
 }
 
-func playersCmd(names []string) {
-	players, err := console.Rpc.Players(ctx, &clientpb.PlayerRequest{Names: names})
+func playersCmd() {
+	players, err := console.Rpc.Players(ctx, &clientpb.PlayerRequest{})
 	if err != nil {
 		cLogger.Error("%v", err)
 		return
