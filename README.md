@@ -26,6 +26,7 @@ See the [docs](https://monarch.gitbook.io/monarch) to learn more about Monarch a
 - Install builders from Git repositories or local folders
 - Docker used to set up builder containers
 - HTTP / HTTPS / raw TCP+TLS callback handlers
+- Malleable HTTP-based endpoints
 - Multiplayer and role-based access control
 - Easy 3rd party implant integration (documentation)
 - Client-server connections secured by mTLS
