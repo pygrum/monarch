@@ -13,16 +13,15 @@ func agentsCmd() {
 		cLogger.Error("failed to get agents: %v", err)
 		return
 	}
-	header := "ID\tNAME\tVERSION\tPLATFORM\tBUILDER\tFILE\tCREATED AT\t"
+	header := "ID\tNAME\tVERSION\tPLATFORM\tBUILDER\tCREATED AT\t"
 	_, _ = fmt.Fprintln(w, header)
 	for _, agent := range agents.Agents {
-		line := fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t",
+		line := fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t",
 			agent.AgentId,
 			agent.Name,
 			agent.Version,
 			agent.OS+"/"+agent.Arch,
 			agent.Builder,
-			agent.File,
 			agent.CreatedAt,
 		)
 		_, _ = fmt.Fprintln(w, line)

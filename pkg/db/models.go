@@ -34,6 +34,7 @@ type Agent struct {
 	File      string // binary file associated with agent
 	CreatedBy string // TODO:use this field for notifications and whatnot
 	CreatedAt time.Time
+	AgentInfo string
 }
 
 // Profile is used to save build configurations

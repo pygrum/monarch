@@ -54,6 +54,7 @@ message Agent {
   string file = 9;
   string created_at = 10;
   string created_by = 11;
+  string agent_info = 12;
 }
 
 message Agents {
