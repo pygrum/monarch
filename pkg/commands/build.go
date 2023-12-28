@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/base64"
@@ -23,6 +24,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"text/tabwriter"
 	"time"
 )
 
@@ -333,6 +335,7 @@ func build() {
 		l.Error("failed to save build to %s: %v", out.Name(), err)
 		return
 	}
+	compileOptions := gatherOptions()
 	// save to agents table
 	agent := &clientpb.Agent{
 		AgentId:   builderConfig.ID,
@@ -345,6 +348,7 @@ func build() {
 		Builder:   builderConfig.builderID,
 		File:      buildResponse.ServerFile,
 		CreatedBy: config.ClientConfig.UUID,
+		AgentInfo: compileOptions,
 	}
 	if _, err = console.Rpc.NewAgent(ctx, agent); err != nil {
 		l.Error("%v", err)
@@ -358,6 +362,25 @@ func agentID() string {
 	idBytes := make([]byte, 8) // 16l
 	_, _ = rand.Read(idBytes)
 	return hex.EncodeToString(idBytes)
+}
+
+func gatherOptions() string {
+	var b bytes.Buffer
+	infoWriter := tabwriter.NewWriter(&b, 1, 1, 2, ' ', 0)
+
+	h1, h2 := "BUILD OPTION", "VALUE"
+	format := "%s\t%s\t"
+	header := fmt.Sprintf(format, h1, h2)
+	underline := fmt.Sprintf(format, strings.Repeat("=", len(h1)), strings.Repeat("=", len(h2)))
+
+	_, _ = fmt.Fprintln(infoWriter, header)
+	_, _ = fmt.Fprintln(infoWriter, underline)
+	for _, o := range allOptions() {
+		line := fmt.Sprintf(format, o, builderConfig.request.Options[o])
+		_, _ = fmt.Fprintln(infoWriter, line)
+	}
+	_ = infoWriter.Flush()
+	return b.String()
 }
 
 func allOptions() []string {

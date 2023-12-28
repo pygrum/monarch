@@ -163,6 +163,25 @@ func ConsoleCommands() []*grumble.Command {
 		},
 	}
 
+	cmdAgentInfo := &grumble.Command{
+		Name:      "info",
+		Help:      "get general and build information about an agent",
+		HelpGroup: consts.GeneralHelpGroup,
+		Args: func(a *grumble.Args) {
+			a.String("agent", "the agent to inspect")
+		},
+		Flags: func(f *grumble.Flags) {
+			f.Bool("b", "build", false, "show the options and values the agent was built with")
+		},
+		Completer: func(prefix string, args []string) []string {
+			return completion.Agents(prefix, ctx)
+		},
+		Run: func(c *grumble.Context) error {
+			agentInfoCmd(c.Args.String("agent"), c.Flags.Bool("build"))
+			return nil
+		},
+	}
+
 	cmdAgentsRm := &grumble.Command{
 		Name:      "rm",
 		Help:      "remove compiled agents from listing",
@@ -179,6 +198,7 @@ func ConsoleCommands() []*grumble.Command {
 		},
 	}
 	cmdAgents.AddCommand(cmdAgentsRm)
+	cmdAgents.AddCommand(cmdAgentInfo)
 
 	cmdSessions := &grumble.Command{
 		Name:      "sessions",

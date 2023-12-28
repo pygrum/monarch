@@ -109,6 +109,7 @@ func (s *MonarchServer) Agents(_ context.Context, req *clientpb.AgentRequest) (*
 			Builder:   a.Builder,
 			File:      a.File,
 			CreatedAt: a.CreatedAt.Format(time.RFC850),
+			AgentInfo: a.AgentInfo,
 		})
 	}
 	return pbAgents, nil
@@ -133,6 +134,7 @@ func (s *MonarchServer) NewAgent(_ context.Context, agent *clientpb.Agent) (*cli
 		Builder:   agent.Builder,
 		File:      agent.File,
 		CreatedBy: agent.CreatedBy,
+		AgentInfo: agent.AgentInfo,
 	}
 	if err := db.Create(a); err != nil {
 		return nil, fmt.Errorf("failed to save agent instance: %v", err)
