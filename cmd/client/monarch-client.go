@@ -57,7 +57,7 @@ func init() {
 			if err = os.WriteFile(configPath, data, 0600); err != nil {
 				logrus.Fatalf("import failed: %v", err)
 			}
-			fmt.Println("successfully imported", args[0])
+			fmt.Println("\n[+] successfully imported\n", args[0])
 		},
 	}
 
