@@ -31,7 +31,7 @@ import (
 var (
 	l             log.Logger
 	internals     = []string{"id", "ca_cert"}
-	ValidTypes    = []string{"bool", "int", "string", "float"}
+	ValidTypes    = []string{consts.OpTypeBool, consts.OpTypeInt, consts.OpTypeString, consts.OpTypeFloat}
 	builderConfig *BuilderConfig
 )
 
@@ -82,27 +82,28 @@ func defaultOptions() []*builderpb.Option {
 		Name:        "id",
 		Description: "[internal] the agent ID assigned to the build (immutable)",
 		Default:     builderConfig.ID,
-		Type:        "string",
+		Type:        consts.OpTypeString,
 		Required:    true,
 	}
 	name := &builderpb.Option{
 		Name:        "name",
 		Description: "name of this particular agent instance",
 		Default:     builderConfig.ID,
-		Type:        "string",
+		Type:        consts.OpTypeString,
 		Required:    false,
 	}
 	OS := &builderpb.Option{
 		Name:        "os",
 		Description: "the OS that the build targets",
 		Default:     runtime.GOOS,
+		Type:        consts.OpTypeString,
 		Required:    false,
 	}
 	arch := &builderpb.Option{
 		Name:        "arch",
 		Description: "the platform architecture that the build targets",
 		Default:     "amd64",
-		Type:        "string",
+		Type:        consts.OpTypeString,
 		Required:    false,
 	}
 	def := config.MainConfig.Interface
@@ -110,31 +111,31 @@ func defaultOptions() []*builderpb.Option {
 		def = config.ClientConfig.RHost
 	}
 	host := &builderpb.Option{
-		Name:        "host",
+		Name:        "lhost",
 		Description: "the host that the agent calls back to",
 		Default:     def,
-		Type:        "string",
+		Type:        consts.OpTypeString,
 		Required:    false,
 	}
 	port := &builderpb.Option{
-		Name:        "port",
+		Name:        consts.OpLPort,
 		Description: "the port on which to connect to the host on callback",
-		Default:     "8000",
-		Type:        "int",
+		Default:     "",
+		Type:        consts.OpTypeInt,
 		Required:    false,
 	}
 	out := &builderpb.Option{
 		Name:        "outfile",
 		Description: "the name of the resulting binary",
 		Default:     "",
-		Type:        "string",
+		Type:        consts.OpTypeString,
 		Required:    false,
 	}
 	caCert := &builderpb.Option{
 		Name:        "ca_cert",
 		Description: "[internal] the certificate authority used to sign server certificates (immutable)",
 		Default:     "***",
-		Type:        "string",
+		Type:        consts.OpTypeString,
 		Required:    true,
 	}
 	options = append(options, ID, name, OS, arch, host, port, caCert, out)
@@ -221,17 +222,17 @@ func setCmd(name, value string) {
 
 func TypeVerify(t, value string) error {
 	switch t {
-	case "int":
+	case consts.OpTypeInt:
 		if _, err := strconv.Atoi(value); err != nil {
 			return fmt.Errorf("not a valid integer")
 		}
 
-	case "bool":
+	case consts.OpTypeBool:
 		if _, err := strconv.ParseBool(value); err != nil {
 			return fmt.Errorf("not a valid boolean")
 		}
 
-	case "float":
+	case consts.OpTypeFloat:
 		if _, err := strconv.ParseFloat(value, 64); err != nil {
 			return fmt.Errorf("not a valid float")
 		}
@@ -355,6 +356,8 @@ func build() {
 		return
 	}
 	l.Success("build complete. saved to %s", out.Name())
+	// regen in case they want the convenience of building agents in succession
+	builderConfig.ID = agentID()
 }
 
 // agentID generates an ID for an agent.
@@ -385,11 +388,11 @@ func gatherOptions() string {
 
 func allOptions() []string {
 	var options []string
-	for k := range builderConfig.request.Options {
-		if slices.Contains(internals, k) {
+	for _, k := range builderConfig.options {
+		if slices.Contains(internals, k.Name) {
 			continue
 		}
-		options = append(options, k)
+		options = append(options, k.Name)
 	}
 	return options
 }

@@ -17,4 +17,16 @@ const (
 	AgentIDSize     = 8
 	RequestIDLength = 36
 	OpcodeLength    = 4 // uint32
+
+	ProfileTCP          = "tcp"
+	ProfileHTTP         = "http"
+	ProfileHTTPS        = "https"
+	TypeInternalProfile = "internal"
+
+	OpTypeBool   = "bool"
+	OpTypeInt    = "int"
+	OpTypeFloat  = "float"
+	OpTypeString = "string"
+
+	OpLPort = "lport"
 )

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/pygrum/monarch/pkg/consts"
 	"github.com/pygrum/monarch/pkg/handler/tcp"
 	"github.com/pygrum/monarch/pkg/teamserver/roles"
 	"github.com/pygrum/monarch/pkg/types"
@@ -211,15 +212,20 @@ func (s *MonarchServer) Builders(_ context.Context, req *clientpb.BuilderRequest
 
 func (s *MonarchServer) Profiles(_ context.Context, req *clientpb.ProfileRequest) (*clientpb.Profiles, error) {
 	var profiles []db.Profile
+	builderIDs := append(req.Name, consts.TypeInternalProfile)
+
 	pbProfiles := &clientpb.Profiles{}
-	if len(req.Name) > 0 {
-		if err := db.Where("name IN ? AND builder_id = ?", req.Name, req.BuilderId).Find(&profiles); err != nil {
-			return nil, fmt.Errorf("failed to find profiles(s): %v", err)
-		}
-	} else {
-		if err := db.Where("builder_id = ?", req.BuilderId).Find(&profiles).Error; err != nil {
-			return nil, fmt.Errorf("failed to find profiles(s): %v", err)
-		}
+	//if len(req.Name) > 0 {
+	//	if err := db.Where("name IN ? AND builder_id IN ?", req.Name, builderIDs).Find(&profiles); err != nil {
+	//		return nil, fmt.Errorf("failed to find profiles(s): %v", err)
+	//	}
+	//} else {
+	//	if err := db.Where("builder_id IN ?", builderIDs).Find(&profiles).Error; err != nil {
+	//		return nil, fmt.Errorf("failed to find profiles(s): %v", err)
+	//	}
+	//}
+	if err := db.Where("builder_id IN ?", builderIDs).Find(&profiles).Error; err != nil {
+		return nil, fmt.Errorf("failed to find profiles(s): %v", err)
 	}
 	for _, p := range profiles {
 		pbProfiles.Profiles = append(pbProfiles.Profiles, &clientpb.Profile{
@@ -239,7 +245,9 @@ func (s *MonarchServer) SaveProfile(ctx context.Context, req *clientpb.SaveProfi
 		return nil, ErrNoMetadata
 	}
 	player := md["uid"]
-	if db.Where("name = ? AND builder_id = ?", req.Name, req.BuilderId).Find(&profile); len(profile.Name) != 0 {
+	// include internal profile in duplicate check to prevent load conflicts
+	builderIDs := []string{req.BuilderId, consts.TypeInternalProfile}
+	if db.Where("name = ? AND builder_id IN ?", req.Name, builderIDs).Find(&profile); len(profile.Name) != 0 {
 		return nil, fmt.Errorf("a profile for this build named '%s' already exists", req.Name)
 	}
 	profile = &db.Profile{
@@ -268,7 +276,10 @@ func (s *MonarchServer) SaveProfile(ctx context.Context, req *clientpb.SaveProfi
 func (s *MonarchServer) LoadProfile(_ context.Context, req *clientpb.SaveProfileRequest) (*clientpb.ProfileData, error) {
 	profile := &db.Profile{}
 	profileData := &clientpb.ProfileData{}
-	if err := db.Where("name = ? AND builder_id = ?", req.Name, req.BuilderId).Find(profile).Error; err != nil {
+
+	// include internal builder ID to allow for loading of internal profiles
+	builderIDs := []string{req.BuilderId, consts.TypeInternalProfile}
+	if err := db.Where("name = ? AND builder_id IN ?", req.Name, builderIDs).Find(profile).Error; err != nil {
 		return nil, fmt.Errorf("failed to find %s: %v", req.Name, err)
 	}
 	var records []db.ProfileRecord
@@ -306,6 +317,8 @@ func (s *MonarchServer) RmProfiles(ctx context.Context, req *clientpb.ProfileReq
 	role := md["role"][0]
 
 	var profiles []db.Profile
+	// rightly only allow deletion from current loaded profile and not internal
+	// if they somehow managed to change the builder_id to internal, they would only be able to remove if admin
 	if err := db.Where("name IN ? AND builder_id = ? ", req.Name, req.BuilderId).Find(&profiles).Error; err != nil {
 		return nil, fmt.Errorf("couldn't get profiles: %v", err)
 	}
