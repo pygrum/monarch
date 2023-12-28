@@ -46,7 +46,8 @@ docker build -t monarch-ctr:latest -f docker/monarch/Dockerfile .
 docker run -v /var/run/docker.sock:/var/run/docker.sock --name monarch-ctr -dit monarch-ctr:latest
 echo "running installer on container..."
 docker exec -i monarch-ctr bash -c 'chmod +x scripts/install-monarch.sh && ./scripts/install-monarch.sh'
-docker exec -i monarch-ctr bash -c 'mv /root/.local/bin/monarch /usr/bin/monarch && echo "moved to /usr/bin/monarch"'
+docker exec -i monarch-ctr bash -c \
+  'mv /root/.local/bin/monarch-server /usr/bin/monarch-server && echo "moved to /usr/bin/monarch-server"'
 echo "done, connecting container to network"
 docker network connect monarch-net monarch-ctr
 echo "stopping container"
