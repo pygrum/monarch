@@ -95,7 +95,7 @@ echo "royal-lint saved to $HOME/.local/bin/royal-lint"
 
 echo "building monarch.."
 go build ../cmd/server/monarch-server.go
-mv ./monarch "${HOME}/.local/bin"
+mv ./monarch-server "${HOME}/.local/bin"
 
 echo "building monarch client..."
 go build ../cmd/client/monarch-client.go
